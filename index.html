@@ -27,19 +27,17 @@
   .container{max-width:1280px;margin:0 auto;padding:32px 24px}
   .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
   @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
-  .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
-  .card-title{font-size:1rem;font-weight:600;color:var(--gray-800);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+  .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
+  .card-title{font-size:1rem;font-weight:600;color:var(--gray-800);margin-bottom:18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .badge{font-size:.7rem;font-weight:600;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:20px}
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
   @media(max-width:900px){.kpi-grid{grid-template-columns:1fr 1fr}}
-  .kpi{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);
-        padding:20px 22px;border-left:4px solid var(--primary)}
+  .kpi{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;border-left:4px solid var(--primary)}
   .kpi .kpi-val{font-size:2rem;font-weight:700;margin-bottom:2px}
   .kpi .kpi-lbl{font-size:.78rem;color:var(--gray-600)}
   .kpi .kpi-sub{font-size:.72rem;color:var(--gray-400);margin-top:4px}
   .faq-table{width:100%;border-collapse:collapse;font-size:.88rem}
-  .faq-table thead th{background:var(--gray-100);padding:12px 14px;text-align:left;
-                       font-weight:600;color:var(--gray-600);border-bottom:2px solid var(--gray-200);white-space:nowrap}
+  .faq-table thead th{background:var(--gray-100);padding:12px 14px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:2px solid var(--gray-200);white-space:nowrap}
   .faq-table tbody tr{border-bottom:1px solid var(--gray-100);transition:background .15s}
   .faq-table tbody tr:hover{background:var(--gray-50)}
   .faq-table td{padding:14px;vertical-align:top}
@@ -54,36 +52,57 @@
   .freq-bar{display:flex;align-items:center;gap:8px}
   .freq-bar .bar{height:6px;background:var(--primary);border-radius:3px}
   .freq-bar .num{font-weight:700;color:var(--primary);white-space:nowrap;font-size:.85rem}
+  /* insight */
   .insight-list{list-style:none}
   .insight-list li{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--gray-100);align-items:flex-start}
   .insight-list li:last-child{border-bottom:none}
   .insight-icon{flex-shrink:0;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem}
-  .icon-red{background:#fee2e2}.icon-orange{background:#fef3c7}
-  .icon-blue{background:#dbeafe}.icon-green{background:#d1fae5}
+  .icon-red{background:#fee2e2}.icon-orange{background:#fef3c7}.icon-blue{background:#dbeafe}.icon-green{background:#d1fae5}
   .insight-body strong{display:block;font-size:.9rem;margin-bottom:3px}
   .insight-body p{font-size:.82rem;color:var(--gray-600)}
-  .notion-section{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:20px}
+  /* notion */
   .notion-table{width:100%;border-collapse:collapse;font-size:.82rem}
   .notion-table th{background:#f7f6f3;border:1px solid #e9e8e4;padding:8px 12px;text-align:left;font-size:.78rem;color:#6b6b6b}
   .notion-table td{border:1px solid #e9e8e4;padding:8px 12px;vertical-align:top;color:#37352f}
-  .copy-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;
-             border:none;border-radius:8px;padding:8px 16px;font-size:.84rem;cursor:pointer;
-             font-weight:600;margin-bottom:16px;transition:opacity .15s}
+  .copy-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.84rem;cursor:pointer;font-weight:600;margin-bottom:16px;transition:opacity .15s}
   .copy-btn:hover{opacity:.85}.copy-btn.copied{background:var(--success)}
-  .tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--gray-100);border-radius:10px;padding:4px;width:fit-content}
-  .tab{padding:8px 20px;border:none;background:transparent;border-radius:8px;font-size:.88rem;
-        cursor:pointer;font-weight:500;color:var(--gray-600);transition:all .15s}
+  /* tabs */
+  .tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--gray-100);border-radius:10px;padding:4px;flex-wrap:wrap}
+  .tab{padding:8px 18px;border:none;background:transparent;border-radius:8px;font-size:.88rem;cursor:pointer;font-weight:500;color:var(--gray-600);transition:all .15s}
   .tab.active{background:#fff;color:var(--primary);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.1)}
   .section{display:none}.section.active{display:block}
   .chart-wrap{position:relative;height:280px}
+  .chart-wrap-lg{position:relative;height:360px}
   .table-scroll{overflow-x:auto}
   .updated-tag{font-size:.75rem;color:var(--gray-400);margin-left:auto}
+  /* ── English FAQ accordion ── */
+  .en-faq-intro{background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;
+                 border-radius:10px;padding:16px 20px;margin-bottom:20px;font-size:.88rem;color:#0c4a6e}
+  .en-faq-intro strong{display:block;font-size:1rem;margin-bottom:4px;color:#0369a1}
+  .faq-item{border:1px solid var(--gray-200);border-radius:10px;margin-bottom:10px;overflow:hidden;transition:box-shadow .2s}
+  .faq-item:hover{box-shadow:var(--shadow)}
+  .faq-btn{width:100%;display:flex;align-items:center;gap:12px;padding:16px 20px;background:#fff;
+            border:none;cursor:pointer;text-align:left;font-size:.92rem;transition:background .15s}
+  .faq-btn:hover{background:var(--gray-50)}
+  .faq-icon{font-size:1.1rem;flex-shrink:0}
+  .faq-cat-tag{font-size:.7rem;font-weight:700;background:var(--primary-light);color:var(--primary);
+                padding:2px 8px;border-radius:12px;white-space:nowrap;flex-shrink:0}
+  .faq-question{font-weight:600;color:var(--gray-800);flex:1}
+  .faq-chevron{color:var(--gray-400);font-size:.8rem;flex-shrink:0;transition:transform .25s}
+  .faq-chevron.open{transform:rotate(180deg);color:var(--primary)}
+  .faq-answer{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease;background:#fafafa}
+  .faq-answer.open{max-height:200px;padding:0 20px 18px 52px}
+  .faq-answer p{color:var(--gray-600);font-size:.88rem;line-height:1.7;border-left:3px solid var(--primary);padding-left:14px}
+  .copy-en-btn{display:inline-flex;align-items:center;gap:6px;background:#0ea5e9;color:#fff;
+                border:none;border-radius:8px;padding:8px 16px;font-size:.84rem;cursor:pointer;
+                font-weight:600;margin-bottom:16px;transition:opacity .15s}
+  .copy-en-btn:hover{opacity:.85}.copy-en-btn.copied{background:var(--success)}
 </style>
 </head>
 <body>
 <div class="header">
   <h1>HOMESINKOREA · 고객 문의 FAQ 대시보드 <span class="badge-live">LIVE</span></h1>
-  <p>채널톡 종료 상담 데이터 자동 분석 · 마지막 업데이트: 2026-04-16 17:24</p>
+  <p>채널톡 종료 상담 데이터 자동 분석 · 마지막 업데이트: 2026-04-16 17:35</p>
   <div class="header-meta">
     <div class="meta-item"><div class="val">7,064</div><div class="lbl">총 분석 문의</div></div>
     <div class="meta-item"><div class="val">7,005</div><div class="lbl">실제 고객 문의</div></div>
@@ -96,11 +115,12 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('faq',this)">FAQ 목록</button>
     <button class="tab" onclick="switchTab('analysis',this)">데이터 분석</button>
+    <button class="tab" onclick="switchTab('website-faq',this)">웹사이트 FAQ (EN)</button>
     <button class="tab" onclick="switchTab('feedback',this)">개선 피드백</button>
     <button class="tab" onclick="switchTab('notion',this)">Notion 내보내기</button>
   </div>
 
-  <!-- FAQ -->
+  <!-- ① FAQ 목록 -->
   <div id="tab-faq" class="section active">
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-val">1,465</div>
@@ -117,7 +137,7 @@
         <div class="kpi-sub">전체의 1.9%</div></div></div>
     <div class="card">
       <div class="card-title">FAQ 목록 <span class="badge">빈도 높은 순 · 11개 카테고리</span>
-        <span class="updated-tag">업데이트: 2026-04-16 17:24</span></div>
+        <span class="updated-tag">업데이트: 2026-04-16 17:35</span></div>
       <div class="table-scroll">
         <table class="faq-table">
           <thead><tr><th>#</th><th>카테고리</th><th>자주 묻는 질문</th><th>권장 답변</th><th>빈도</th></tr></thead>
@@ -270,7 +290,7 @@
     </div>
   </div>
 
-  <!-- 분석 -->
+  <!-- ② 데이터 분석 -->
   <div id="tab-analysis" class="section">
     <div class="grid-2">
       <div class="card"><div class="card-title">월별 문의량 추이</div>
@@ -281,12 +301,138 @@
     <div class="grid-2">
       <div class="card"><div class="card-title">문의 유형 비교 (상위 8개)</div>
         <div class="chart-wrap"><canvas id="barChart"></canvas></div></div>
-      <div class="card"><div class="card-title">채널톡 태그 분류 (상위 15)</div>
+      <div class="card"><div class="card-title">채널톡 태그 분류</div>
         <div class="chart-wrap"><canvas id="tagChart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📍 위치별 문의 순위 <span class="badge">실제 채팅 텍스트 기반 분석</span></div>
+      <div class="chart-wrap-lg"><canvas id="locChart"></canvas></div>
     </div>
   </div>
 
-  <!-- 피드백 -->
+  <!-- ③ 웹사이트 영문 FAQ -->
+  <div id="tab-website-faq" class="section">
+    <div class="en-faq-intro">
+      <strong>🌐 Website FAQ (English) — Copy-ready for your website</strong>
+      실제 고객 문의 7,005건을 분석해 도출한 영문 FAQ입니다. 웹사이트에 바로 붙여넣거나 채널봇 자동 답변으로 활용하세요.
+    </div>
+    <div style="margin-bottom:16px">
+      <button class="copy-en-btn" id="copyEnBtn" onclick="copyEnFaq()">📋 전체 텍스트 복사 (웹사이트용)</button>
+    </div>
+    <div id="enFaqList">
+      <div class="faq-item" id="faq-0">
+        <button class="faq-btn" onclick="toggleFaq(0)">
+          <span class="faq-icon">💰</span>
+          <span class="faq-cat-tag">Pricing</span>
+          <span class="faq-question">How much does it cost to stay at HOMESINKOREA?</span>
+          <span class="faq-chevron" id="chev-0">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-0">
+          <p>Pricing varies depending on the room type, location, and semester. Our studios start from around ₩1,000,000/month. Please share your preferred area and move-in dates and we'll send you a personalized quote — including deposit and utility details.</p>
+        </div>
+      </div>
+      <div class="faq-item" id="faq-1">
+        <button class="faq-btn" onclick="toggleFaq(1)">
+          <span class="faq-icon">📋</span>
+          <span class="faq-cat-tag">Booking</span>
+          <span class="faq-question">How do I book a room? Is there availability right now?</span>
+          <span class="faq-chevron" id="chev-1">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-1">
+          <p>Simply reach out via our chat or Instagram DM with your preferred location, number of occupants, and move-in date. We'll share available options and guide you through the contract and deposit process. We recommend inquiring 2–4 weeks before your semester starts.</p>
+        </div>
+      </div>
+      <div class="faq-item" id="faq-2">
+        <button class="faq-btn" onclick="toggleFaq(2)">
+          <span class="faq-icon">📍</span>
+          <span class="faq-cat-tag">Location</span>
+          <span class="faq-question">Do you have rooms near Hongdae, Sinchon, or my university?</span>
+          <span class="faq-chevron" id="chev-2">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-2">
+          <p>Yes! We have properties across Seoul's most popular neighborhoods — Hongdae, Sinchon, Itaewon, Gangnam, and more. Just tell us the area or university you're near and we'll match you with the closest available options.</p>
+        </div>
+      </div>
+      <div class="faq-item" id="faq-3">
+        <button class="faq-btn" onclick="toggleFaq(3)">
+          <span class="faq-icon">📅</span>
+          <span class="faq-cat-tag">Stay Duration</span>
+          <span class="faq-question">Can I stay for just one week or one month? What is the minimum stay?</span>
+          <span class="faq-chevron" id="chev-3">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-3">
+          <p>Our standard leases follow the academic semester (approximately 4 months). Short-term stays of 1–4 weeks may be available on select properties — please inquire directly. Minimum stay requirements vary by property.</p>
+        </div>
+      </div>
+      <div class="faq-item" id="faq-4">
+        <button class="faq-btn" onclick="toggleFaq(4)">
+          <span class="faq-icon">🛏️</span>
+          <span class="faq-cat-tag">Room Types</span>
+          <span class="faq-question">What room types do you offer? Can I stay with a roommate?</span>
+          <span class="faq-chevron" id="chev-4">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-4">
+          <p>We offer private studios, shared apartments (2–4 people), and share-houses. In share-houses, each guest has a private room while sharing common spaces like the kitchen and living room. Tell us your group size and budget and we'll find the best fit.</p>
+        </div>
+      </div>
+      <div class="faq-item" id="faq-5">
+        <button class="faq-btn" onclick="toggleFaq(5)">
+          <span class="faq-icon">📄</span>
+          <span class="faq-cat-tag">Lease & Documents</span>
+          <span class="faq-question">Can you provide a rental contract for my Alien Registration Card?</span>
+          <span class="faq-chevron" id="chev-5">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-5">
+          <p>Absolutely. Once your booking is confirmed, we provide all documents needed for your Alien Registration Card application — including the lease agreement and our business registration certificate. Processing typically takes 1–2 business days.</p>
+        </div>
+      </div>
+      <div class="faq-item" id="faq-6">
+        <button class="faq-btn" onclick="toggleFaq(6)">
+          <span class="faq-icon">🐾</span>
+          <span class="faq-cat-tag">Pets</span>
+          <span class="faq-question">Are pets allowed?</span>
+          <span class="faq-chevron" id="chev-6">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-6">
+          <p>Pet policies vary by property. Some of our homes welcome small pets with an additional deposit. Please let us know your pet's type and size and we'll filter for pet-friendly options.</p>
+        </div>
+      </div>
+      <div class="faq-item" id="faq-7">
+        <button class="faq-btn" onclick="toggleFaq(7)">
+          <span class="faq-icon">🏠</span>
+          <span class="faq-cat-tag">Amenities</span>
+          <span class="faq-question">What amenities are included?</span>
+          <span class="faq-chevron" id="chev-7">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-7">
+          <p>Most of our properties come fully furnished with Wi-Fi, air conditioning, a refrigerator, and a washing machine. Some units include additional amenities like a gym or lounge. If you have specific requirements, just let us know!</p>
+        </div>
+      </div>
+      <div class="faq-item" id="faq-8">
+        <button class="faq-btn" onclick="toggleFaq(8)">
+          <span class="faq-icon">↩️</span>
+          <span class="faq-cat-tag">Cancellation</span>
+          <span class="faq-question">What is your cancellation and refund policy?</span>
+          <span class="faq-chevron" id="chev-8">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-8">
+          <p>Cancellation terms depend on when you cancel relative to your move-in date. Generally, cancellations made 30+ days in advance are eligible for a partial deposit refund. Full details are outlined in the lease agreement — please review before signing.</p>
+        </div>
+      </div>
+      <div class="faq-item" id="faq-9">
+        <button class="faq-btn" onclick="toggleFaq(9)">
+          <span class="faq-icon">🗺️</span>
+          <span class="faq-cat-tag">Service Area</span>
+          <span class="faq-question">Do you have properties outside of Seoul (Busan, Daejeon, Incheon)?</span>
+          <span class="faq-chevron" id="chev-9">▼</span>
+        </button>
+        <div class="faq-answer" id="ans-9">
+          <p>Currently, HOMESINKOREA operates exclusively in Seoul. We do not have properties in Busan, Daejeon, Incheon, or Songdo at this time. We're always growing, so stay tuned for future expansions!</p>
+        </div>
+      </div></div>
+  </div>
+
+  <!-- ④ 개선 피드백 -->
   <div id="tab-feedback" class="section">
     <div class="grid-2">
       <div class="card">
@@ -296,11 +442,11 @@
             <strong>가격 정보 비공개로 인한 반복 문의</strong>
             <p>전체 문의의 약 23%가 가격 문의입니다. 웹사이트에 방 유형별 시작 가격을 게시하면 상담 부담을 크게 줄일 수 있습니다.</p></div></li>
           <li><div class="insight-icon icon-red">📍</div><div class="insight-body">
-            <strong>위치별 필터링 UI 부재</strong>
-            <p>홍대·신촌·이태원 등 특정 지역 언급 문의가 다수입니다. 지도 기반 또는 지역 필터 검색 기능 추가가 필요합니다.</p></div></li>
+            <strong>위치별 필터링 UI 부재 — Hongdae 1위</strong>
+            <p>홍대(278건)·신촌(113건) 집중도가 압도적입니다. 해당 지역 물건을 웹사이트 메인에 우선 노출하고 지역 필터를 추가하세요.</p></div></li>
           <li><div class="insight-icon icon-red">🚫</div><div class="insight-body">
-            <strong>서울 외 지역 문의 미처리</strong>
-            <p>부산·대전·인천 문의가 반복됩니다. 채널봇 자동응답으로 서울 전용 서비스임을 즉시 안내하세요.</p></div></li>
+            <strong>서울 외 지역 문의 자동 안내 미비</strong>
+            <p>부산·대전·인천 문의가 반복됩니다. 채널봇으로 즉시 "서울 전용" 안내 후 대화를 종료하세요.</p></div></li>
         </ul>
       </div>
       <div class="card">
@@ -308,13 +454,13 @@
         <ul class="insight-list">
           <li><div class="insight-icon icon-orange">📅</div><div class="insight-body">
             <strong>단기 체류 정책 FAQ 게시</strong>
-            <p>"1주일 가능한가요?" 류의 문의가 반복됩니다. 최소 입주 기간을 채널봇 환영 메시지에 포함시키세요.</p></div></li>
+            <p>"1주일 가능한가요?" 류 230건. 최소 입주 기간을 채널봇 환영 메시지와 웹사이트에 명시하세요.</p></div></li>
           <li><div class="insight-icon icon-orange">🐾</div><div class="insight-body">
             <strong>반려동물 허용 정책 명확화</strong>
-            <p>반려동물 문의가 꾸준히 발생합니다. 물건별 반려동물 허용 여부를 리스팅에 태그로 표시하세요.</p></div></li>
+            <p>물건별 반려동물 허용 여부를 리스팅 태그로 표시하면 30건의 반복 문의를 줄일 수 있습니다.</p></div></li>
           <li><div class="insight-icon icon-orange">📄</div><div class="insight-body">
-            <strong>임대 서류 자동 제공 프로세스</strong>
-            <p>외국인 등록증용 서류 요청이 반복됩니다. 입주 확정 시 서류 패키지를 자동 이메일 발송하세요.</p></div></li>
+            <strong>서류 자동 발송 프로세스 구축</strong>
+            <p>입주 확정 시 외국인 등록증용 서류 패키지를 자동 이메일 발송하면 47건의 문의가 사라집니다.</p></div></li>
         </ul>
       </div>
     </div>
@@ -325,11 +471,11 @@
           <strong>채널봇 FAQ 자동응답 구축</strong>
           <p>상위 5개 카테고리 자동응답 설정 시 전체 문의의 약 40%를 자동 처리할 수 있습니다.</p></div></li>
         <li><div class="insight-icon icon-blue">📊</div><div class="insight-body">
-          <strong>학기별 피크 대비 운영</strong>
+          <strong>학기별 피크 대비 운영 계획</strong>
           <p>5–6월·8–9월·11월이 문의 피크입니다. 해당 기간 상담 인력을 사전 확충하세요.</p></div></li>
         <li><div class="insight-icon icon-green">🌐</div><div class="insight-body">
           <strong>다국어 FAQ 페이지 구축</strong>
-          <p>문의의 약 70%가 영어, 스페인어·프랑스어 문의도 확인됩니다. 영어 중심 FAQ 페이지를 먼저 구축하세요.</p></div></li>
+          <p>문의의 약 70%가 영어, 스페인어·프랑스어도 다수입니다. "웹사이트 FAQ (EN)" 탭의 내용을 바로 활용하세요.</p></div></li>
         <li><div class="insight-icon icon-green">💬</div><div class="insight-body">
           <strong>소셜 인바운드 채널 추적</strong>
           <p>TikTok·Instagram 유입 언급이 다수입니다. UTM 파라미터로 채널별 성과를 측정하세요.</p></div></li>
@@ -337,9 +483,9 @@
     </div>
   </div>
 
-  <!-- Notion -->
+  <!-- ⑤ Notion -->
   <div id="tab-notion" class="section">
-    <div class="notion-section">
+    <div class="card">
       <div class="card-title">Notion 복사용 표</div>
       <p style="font-size:.84rem;color:var(--gray-600);margin-bottom:14px">아래 버튼으로 복사 후 Notion에 붙여넣으세요.</p>
       <button class="copy-btn" id="copyBtn" onclick="copyNotion()">📋 Notion 표 복사하기</button>
@@ -401,9 +547,10 @@
 const monthlyData = {"2023-11": 7, "2023-12": 127, "2024-01": 159, "2024-02": 196, "2024-03": 330, "2024-04": 99, "2024-05": 276, "2024-06": 127, "2024-07": 292, "2024-08": 297, "2024-09": 377, "2024-10": 514, "2024-11": 241, "2024-12": 138, "2025-01": 207, "2025-02": 180, "2025-03": 174, "2025-04": 148, "2025-05": 578, "2025-06": 771, "2025-07": 297, "2025-08": 185, "2025-09": 71, "2025-10": 123, "2025-11": 662, "2025-12": 261, "2026-01": 54, "2026-02": 60, "2026-03": 53, "2026-04": 1};
 const catData     = {"기타": 4452, "가격/비용 문의": 1465, "예약/입주 방법": 444, "위치/지역 문의": 360, "룸 타입/인원": 134, "입주 기간/단기": 51, "서류/계약": 51, "반려동물": 30, "서울 외 지역": 11, "시설/편의": 4, "비자/서류 지원": 3};
 const tagData     = {"예약문의": 2180, "숙박완료": 285, "2025가을학기": 261, "2025봄학기": 241, "가을학기": 163, "쉐어하우스": 138, "2026봄학기": 137, "예산부적합": 123, "STUDIO": 88, "2025여름학기": 86, "홈스커넥트": 76, "광고": 71, "#42": 44, "여름학기": 39, "겨울학기": 37};
+const locData     = {"Hongdae": 257, "Sinchon": 113, "Yonsei Univ.": 49, "Hanyang Univ.": 39, "Korea Univ.": 39, "Gangnam": 29, "Sogang Univ.": 21, "Itaewon": 21, "Mapo": 20, "Dongdaemun": 18, "Ewha Univ.": 14, "Kondae / Seongsu": 6, "Jongno / City Hall": 5};
 const faqData     = [{"cat": "가격/비용 문의", "catClass": "cat-price", "q": "월세/가격이 얼마인가요? 제 예산에 맞는 방이 있나요?", "a": "가격은 룸 유형·위치·학기별로 다르며 스튜디오 기준 월 100만 원대부터 시작합니다. 원하시는 지역과 입주 기간을 알려주시면 맞춤 안내 드립니다. 보증금·관리비 포함 여부도 함께 안내해 드립니다.", "priority": "🔴 긴급", "rank": 1, "freq": 1465, "pct": 20.9, "bar": 80}, {"cat": "예약/입주 방법", "catClass": "cat-booking", "q": "예약은 어떻게 하나요? 현재 이용 가능한 방이 있나요?", "a": "채널톡 또는 인스타그램 DM으로 원하시는 위치·인원·입주 날짜를 알려주시면 가용 물건을 안내해 드립니다. 계약서 작성 → 보증금 납입 순으로 진행됩니다. 학기 시작 2–4주 전 문의를 권장합니다.", "priority": "🟠 높음", "rank": 2, "freq": 444, "pct": 6.3, "bar": 24}, {"cat": "위치/지역 문의", "catClass": "cat-location", "q": "홍대/신촌/이태원/강남 근처 방이 있나요? 특정 대학 근처로 찾고 있어요.", "a": "홍대·신촌·이태원·강남 등 서울 주요 지역에 다수의 물건을 보유하고 있습니다. 원하시는 지역명 또는 인근 대학교를 알려주시면 가장 가까운 물건을 추천해 드립니다.", "priority": "🟠 높음", "rank": 3, "freq": 360, "pct": 5.1, "bar": 20}, {"cat": "룸 타입/인원", "catClass": "cat-roomtype", "q": "2인/3인용 방도 있나요? 스튜디오 vs 쉐어하우스 차이가 뭔가요?", "a": "1인 스튜디오부터 2–4인 공유 아파트, 쉐어하우스까지 다양한 유형을 제공합니다. 쉐어하우스는 거실·주방을 공유하고 각자 개인 방을 사용하는 형태로 비용이 저렴합니다.", "priority": "🟡 중간", "rank": 4, "freq": 134, "pct": 1.9, "bar": 8}, {"cat": "입주 기간/단기", "catClass": "cat-duration", "q": "1주일/한 달 단기 체류도 가능한가요? 최소 입주 기간이 얼마인가요?", "a": "기본적으로 학기 단위(약 4개월) 이상 중장기 계약을 운영합니다. 단기(1주~1개월)는 물건 상황에 따라 제한적으로 가능하니 별도 문의 바랍니다.", "priority": "🟡 중간", "rank": 5, "freq": 51, "pct": 0.7, "bar": 8}, {"cat": "서류/계약", "catClass": "cat-docs", "q": "외국인 등록증 발급용 임대차 계약서나 사업자등록증을 받을 수 있나요?", "a": "입주 확정 후 외국인 등록증(Residence Card) 신청에 필요한 서류를 제공해 드립니다. 서류 발급까지 보통 1–2 영업일 소요됩니다.", "priority": "🟠 높음", "rank": 6, "freq": 51, "pct": 0.7, "bar": 8}, {"cat": "반려동물", "catClass": "cat-pets", "q": "강아지/고양이 등 반려동물 동반 입주가 가능한가요?", "a": "반려동물 허용 여부는 물건마다 다릅니다. 일부 물건에서는 소형 반려동물을 허용하며 추가 보증금이 발생할 수 있습니다.", "priority": "🟡 중간", "rank": 7, "freq": 30, "pct": 0.4, "bar": 8}, {"cat": "서울 외 지역", "catClass": "cat-etc", "q": "부산/대전/인천/송도에도 방이 있나요?", "a": "현재 HOMESINKOREA는 서울 지역 물건만 운영하고 있습니다. 서울 이외 지역은 서비스 범위에 포함되지 않습니다.", "priority": "🟢 낮음", "rank": 8, "freq": 11, "pct": 0.2, "bar": 8}, {"cat": "시설/편의", "catClass": "cat-etc", "q": "와이파이·세탁기·에어컨 등 시설이 포함되어 있나요?", "a": "대부분의 물건에 와이파이·에어컨·냉장고·세탁기가 기본 포함되어 있습니다. 특정 시설이 필요하시면 문의 시 알려주세요.", "priority": "🟢 낮음", "rank": 9, "freq": 4, "pct": 0.1, "bar": 8}, {"cat": "비자/서류 지원", "catClass": "cat-docs", "q": "비자 상황이 불확실한데 예약을 먼저 할 수 있나요?", "a": "비자 발급 전 사전 상담은 가능하며, 물건 예약은 비자 확정 후 진행을 권장합니다. 필요 서류 지원도 안내해 드립니다.", "priority": "🟢 낮음", "rank": 10, "freq": 3, "pct": 0.0, "bar": 8}, {"cat": "취소/환불", "catClass": "cat-etc", "q": "예약 취소 및 환불 정책이 어떻게 되나요?", "a": "입주 30일 이전 취소 시 보증금 일부가 환불됩니다. 자세한 취소 조건은 계약서에 명시되어 있으니 계약 전 확인해 주세요.", "priority": "🟢 낮음", "rank": 11, "freq": 0, "pct": 0.0, "bar": 8}];
 const colors = ['#f59e0b','#2563eb','#10b981','#7c3aed','#ec4899',
-                '#6b7280','#14b8a6','#64748b','#f87171','#34d399','#a78bfa'];
+                '#6b7280','#14b8a6','#64748b','#f87171','#34d399','#a78bfa','#fb7185','#38bdf8'];
 
 function copyNotion(){
   const t=document.getElementById('notionTable');
@@ -413,6 +560,29 @@ function copyNotion(){
   const b=document.getElementById('copyBtn');
   b.textContent='✅ 복사 완료!';b.classList.add('copied');
   setTimeout(()=>{b.textContent='📋 Notion 표 복사하기';b.classList.remove('copied')},2000);
+}
+
+function copyEnFaq(){
+  const items=document.querySelectorAll('#enFaqList .faq-item');
+  let text='HOMESINKOREA — Frequently Asked Questions\n'+'='.repeat(50)+'\n\n';
+  items.forEach(item=>{
+    const q=item.querySelector('.faq-question').textContent.trim();
+    const a=item.querySelector('.faq-answer p').textContent.trim();
+    const cat=item.querySelector('.faq-cat-tag').textContent.trim();
+    text+=`[${cat}]\nQ: ${q}\nA: ${a}\n\n`;
+  });
+  navigator.clipboard.writeText(text).then(()=>{
+    const b=document.getElementById('copyEnBtn');
+    b.textContent='✅ 복사 완료!';b.classList.add('copied');
+    setTimeout(()=>{b.textContent='📋 전체 텍스트 복사 (웹사이트용)';b.classList.remove('copied')},2000);
+  });
+}
+
+function toggleFaq(i){
+  const ans=document.getElementById('ans-'+i);
+  const chev=document.getElementById('chev-'+i);
+  const open=ans.classList.toggle('open');
+  chev.classList.toggle('open',open);
 }
 
 let chartsReady=false;
@@ -429,16 +599,16 @@ function renderCharts(){
   new Chart(document.getElementById('trendChart'),{
     type:'line',
     data:{labels:months,datasets:[{label:'문의 건수',data:vals,fill:true,
-          borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',tension:.35,pointRadius:2,borderWidth:2}]},
-    options:{responsive:true,maintainAspectRatio:false,
-              plugins:{legend:{display:false}},
+      borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',tension:.35,pointRadius:2,borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
               scales:{x:{ticks:{maxTicksLimit:10,font:{size:10}}},y:{beginAtZero:true}}}
   });
   const catLabels=Object.keys(catData),catVals=Object.values(catData);
   new Chart(document.getElementById('catChart'),{
     type:'doughnut',
     data:{labels:catLabels,datasets:[{data:catVals,backgroundColor:colors}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}}}}
+    options:{responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}}}}
   });
   const top8=faqData.slice(0,8);
   new Chart(document.getElementById('barChart'),{
@@ -451,6 +621,40 @@ function renderCharts(){
     type:'bar',
     data:{labels:tagFiltered.map(d=>d[0]),datasets:[{label:'건수',data:tagFiltered.map(d=>d[1]),backgroundColor:'rgba(37,99,235,.7)'}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+  });
+
+  // 위치 차트
+  const locSorted=Object.entries(locData).sort((a,b)=>b[1]-a[1]);
+  const locColors=locSorted.map((_,i)=>{
+    const palette=['#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe',
+                   '#7c3aed','#8b5cf6','#a78bfa','#c4b5fd','#ddd6fe',
+                   '#0ea5e9','#38bdf8','#7dd3fc'];
+    return palette[i] || '#94a3b8';
+  });
+  new Chart(document.getElementById('locChart'),{
+    type:'bar',
+    data:{
+      labels:locSorted.map(d=>d[0]),
+      datasets:[{
+        label:'문의 건수',
+        data:locSorted.map(d=>d[1]),
+        backgroundColor:locColors,
+        borderRadius:6,
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>' '+ctx.raw+'건'}}
+      },
+      scales:{
+        x:{beginAtZero:true,grid:{color:'#f3f4f6'}},
+        y:{ticks:{font:{size:12,weight:'600'}}}
+      }
+    }
   });
 }
 </script>
