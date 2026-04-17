@@ -121,6 +121,15 @@
   .dot:nth-child(3){animation-delay:.3s}
   @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}}
   .loading-dot{width:12px;height:12px;background:var(--primary);border-radius:50%;animation:pulse 1s infinite;display:inline-block}
+  /* ── Draft Generator ── */
+  .copy-draft-btn{padding:3px 10px;background:var(--gray-100);color:var(--gray-600);border:none;border-radius:6px;cursor:pointer;font-size:.72rem;font-weight:600;margin-left:auto;transition:all .15s;flex-shrink:0}
+  .copy-draft-btn:hover{background:var(--primary);color:#fff}
+  .copy-draft-btn.copied{background:var(--success);color:#fff}
+  .hook-pass{display:inline-flex;align-items:center;gap:5px;background:#d1fae5;color:#065f46;border-radius:6px;padding:3px 10px;font-size:.75rem;font-weight:600}
+  .hook-warn{display:inline-flex;align-items:center;gap:5px;background:#fef3c7;color:#92400e;border-radius:6px;padding:3px 10px;font-size:.75rem;font-weight:600}
+  .hook-fail{display:inline-flex;align-items:center;gap:5px;background:#fee2e2;color:#991b1b;border-radius:6px;padding:3px 10px;font-size:.75rem;font-weight:600}
+  .draft-box{font-size:.9rem;line-height:1.85;color:var(--gray-800);white-space:pre-wrap;background:var(--gray-50);padding:16px;border-radius:8px;border:1px solid var(--gray-200)}
+  @media(max-width:700px){.memo-grid{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -143,6 +152,7 @@
     <button class="tab" onclick="switchTab('feedback',this)">개선 피드백</button>
     <button class="tab" onclick="switchTab('notion',this)">Notion 내보내기</button>
     <button class="tab" onclick="switchTab('sim',this)">🌶️ 상담 체험</button>
+    <button class="tab" onclick="switchTab('draft',this)">✍️ 초안 생성기</button>
   </div>
 
   <!-- ① FAQ 목록 -->
@@ -505,6 +515,124 @@
           <strong>소셜 인바운드 채널 추적</strong>
           <p>TikTok·Instagram 유입 언급이 다수입니다. UTM 파라미터로 채널별 성과를 측정하세요.</p></div></li>
       </ul>
+    </div>
+  </div>
+
+  <!-- ⑦ 초안 생성기 -->
+  <div id="tab-draft" class="section">
+    <!-- Header + API Key -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px">
+        <div style="flex:1;min-width:200px">
+          <div class="card-title" style="margin-bottom:6px">✍️ 답변 초안 생성기 <span class="badge">Claude AI</span></div>
+          <p style="font-size:.86rem;color:var(--gray-600);line-height:1.6">고객 문의를 넣으면 한국어·영어 답변 초안, 내부 메모, 누락 확인 질문을 자동 생성합니다.<br>톤앤매너·금지표현·응대 규칙이 고정 적용되며, 생성 후 자동 품질 검증(hooks)이 실행됩니다.</p>
+        </div>
+        <div style="min-width:270px">
+          <label style="font-size:.8rem;font-weight:600;color:var(--gray-800);display:block;margin-bottom:6px">🔑 Claude API Key</label>
+          <div style="display:flex;gap:6px">
+            <input type="password" id="draftApiKey" placeholder="sk-ant-api03-..." style="flex:1;padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'">
+            <button onclick="saveDraftKey()" style="padding:9px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;white-space:nowrap">저장</button>
+          </div>
+          <div id="draft-key-status" style="font-size:.74rem;color:var(--gray-400);margin-top:5px">console.anthropic.com → API Keys 에서 발급</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="align-items:start">
+      <!-- Left: Input + Rules -->
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:12px">📥 고객 문의 입력</div>
+          <textarea id="customerInquiry" placeholder="고객이 보낸 메시지를 그대로 붙여넣으세요..." rows="8" style="width:100%;padding:12px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:.88rem;resize:vertical;outline:none;font-family:inherit;line-height:1.65;transition:border-color .15s;box-sizing:border-box" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'"></textarea>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+            <select id="categoryHint" style="padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;color:var(--gray-700);outline:none;background:#fff;flex:1;min-width:150px">
+              <option value="">카테고리 자동 감지</option>
+              <option value="price">가격/비용 문의</option>
+              <option value="booking">예약/입주 방법</option>
+              <option value="refund">환불/취소</option>
+              <option value="visa">비자/서류</option>
+              <option value="complaint">불만/컴플레인</option>
+              <option value="location">위치/지역</option>
+              <option value="amenity">시설/편의</option>
+            </select>
+            <button onclick="generateDraft()" id="generateBtn" style="padding:10px 22px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:.9rem;white-space:nowrap;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">✨ 초안 생성</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="cursor:pointer;user-select:none" onclick="toggleRules()">
+            📋 고정 적용 규칙
+            <span id="rules-chevron" style="font-size:.78rem;color:var(--gray-400);margin-left:auto;font-weight:400">▼ 펼치기</span>
+          </div>
+          <div id="rules-content" style="display:none;font-size:.82rem;color:var(--gray-700);line-height:1.7;margin-top:4px">
+            <div style="margin-bottom:12px"><strong style="color:var(--gray-800)">🗣️ 톤앤매너</strong>
+              <div style="padding-left:10px;margin-top:3px">• 친근하지만 전문적 어조 · '고객님' 호칭 필수<br>• 한국어: ~합니다/드립니다체 (해요체 금지)<br>• 공감 표현 필수 · 구체적 다음 단계로 마무리</div></div>
+            <div style="margin-bottom:12px"><strong style="color:#dc2626">🚫 금지 표현</strong>
+              <div style="padding-left:10px;margin-top:3px">• "어쩔 수 없습니다" / "There's nothing we can do"<br>• "저희 정책상" (이유 없이 단독 사용)<br>• "기다려 주세요" (시간 명시 없이)<br>• 고객 탓으로 돌리는 표현 일체</div></div>
+            <div style="margin-bottom:12px"><strong style="color:var(--gray-800)">💰 환불/취소</strong>
+              <div style="padding-left:10px;margin-top:3px">• 처리 기간 영업일 기준 명시 필수<br>• 불가 케이스는 계약서 조항 근거 제시</div></div>
+            <div style="margin-bottom:12px"><strong style="color:var(--gray-800)">📄 비자/서류</strong>
+              <div style="padding-left:10px;margin-top:3px">• 입주 확정 후 1-2 영업일 내 제공<br>• 비자 전 상담 가능 · 예약은 확정 후 권장</div></div>
+            <div><strong style="color:var(--gray-800)">🏙️ 서울 외 지역</strong>
+              <div style="padding-left:10px;margin-top:3px">• "현재 서울 지역만 운영합니다"로 안내 후 종료</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Output -->
+      <div>
+        <div id="draft-placeholder" style="background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:48px 24px;text-align:center;color:var(--gray-400)">
+          <div style="font-size:2.8rem;margin-bottom:12px">✍️</div>
+          <div style="font-size:.92rem;line-height:1.7">고객 문의를 입력하고<br>초안 생성 버튼을 누르세요</div>
+        </div>
+
+        <div id="draft-generating" style="display:none;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:40px 24px;text-align:center;color:var(--gray-400)">
+          <div class="loading-dot" style="margin:0 auto 14px"></div>
+          <div style="font-size:.9rem">초안을 생성하고 있습니다...</div>
+          <div style="font-size:.78rem;margin-top:6px">품질 검증(hooks) 자동 실행 예정</div>
+        </div>
+
+        <div id="draft-results" style="display:none">
+          <!-- Hook validation banner -->
+          <div id="draft-validation" style="margin-bottom:12px"></div>
+
+          <!-- KO draft -->
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title" style="margin-bottom:10px">
+              🇰🇷 한국어 답변 초안
+              <button class="copy-draft-btn" id="copy-ko" onclick="copyDraft('ko')">📋 복사</button>
+            </div>
+            <div id="draft-ko" class="draft-box"></div>
+          </div>
+
+          <!-- EN draft -->
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title" style="margin-bottom:10px">
+              🇬🇧 English Draft
+              <button class="copy-draft-btn" id="copy-en" onclick="copyDraft('en')">📋 Copy</button>
+            </div>
+            <div id="draft-en" class="draft-box"></div>
+          </div>
+
+          <!-- Memo + Question -->
+          <div class="memo-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="card">
+              <div class="card-title" style="margin-bottom:10px;font-size:.88rem">
+                📝 내부 메모
+                <button class="copy-draft-btn" id="copy-memo" onclick="copyDraft('memo')">📋 복사</button>
+              </div>
+              <div id="draft-memo" style="font-size:.84rem;line-height:1.75;color:var(--gray-700);white-space:pre-wrap"></div>
+            </div>
+            <div class="card">
+              <div class="card-title" style="margin-bottom:10px;font-size:.88rem">
+                ❓ 누락 확인 질문
+                <button class="copy-draft-btn" id="copy-q" onclick="copyDraft('q')">📋 복사</button>
+              </div>
+              <div id="draft-q" style="font-size:.88rem;line-height:1.75;color:var(--gray-700);background:var(--primary-light);padding:14px;border-radius:8px;border-left:3px solid var(--primary)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1362,6 +1490,166 @@ function buildFeedbackHtml(stage, lang, staffMsgs) {
 
 function restartSim() { document.getElementById('sim-feedback').style.display='none'; startSim(); }
 function goSetup() { document.getElementById('sim-feedback').style.display='none'; document.getElementById('sim-chat').style.display='none'; document.getElementById('sim-setup').style.display='block'; }
+
+// ── Draft Generator ──
+const DRAFT_SYSTEM = `You are a customer service specialist for HOMESINKOREA, a short/mid-term furnished rental service for international residents in Seoul, Korea.
+
+TONE & MANNER RULES:
+- Warm but professional tone at all times
+- Korean: always address as "고객님", use formal ~합니다/드립니다 style (NEVER ~해요 style)
+- English: use "Hi there" or the customer's name if known
+- Always include an empathy expression before the main answer
+- Always end with a clear, concrete next step for the customer
+
+PROHIBITED EXPRESSIONS — never use these under any circumstances:
+- "어쩔 수 없습니다" / "There's nothing we can do"
+- "저희 정책상" without a full explanation of why
+- "기다려 주세요" without specifying an exact timeframe
+- "모르겠습니다" / "I don't know" / "I'm not sure"
+- Any phrasing that implies the customer is at fault or misunderstood
+
+SITUATIONAL RESPONSE RULES:
+1. Price inquiries: Never quote a price directly. First ask for the preferred area, move-in date, and number of occupants. Then promise a personalized quote.
+2. Refund/cancellation: Always state the exact processing time in business days. For non-refundable cases, cite the specific contract clause as justification.
+3. Visa/documents: Documents are provided within 1–2 business days after move-in is confirmed. Pre-visa consultations are welcome; however, room reservation is recommended only after visa confirmation.
+4. Outside Seoul inquiries: Clearly state "HOMESINKOREA currently operates exclusively in Seoul" and close the response politely without offering alternatives.
+5. Complaints: Lead with a sincere apology + empathy statement, then provide concrete resolution steps with specific timeframes, then escalation path if needed.
+
+OUTPUT FORMAT — respond ONLY with a single valid JSON object, no markdown, no explanation outside the JSON:
+{
+  "ko_draft": "Complete Korean reply ready to send to the customer",
+  "en_draft": "Complete English reply ready to send to the customer",
+  "internal_memo": "Internal memo in Korean: 1) 고객 요청 요약 2) 담당자 확인 사항 3) 주의점 또는 리스크",
+  "clarifying_question": "Single follow-up question in Korean to ask the customer for any missing info needed to resolve the inquiry"
+}`;
+
+const HOOK_RULES = {
+  prohibited_ko: ['어쩔 수 없습니다','정책상 불가','기다려 주세요','모르겠습니다','오해하신','고객님 잘못'],
+  prohibited_en: ["there's nothing we can do","i don't know","i'm not sure","you misunderstood","your fault"],
+  min_length: 80
+};
+
+function saveDraftKey() {
+  const key = document.getElementById('draftApiKey').value.trim();
+  if (!key.startsWith('sk-ant-')) { alert('올바른 Claude API 키를 입력해주세요. (sk-ant- 로 시작)'); return; }
+  sessionStorage.setItem('draft_api_key', key);
+  document.getElementById('draftApiKey').value = '●'.repeat(24);
+  const st = document.getElementById('draft-key-status');
+  st.textContent = '✅ API 키가 저장되었습니다.';
+  st.style.color = 'var(--success)';
+}
+
+function toggleRules() {
+  const el = document.getElementById('rules-content');
+  const ch = document.getElementById('rules-chevron');
+  const open = el.style.display === 'none';
+  el.style.display = open ? 'block' : 'none';
+  ch.textContent = open ? '▲ 접기' : '▼ 펼치기';
+}
+
+function runHooks(result) {
+  const issues = [], warnings = [];
+  HOOK_RULES.prohibited_ko.forEach(p => {
+    if (result.ko_draft.includes(p)) issues.push(`금지 표현: "${p}"`);
+  });
+  HOOK_RULES.prohibited_en.forEach(p => {
+    if (result.en_draft.toLowerCase().includes(p)) issues.push(`Prohibited phrase: "${p}"`);
+  });
+  if (result.ko_draft.length < HOOK_RULES.min_length) issues.push(`한국어 초안 너무 짧음 (${result.ko_draft.length}자, 최소 ${HOOK_RULES.min_length}자)`);
+  if (result.en_draft.length < HOOK_RULES.min_length) issues.push(`English draft too short (${result.en_draft.length} chars, min ${HOOK_RULES.min_length})`);
+  const korInEn = (result.en_draft.match(/[가-힣]/g) || []).length;
+  if (korInEn > 4) warnings.push(`영문 초안에 한국어 ${korInEn}자 포함됨`);
+  if (!result.ko_draft.includes('고객님')) warnings.push('"고객님" 호칭 누락');
+  const empathy = ['이해','죄송','불편','감사','안타','공감'];
+  if (!empathy.some(w => result.ko_draft.includes(w))) warnings.push('한국어 초안에 공감 표현 없음');
+  const hasQ = result.clarifying_question.endsWith('?') || result.clarifying_question.endsWith('？') || result.clarifying_question.includes('?');
+  if (!hasQ) warnings.push('확인 질문에 물음표(?) 없음');
+  if (!result.internal_memo || result.internal_memo.length < 20) warnings.push('내부 메모가 너무 짧거나 비어있음');
+  return { issues, warnings };
+}
+
+function renderValidation(hooks) {
+  const el = document.getElementById('draft-validation');
+  if (hooks.issues.length === 0 && hooks.warnings.length === 0) {
+    el.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px"><span class="hook-pass">✅ 모든 품질 검증 통과</span></div>';
+    return;
+  }
+  let html = '<div style="background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:4px"><div style="font-size:.82rem;font-weight:700;color:var(--gray-800);margin-bottom:8px">🔍 자동 품질 검증 (Hooks)</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
+  hooks.issues.forEach(i => { html += `<span class="hook-fail">❌ ${i}</span>`; });
+  hooks.warnings.forEach(w => { html += `<span class="hook-warn">⚠️ ${w}</span>`; });
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function copyDraft(type) {
+  const map = { ko:'draft-ko', en:'draft-en', memo:'draft-memo', q:'draft-q' };
+  const btnMap = { ko:'copy-ko', en:'copy-en', memo:'copy-memo', q:'copy-q' };
+  const text = document.getElementById(map[type]).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(btnMap[type]);
+    const orig = btn.textContent;
+    btn.textContent = '✅ 복사됨'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+async function generateDraft() {
+  const apiKey = sessionStorage.getItem('draft_api_key');
+  if (!apiKey) { alert('먼저 Claude API 키를 입력하고 저장해주세요.'); return; }
+  const inquiry = document.getElementById('customerInquiry').value.trim();
+  if (!inquiry) { alert('고객 문의 내용을 입력해주세요.'); return; }
+  const category = document.getElementById('categoryHint').value;
+  const categoryNote = category ? `\n\n[카테고리 힌트: ${document.getElementById('categoryHint').options[document.getElementById('categoryHint').selectedIndex].text}]` : '';
+
+  document.getElementById('draft-placeholder').style.display = 'none';
+  document.getElementById('draft-results').style.display = 'none';
+  document.getElementById('draft-generating').style.display = 'block';
+  document.getElementById('generateBtn').disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        system: DRAFT_SYSTEM,
+        messages: [{ role: 'user', content: `다음 고객 문의에 대한 답변 초안을 생성해주세요:${categoryNote}\n\n---\n${inquiry}\n---` }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const raw = data.content[0].text;
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('응답에서 JSON을 찾을 수 없습니다. 다시 시도해주세요.');
+    const result = JSON.parse(jsonMatch[0]);
+    if (!result.ko_draft || !result.en_draft || !result.internal_memo || !result.clarifying_question) {
+      throw new Error('응답 형식 오류: 필수 항목이 누락되었습니다. 다시 시도해주세요.');
+    }
+
+    const hooks = runHooks(result);
+    renderValidation(hooks);
+    document.getElementById('draft-ko').textContent = result.ko_draft;
+    document.getElementById('draft-en').textContent = result.en_draft;
+    document.getElementById('draft-memo').textContent = result.internal_memo;
+    document.getElementById('draft-q').textContent = result.clarifying_question;
+
+    document.getElementById('draft-generating').style.display = 'none';
+    document.getElementById('draft-results').style.display = 'block';
+  } catch(e) {
+    document.getElementById('draft-generating').style.display = 'none';
+    document.getElementById('draft-placeholder').style.display = 'block';
+    document.getElementById('draft-placeholder').innerHTML = `<div style="font-size:1.5rem;margin-bottom:10px">⚠️</div><div style="font-size:.88rem;color:#dc2626">${e.message}</div>`;
+  } finally {
+    document.getElementById('generateBtn').disabled = false;
+  }
+}
 
 let chartsReady=false;
 function switchTab(name,el){
