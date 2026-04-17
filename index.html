@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HOMESINKOREA — 고객 문의 FAQ 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
@@ -144,12 +145,66 @@
   .send-btn:disabled{opacity:.5;cursor:not-allowed}
   .broadcast-preview{font-size:.9rem;line-height:1.85;color:var(--gray-800);white-space:pre-wrap;background:var(--gray-50);padding:18px;border-radius:8px;border:1px solid var(--gray-200)}
   .recipient-badge{background:#6366f1;color:#fff;font-size:.7rem;font-weight:700;padding:2px 9px;border-radius:12px}
+  /* ── Auth Overlay ── */
+  #auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+  .auth-card{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.25)}
+  .auth-logo{text-align:center;margin-bottom:28px}
+  .auth-logo h2{font-size:1.3rem;font-weight:800;color:#1e3a8a;margin-bottom:4px}
+  .auth-logo p{font-size:.82rem;color:var(--gray-400)}
+  .auth-tabs{display:flex;background:var(--gray-100);border-radius:10px;padding:4px;margin-bottom:24px}
+  .auth-tab{flex:1;padding:8px;border:none;background:transparent;border-radius:8px;font-size:.88rem;cursor:pointer;font-weight:500;color:var(--gray-600);transition:all .15s}
+  .auth-tab.active{background:#fff;color:var(--primary);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+  .auth-input{width:100%;padding:11px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:.9rem;outline:none;font-family:inherit;transition:border-color .15s;box-sizing:border-box;margin-bottom:12px}
+  .auth-input:focus{border-color:var(--primary)}
+  .auth-btn{width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .15s;margin-top:4px}
+  .auth-btn:hover{opacity:.88}
+  .auth-btn:disabled{opacity:.5;cursor:not-allowed}
+  .auth-msg{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:.84rem;line-height:1.6;text-align:center;display:none}
+  .auth-msg.error{background:#fee2e2;color:#991b1b;display:block}
+  .auth-msg.pending{background:#fef3c7;color:#92400e;display:block}
+  .auth-msg.success{background:#d1fae5;color:#065f46;display:block}
+  .logout-btn{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.8rem;cursor:pointer;font-weight:600;transition:background .15s}
+  .logout-btn:hover{background:rgba(255,255,255,.25)}
 </style>
 </head>
 <body>
+
+<!-- Auth Overlay -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <h2>🏠 HOMESINKOREA</h2>
+      <p>내부 대시보드 — 승인된 팀원만 접속 가능합니다</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login',this)">로그인</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup',this)">회원가입</button>
+    </div>
+    <div id="auth-login">
+      <input class="auth-input" id="login-email" type="email" placeholder="이메일">
+      <input class="auth-input" id="login-pw" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">로그인</button>
+    </div>
+    <div id="auth-signup" style="display:none">
+      <input class="auth-input" id="signup-email" type="email" placeholder="이메일">
+      <input class="auth-input" id="signup-pw" type="password" placeholder="비밀번호 (6자 이상)" onkeydown="if(event.key==='Enter')doSignup()">
+      <button class="auth-btn" id="signup-btn" onclick="doSignup()">가입 신청</button>
+    </div>
+    <div id="auth-msg" class="auth-msg"></div>
+  </div>
+</div>
+
 <div class="header">
-  <h1>HOMESINKOREA · 고객 문의 FAQ 대시보드 <span class="badge-live">LIVE</span></h1>
-  <p>채널톡 종료 상담 데이터 자동 분석 · 마지막 업데이트: 2026-04-16 17:37</p>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+    <div>
+      <h1>HOMESINKOREA · 고객 문의 FAQ 대시보드 <span class="badge-live">LIVE</span></h1>
+      <p>채널톡 종료 상담 데이터 자동 분석 · 마지막 업데이트: 2026-04-16 17:37</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+      <span id="user-email-display" style="font-size:.8rem;opacity:.75"></span>
+      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
   <div class="header-meta">
     <div class="meta-item"><div class="val">7,064</div><div class="lbl">총 분석 문의</div></div>
     <div class="meta-item"><div class="val">7,005</div><div class="lbl">실제 고객 문의</div></div>
@@ -885,6 +940,79 @@
 </div>
 
 <script>
+/* ── Supabase Auth ── */
+const SUPABASE_URL = 'https://etwvnedvgayusrzlhhwm.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0d3ZuZWR2Z2F5dXNyemxoaHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MzMyNjksImV4cCI6MjA5MjAwOTI2OX0.Rl6vzauv1M_tkfn2N-W7TT9HXW_SdKcjPt54MZVv5Aw';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+async function checkAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { showOverlay(); return; }
+  const { data: profile } = await sb.from('profiles').select('approved').eq('id', session.user.id).single();
+  if (!profile?.approved) {
+    showMsg('pending', '⏳ 가입 신청이 완료되었습니다. 관리자 승인 후 접속 가능합니다.');
+    document.getElementById('auth-login').style.display = 'none';
+    document.getElementById('auth-signup').style.display = 'none';
+    document.getElementById('auth-overlay').style.display = 'flex';
+    return;
+  }
+  document.getElementById('user-email-display').textContent = session.user.email;
+  document.getElementById('auth-overlay').style.display = 'none';
+}
+
+function showOverlay() { document.getElementById('auth-overlay').style.display = 'flex'; }
+
+function showMsg(type, text) {
+  const el = document.getElementById('auth-msg');
+  el.className = 'auth-msg ' + type;
+  el.textContent = text;
+}
+
+function switchAuthTab(tab, btn) {
+  document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('auth-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('auth-signup').style.display = tab === 'signup' ? 'block' : 'none';
+  document.getElementById('auth-msg').className = 'auth-msg';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  if (!email || !pw) { showMsg('error', '이메일과 비밀번호를 입력해주세요.'); return; }
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = '로그인 중...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  btn.disabled = false; btn.textContent = '로그인';
+  if (error) { showMsg('error', '이메일 또는 비밀번호가 올바르지 않습니다.'); return; }
+  await checkAuth();
+}
+
+async function doSignup() {
+  const email = document.getElementById('signup-email').value.trim();
+  const pw = document.getElementById('signup-pw').value;
+  if (!email || !pw) { showMsg('error', '이메일과 비밀번호를 입력해주세요.'); return; }
+  if (pw.length < 6) { showMsg('error', '비밀번호는 6자 이상이어야 합니다.'); return; }
+  const btn = document.getElementById('signup-btn');
+  btn.disabled = true; btn.textContent = '신청 중...';
+  const { error } = await sb.auth.signUp({ email, password: pw });
+  btn.disabled = false; btn.textContent = '가입 신청';
+  if (error) { showMsg('error', error.message); return; }
+  showMsg('pending', '✅ 가입 신청이 완료되었습니다. 관리자 승인 후 로그인해주세요.');
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  document.getElementById('user-email-display').textContent = '';
+  document.getElementById('auth-login').style.display = 'block';
+  document.getElementById('auth-signup').style.display = 'none';
+  document.querySelectorAll('.auth-tab').forEach((b,i) => i===0 ? b.classList.add('active') : b.classList.remove('active'));
+  document.getElementById('auth-msg').className = 'auth-msg';
+  showOverlay();
+}
+
+window.addEventListener('DOMContentLoaded', checkAuth);
+
 const monthlyData = {"2023-11": 7, "2023-12": 127, "2024-01": 159, "2024-02": 196, "2024-03": 330, "2024-04": 99, "2024-05": 276, "2024-06": 127, "2024-07": 292, "2024-08": 297, "2024-09": 377, "2024-10": 514, "2024-11": 241, "2024-12": 138, "2025-01": 207, "2025-02": 180, "2025-03": 174, "2025-04": 148, "2025-05": 578, "2025-06": 771, "2025-07": 297, "2025-08": 185, "2025-09": 71, "2025-10": 123, "2025-11": 662, "2025-12": 261, "2026-01": 54, "2026-02": 60, "2026-03": 53, "2026-04": 1};
 const catData     = {"기타": 4452, "가격/비용 문의": 1465, "예약/입주 방법": 444, "위치/지역 문의": 360, "룸 타입/인원": 134, "입주 기간/단기": 51, "서류/계약": 51, "반려동물": 30, "서울 외 지역": 11, "시설/편의": 4, "비자/서류 지원": 3};
 const tagData     = {"예약문의": 2180, "숙박완료": 285, "2025가을학기": 261, "2025봄학기": 241, "가을학기": 163, "쉐어하우스": 138, "2026봄학기": 137, "예산부적합": 123, "STUDIO": 88, "2025여름학기": 86, "홈스커넥트": 76, "광고": 71, "#42": 44, "여름학기": 39, "겨울학기": 37};
