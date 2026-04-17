@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOMESINKOREA — 관리자</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Apple SD Gothic Neo',-apple-system,sans-serif;background:#f1f5f9;min-height:100vh;display:flex;flex-direction:column}
+  .header{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);color:#fff;padding:24px 40px;display:flex;justify-content:space-between;align-items:center}
+  .header h1{font-size:1.2rem;font-weight:700}
+  .header p{font-size:.8rem;opacity:.75;margin-top:2px}
+  .logout-btn{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:.82rem;cursor:pointer;font-weight:600}
+  .logout-btn:hover{background:rgba(255,255,255,.25)}
+  .container{max-width:860px;margin:32px auto;padding:0 24px;width:100%}
+  .card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);padding:28px;margin-bottom:20px}
+  .card-title{font-size:1rem;font-weight:700;color:#1f2937;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+  .badge{font-size:.7rem;font-weight:600;background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:20px}
+  .badge-pending{background:#fef3c7;color:#92400e}
+  .badge-approved{background:#d1fae5;color:#065f46}
+  input{width:100%;padding:11px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:.9rem;outline:none;font-family:inherit;transition:border-color .15s;box-sizing:border-box;margin-bottom:12px}
+  input:focus{border-color:#2563eb}
+  .btn{padding:11px 24px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .btn:hover{opacity:.88}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-success{background:#16a34a}
+  .btn-danger{background:#dc2626;padding:6px 14px;font-size:.8rem}
+  .btn-approve{background:#16a34a;padding:6px 14px;font-size:.8rem}
+  .msg{padding:12px 14px;border-radius:8px;font-size:.84rem;margin-top:12px;display:none}
+  .msg.error{background:#fee2e2;color:#991b1b;display:block}
+  .msg.success{background:#d1fae5;color:#065f46;display:block}
+  .user-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f3f4f6;gap:12px;flex-wrap:wrap}
+  .user-row:last-child{border-bottom:none}
+  .user-info{flex:1;min-width:0}
+  .user-email{font-weight:600;font-size:.9rem;color:#1f2937;word-break:break-all}
+  .user-date{font-size:.75rem;color:#9ca3af;margin-top:3px}
+  .user-actions{display:flex;gap:8px;flex-shrink:0}
+  #login-panel, #admin-panel{display:none}
+  #login-panel.visible, #admin-panel.visible{display:block}
+  .empty{text-align:center;padding:32px;color:#9ca3af;font-size:.9rem}
+  .stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+  .stat{background:#fff;border-radius:10px;padding:14px 20px;flex:1;box-shadow:0 1px 3px rgba(0,0,0,.08);border-left:4px solid #2563eb;min-width:120px}
+  .stat .val{font-size:1.6rem;font-weight:700;color:#1f2937}
+  .stat .lbl{font-size:.76rem;color:#6b7280;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>🏠 HOMESINKOREA — 관리자 페이지</h1>
+    <p>회원 가입 승인 관리</p>
+  </div>
+  <button class="logout-btn" id="logoutBtn" style="display:none" onclick="adminLogout()">로그아웃</button>
+</div>
+
+<div class="container">
+  <!-- Login -->
+  <div class="card" id="login-panel">
+    <div class="card-title">🔐 관리자 로그인</div>
+    <input type="password" id="admin-pw" placeholder="관리자 비밀번호" onkeydown="if(event.key==='Enter')adminLogin()">
+    <button class="btn" id="login-btn" onclick="adminLogin()">로그인</button>
+    <div class="msg" id="login-msg"></div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="admin-panel">
+    <div class="stats">
+      <div class="stat"><div class="val" id="stat-total">-</div><div class="lbl">전체 가입자</div></div>
+      <div class="stat" style="border-color:#d97706"><div class="val" id="stat-pending">-</div><div class="lbl">승인 대기</div></div>
+      <div class="stat" style="border-color:#16a34a"><div class="val" id="stat-approved">-</div><div class="lbl">승인 완료</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        ⏳ 승인 대기
+        <span class="badge badge-pending" id="pending-count">0명</span>
+        <button class="btn" style="margin-left:auto;padding:7px 14px;font-size:.8rem" onclick="loadUsers()">🔄 새로고침</button>
+      </div>
+      <div id="pending-list"><div class="empty">승인 대기 중인 사용자가 없습니다.</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        ✅ 승인 완료
+        <span class="badge badge-approved" id="approved-count">0명</span>
+      </div>
+      <div id="approved-list"><div class="empty">승인된 사용자가 없습니다.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let adminKey = '';
+
+function showMsg(id, type, text) {
+  const el = document.getElementById(id);
+  el.className = 'msg ' + type;
+  el.textContent = text;
+}
+
+async function adminLogin() {
+  const pw = document.getElementById('admin-pw').value;
+  if (!pw) return;
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = '확인 중...';
+
+  const res = await fetch('/api/admin/users', { headers: { 'X-Admin-Key': pw } });
+  btn.disabled = false; btn.textContent = '로그인';
+
+  if (!res.ok) { showMsg('login-msg', 'error', '비밀번호가 올바르지 않습니다.'); return; }
+
+  adminKey = pw;
+  sessionStorage.setItem('admin_key', pw);
+  document.getElementById('login-panel').classList.remove('visible');
+  document.getElementById('admin-panel').classList.add('visible');
+  document.getElementById('logoutBtn').style.display = 'block';
+  renderUsers((await res.json()).users);
+}
+
+function adminLogout() {
+  adminKey = '';
+  sessionStorage.removeItem('admin_key');
+  document.getElementById('login-panel').classList.add('visible');
+  document.getElementById('admin-panel').classList.remove('visible');
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('admin-pw').value = '';
+}
+
+async function loadUsers() {
+  const res = await fetch('/api/admin/users', { headers: { 'X-Admin-Key': adminKey } });
+  if (!res.ok) return;
+  renderUsers((await res.json()).users);
+}
+
+function renderUsers(users) {
+  const pending = users.filter(u => !u.approved);
+  const approved = users.filter(u => u.approved);
+
+  document.getElementById('stat-total').textContent = users.length;
+  document.getElementById('stat-pending').textContent = pending.length;
+  document.getElementById('stat-approved').textContent = approved.length;
+  document.getElementById('pending-count').textContent = pending.length + '명';
+  document.getElementById('approved-count').textContent = approved.length + '명';
+
+  document.getElementById('pending-list').innerHTML = pending.length
+    ? pending.map(u => userRow(u, false)).join('')
+    : '<div class="empty">승인 대기 중인 사용자가 없습니다.</div>';
+
+  document.getElementById('approved-list').innerHTML = approved.length
+    ? approved.map(u => userRow(u, true)).join('')
+    : '<div class="empty">승인된 사용자가 없습니다.</div>';
+}
+
+function userRow(u, isApproved) {
+  const date = new Date(u.createdAt).toLocaleString('ko-KR');
+  const actions = isApproved
+    ? `<button class="btn btn-danger" onclick="setApproval('${u.email}', false)">승인 취소</button>`
+    : `<button class="btn btn-approve" onclick="setApproval('${u.email}', true)">✅ 승인</button>
+       <button class="btn btn-danger" onclick="setApproval('${u.email}', false)">거절</button>`;
+  return `<div class="user-row">
+    <div class="user-info">
+      <div class="user-email">${u.email}</div>
+      <div class="user-date">가입일: ${date}</div>
+    </div>
+    <div class="user-actions">${actions}</div>
+  </div>`;
+}
+
+async function setApproval(email, approved) {
+  const res = await fetch('/api/admin/approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+    body: JSON.stringify({ email, approved })
+  });
+  if (res.ok) loadUsers();
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const saved = sessionStorage.getItem('admin_key');
+  if (saved) {
+    const res = await fetch('/api/admin/users', { headers: { 'X-Admin-Key': saved } });
+    if (res.ok) {
+      adminKey = saved;
+      document.getElementById('admin-panel').classList.add('visible');
+      document.getElementById('logoutBtn').style.display = 'block';
+      renderUsers((await res.json()).users);
+      return;
+    }
+  }
+  document.getElementById('login-panel').classList.add('visible');
+});
+</script>
+</body>
+</html>
