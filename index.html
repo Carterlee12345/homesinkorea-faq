@@ -1751,9 +1751,8 @@ async function generateBroadcast() {
     document.getElementById('broadcast-en').textContent = enMsg;
 
     const tagStr = tags.map(t => `<span class="recipient-badge">${t}</span>`).join(' ');
-    const statusStr = statusLabel ? ` · <strong>${statusLabel}</strong>` : '';
     document.getElementById('broadcast-audience-summary').innerHTML =
-      `📣 수신 대상: ${tagStr}${statusStr} · 목적: <strong>${selectedPurpose}</strong>`;
+      `📣 수신 대상: ${tagStr} · 목적: <strong>${selectedPurpose === '__RAW__' ? '내용 그대로 발송' : selectedPurpose}</strong>`;
 
     document.getElementById('broadcast-generating').style.display = 'none';
     document.getElementById('broadcast-results').style.display = 'block';
