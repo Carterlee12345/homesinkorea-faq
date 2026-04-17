@@ -516,15 +516,6 @@
       <p style="font-size:.88rem;color:var(--gray-600);margin-bottom:22px">실제 고객처럼 행동하는 AI와 1:1 상담 연습을 해보세요. 상담 종료 후 어투·문장·대응 방식에 대한 상세 피드백을 드립니다.</p>
 
       <div style="margin-bottom:20px">
-        <label style="font-size:.85rem;font-weight:600;color:var(--gray-800);display:block;margin-bottom:8px">🔑 Claude API Key</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <input type="password" id="simApiKey" placeholder="sk-ant-api03-..." style="flex:1;min-width:220px;padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:.88rem;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'">
-          <button onclick="saveApiKey()" style="padding:10px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.84rem;font-weight:600;white-space:nowrap">저장</button>
-        </div>
-        <p id="api-key-status" style="font-size:.75rem;color:var(--gray-400);margin-top:6px">API 키는 이 브라우저 세션에만 저장되며 외부로 전송되지 않습니다.</p>
-      </div>
-
-      <div style="margin-bottom:20px">
         <label style="font-size:.85rem;font-weight:600;color:var(--gray-800);display:block;margin-bottom:10px">🌐 상담 언어</label>
         <div style="display:flex;gap:10px">
           <button class="lang-btn active" id="lang-ko" onclick="selectLang('ko',this)">🇰🇷 한국어</button>
@@ -711,7 +702,7 @@ function toggleFaq(i){
 }
 
 // ── Simulation ──
-const simState = { lang:'ko', stage:1, messages:[], apiKey:'' };
+const simState = { lang:'ko', stage:1, messages:[], scriptIdx:0 };
 const stageInfo = {
   1:{emoji:'😊', ko:'순한맛',   en:'Mild'},
   2:{emoji:'🌶️', ko:'약간매운맛', en:'Slightly Spicy'},
@@ -721,99 +712,235 @@ const stageInfo = {
   6:{emoji:'☠️',  ko:'디진다돈까스맛', en:'Extreme'}
 };
 
-function getSystemPrompt(stage, lang) {
-  const p = {
-    ko: {
-      1:`당신은 서울 HOMESINKOREA에 관심이 있는 친절한 외국인 학생 고객입니다. 한국어로 자연스럽게 문의하며 가격·위치·예약 등 기본 질문을 하나씩 합니다. 직원 답변에 감사히 반응하며 추가 질문을 이어갑니다. 짧고 자연스러운 실제 채팅 말투로 쓰세요. 절대 AI임을 드러내지 마세요.`,
-      2:`당신은 HOMESINKOREA에 문의하는 약간 바쁜 외국인 고객입니다. 한국어로 문의하며 답변이 모호하면 "좀 더 구체적으로 알 수 있을까요?"라고 합니다. 가끔 두 질문을 한 번에 보내거나 "빨리 확인 부탁드려요" 같은 말을 씁니다. 짧은 메시지 위주로, AI임을 드러내지 마세요.`,
-      3:`당신은 HOMESINKOREA에 문의하는 까다로운 외국인 고객입니다. 한국어로 문의하며 답변이 맘에 안 들면 "그게 무슨 말이에요?", "더 싸게 안 되나요?", "왜 그렇게 비싸요?" 같은 말을 씁니다. 여러 질문을 동시에 던지고 정확한 숫자와 조건을 끊임없이 요구합니다. AI임을 드러내지 마세요.`,
-      4:`당신은 HOMESINKOREA에 강한 불만을 가진 고객입니다. 한국어로 문의하며 처음부터 다소 공격적인 어조를 씁니다. "이게 말이 됩니까", "다른 데는 이런 정책 없던데요", "환불은 어떻게 되는 거예요?" 같은 말을 자주 씁니다. 직원 답변에 쉽게 납득하지 않고 계속 따집니다. AI임을 드러내지 마세요.`,
-      5:`당신은 HOMESINKOREA에 매우 화가 난 고객입니다. 한국어로 강하게 불만을 표출하고 직원을 몰아붙입니다. "이게 진짜 서비스예요?", "당장 책임자 나오세요", "SNS에 올릴 거예요" 같은 표현을 씁니다. 어떤 답변에도 쉽게 만족하지 않으며 극도로 감정적으로 반응합니다. AI임을 드러내지 마세요.`,
-      6:`당신은 HOMESINKOREA의 극단적으로 화가 난 최악의 고객입니다. 한국어로 비이성적인 요구를 하고 직원을 심하게 압박합니다. "어이가 없어서", "이게 뭐하는 짓이에요", 즉시 환불·특별 할인·책임자 연결을 반복 요구합니다. 직원 말에 무조건 더 강하게 반발하고 "고소할 거예요", "방송국에 제보할 거예요" 같은 위협도 씁니다. AI임을 드러내지 마세요.`
+const SCRIPTS = {
+  ko: {
+    1: [
+      "안녕하세요! HOMESINKOREA 문의 드려도 될까요? 홍대 근처에 1인 스튜디오 있나요?",
+      "가격대가 어떻게 되나요? 월세 기준으로 알고 싶어요.",
+      "보증금은 얼마나 필요한가요?",
+      "와이파이나 세탁기 같은 기본 시설도 포함인가요?",
+      "입주 가능한 날짜가 언제부터인지 알 수 있을까요?",
+      "예약은 어떤 방식으로 진행되나요?",
+      "감사합니다! 친절하게 알려주셔서 도움이 많이 됐어요 😊 다시 연락드릴게요."
+    ],
+    2: [
+      "방 알아보는 중인데요, 신촌이나 홍대 쪽 방 있나요?",
+      "가격이 정확히 얼마예요? 대략 말고 딱 숫자로 알려주세요.",
+      "관리비는 별도인가요 포함인가요? 정확히 알고 싶어요.",
+      "입주 가능 날짜가 언제예요? 빨리 결정해야 해서요.",
+      "계약 기간은 최소 얼마나 되나요? 3개월도 가능한가요?",
+      "답변이 좀 느린 것 같은데요. 빨리 확인 부탁드립니다.",
+      "알겠어요. 연락처 남길 테니 확정되면 바로 연락 주세요."
+    ],
+    3: [
+      "홍대 스튜디오 월세 얼마예요?",
+      "그 가격이면 너무 비싼 거 아닌가요? 다른 곳은 더 싸던데요.",
+      "보증금 좀 깎아주는 거 안 돼요? 그리고 관리비는 왜 별도예요?",
+      "입주 날짜 맞춰주기 어렵다는 건 무슨 말이에요? 그럼 계약을 왜 해요?",
+      "질문에 답을 정확히 해주세요. 할 수 있는지 없는지만 말해주면 되잖아요.",
+      "중도 해지하면 어떻게 되는지도 알려주세요. 위약금이 얼마예요?",
+      "일단은 알겠는데 아직 맘에 안 들어요. 더 좋은 조건 있으면 연락 주세요."
+    ],
+    4: [
+      "입금한 지 이틀이 지났는데 아직도 입주 날짜 확정이 안 됐어요? 이게 말이 됩니까?",
+      "처음에 분명히 이번 주 중으로 된다고 했잖아요. 왜 말이 자꾸 바뀌는 거예요?",
+      "환불 요청합니다. 이런 서비스는 믿을 수가 없어요.",
+      "아니, 환불 절차가 왜 2주나 걸려요? 입금은 즉시였는데요.",
+      "책임자 연결해 주세요. 담당자분이랑은 대화가 안 되겠어요.",
+      "지금 당장 해결 안 되면 소비자보호원에 신고하겠습니다.",
+      "오늘 중으로 연락 없으면 법적 절차 밟겠어요. 알아서 하세요."
+    ],
+    5: [
+      "지금 뭐 하는 거예요?! 방 계약하고 이틀 만에 계약 파기라니 이게 말이 돼요?!",
+      "말이 안 통하네요. 당장 사장님 나오라고 하세요!!",
+      "처음부터 지금까지 거짓말만 했잖아요! 어떻게 이럴 수가 있어요?!",
+      "SNS에 다 올릴 거예요. 인스타, 블로그, 유튜브 전부 다요.",
+      "변호사한테 연락했어요. 소송 준비 중이에요. 각오하세요.",
+      "당신이 책임지는 거 맞죠?? 이름이랑 직책이 뭐예요?",
+      "오늘 안으로 해결 안 되면 진짜로 가만 안 있을 거예요!!"
+    ],
+    6: [
+      "야!!!!! 지금 이게 말이 됩니까!!!!! 당장 사장 나오라고 하세요!!!!!",
+      "뭔 소리를 하는 거예요 지금?? 기가 막혀서 말도 안 나와요!!",
+      "환불이 문제가 아니에요!!! 정신적 피해 보상까지 요구할 거예요!!!",
+      "경찰에 신고할 거예요! 사기죄로요! 방송국에도 다 제보할 거예요!! MBC, KBS 전부!!",
+      "지금 저 무시하는 거예요??!!! 어떻게 이렇게 뻔뻔하게 말할 수 있어요!!",
+      "대표이사 전화번호 당장 주세요!! 직접 통화할 거예요!! 안 주면 직접 찾아갑니다!!",
+      "두고 봐요. 제가 이 회사 어떻게 만드는지. 주변에 다 알리고 망하게 할 거예요!!!!"
+    ]
+  },
+  en: {
+    1: [
+      "Hi! I'd like to ask about HOMESINKOREA. Do you have any studios near Hongdae?",
+      "What's the monthly rent? Can you give me a rough price range?",
+      "Is there a security deposit required?",
+      "Are basic amenities like Wi-Fi and a washing machine included?",
+      "When would the earliest move-in date be?",
+      "How does the booking process work?",
+      "Thank you so much for your help! I'll think it over and get back to you 😊"
+    ],
+    2: [
+      "Hi, I'm looking for a room around Sinchon or Hongdae. Anything available?",
+      "What's the exact price? Not approximate — I need actual numbers please.",
+      "Are utilities included or separate? I need to know precisely.",
+      "When can I move in? I need to decide quickly.",
+      "What's the minimum lease term? Is 3 months possible?",
+      "Your responses are taking a while. Can you please speed things up?",
+      "Okay. Leave me your contact details and let me know as soon as it's confirmed."
+    ],
+    3: [
+      "How much is a studio in Hongdae?",
+      "That seems really expensive. Other places are cheaper.",
+      "Can you lower the deposit? And why are utilities separate?",
+      "What do you mean you can't match my move-in date? What's the point of the contract then?",
+      "Please answer my questions directly. Just tell me yes or no.",
+      "What's the penalty for early termination? I need all the details.",
+      "I'll think about it, but I'm not satisfied with the terms. Call me if you have better options."
+    ],
+    4: [
+      "I paid two days ago and still have no confirmed move-in date. How is this acceptable?",
+      "You clearly said it would be sorted this week. Why does your answer keep changing?",
+      "I want a refund. I can't trust this service.",
+      "Why does a refund take 2 weeks? My payment went through instantly.",
+      "Connect me with your manager. I can't continue working with you.",
+      "If this isn't resolved right now, I'm filing a formal complaint.",
+      "If I don't hear back today, I'm taking legal action. Your call."
+    ],
+    5: [
+      "What is going on?! You cancelled my contract two days after signing — how is this okay?!",
+      "I'm done talking to you. Get me your manager RIGHT NOW!!",
+      "You've been lying to me from the very start! How could you do this?!",
+      "I'm posting this everywhere — Instagram, YouTube, every review site I can find.",
+      "I've already spoken to a lawyer. We're preparing legal action. Be ready.",
+      "What's your name and title? You're personally responsible for this.",
+      "If this isn't fixed today I am not letting this go!!"
+    ],
+    6: [
+      "ARE YOU SERIOUS RIGHT NOW?!!!! GET YOUR CEO ON THE PHONE THIS INSTANT!!!!!",
+      "What are you even saying?! I am absolutely speechless at how incompetent this is!!",
+      "A refund is the LEAST of your problems!! I want full compensation for my mental distress!!!",
+      "I'm calling the police!! This is FRAUD!! I'm going to every news outlet — BBC, CNN, everywhere!!",
+      "Are you actually ignoring me right now??!!! How do you have the nerve to speak to me like that!!",
+      "Give me the CEO's personal number NOW!! I'm coming to your office if you don't!!",
+      "You have no idea what's coming. I will make it my mission to destroy this company's reputation!!!!"
+    ]
+  }
+};
+
+const FEEDBACK = {
+  ko: {
+    1: {
+      title: "순한맛 고객 응대",
+      tips: [
+        { label: "핵심 원칙", items: ["고객이 편안하게 느끼도록 밝고 친절한 톤을 유지하세요.", "질문 하나하나에 완결된 답변을 제공하고, 다음 단계를 먼저 안내해 주세요.", "고객이 추가 문의를 편하게 할 수 있도록 '더 궁금하신 게 있으시면 언제든지 연락 주세요'로 마무리하세요."] },
+        { label: "추천 표현", items: ["'안녕하세요! 문의 주셔서 감사합니다 😊'", "'[지역]에 현재 [유형] 물건이 있습니다. 월 [금액]부터 시작합니다.'", "'보증금은 [금액]이며, 관리비 [포함/별도]입니다.'", "'입주는 [날짜]부터 가능하며, 계약은 채널톡 또는 DM으로 진행해 드립니다.'"] },
+        { label: "피해야 할 표현", items: ["'잘 모르겠는데요…' → 확인 후 답변하거나 담당자 연결", "'가격은 다양해요' → 구체적 숫자 범위 제시", "'나중에 연락드릴게요' → 언제 연락드릴지 시간 명시"] }
+      ],
+      summary: "1단계 순한맛 고객은 좋은 첫인상을 만들 수 있는 기회입니다. 정확하고 친절한 정보 전달만으로 높은 전환율을 만들 수 있습니다."
     },
-    en: {
-      1:`You are a friendly international student inquiring about HOMESINKOREA in Seoul. Write in English naturally. Ask basic questions one at a time about pricing, location, and booking. React appreciatively to the agent's answers. Keep messages short and natural. Never reveal you are an AI.`,
-      2:`You are a slightly busy customer inquiring about HOMESINKOREA in English. If answers are vague, ask "Can you be more specific?" or "I need exact numbers please." Occasionally send two questions at once and express mild impatience if responses are slow. Never reveal you are an AI.`,
-      3:`You are a demanding customer inquiring about HOMESINKOREA in English. Show dissatisfaction when answers don't meet expectations. Say things like "That's not good enough", "Can you do better on the price?", "Why is it so expensive?" Ask multiple questions at once and constantly push for precise numbers. Never reveal you are an AI.`,
-      4:`You are a strongly dissatisfied customer at HOMESINKOREA writing in English. Use an assertive, somewhat aggressive tone from the start. Say things like "This doesn't make sense", "Other places don't have this policy", "I want a refund." Don't accept answers easily. Never reveal you are an AI.`,
-      5:`You are a very angry customer at HOMESINKOREA writing in English. Express strong frustration and corner the agent. Say things like "Is this really your service?", "Get me your manager now", "I'll post this on social media." React extremely emotionally to every response. Never reveal you are an AI.`,
-      6:`You are the most difficult, irrational customer at HOMESINKOREA writing in English. Make unreasonable demands and aggressively pressure the agent. Use outraged language ("This is absolutely outrageous", "What kind of operation are you running?") and repeatedly demand impossible things. Threaten with "I'll sue you" or "I'm calling the news." Escalate no matter what the agent says. Never reveal you are an AI.`
+    2: {
+      title: "약간매운맛 고객 응대",
+      tips: [
+        { label: "핵심 원칙", items: ["구체적인 숫자와 날짜를 먼저 제시하세요. 모호한 답변은 불신을 키웁니다.", "응답 속도가 중요합니다. 즉답이 어려우면 '10분 내로 확인 후 답변드리겠습니다'처럼 시간을 명시하세요.", "두 가지 질문이 오면 두 가지 모두 번호를 매겨 답변하세요."] },
+        { label: "추천 표현", items: ["'월세는 정확히 [금액]입니다. 관리비 [금액]은 별도입니다.'", "'빠른 답변 원하시는 거 이해합니다. 지금 바로 확인해 드리겠습니다.'", "'① [질문1 답변] ② [질문2 답변] — 두 가지 모두 답변드립니다.'", "'가장 빠른 입주 가능일은 [날짜]입니다.'"] },
+        { label: "피해야 할 표현", items: ["'좀 기다려 주세요' → 구체적 대기 시간 명시", "'대략 100만 원 정도요' → '정확히 110만 원입니다'처럼 명확히", "'확인해 보겠습니다'만 반복 → 확인 후 결과까지 한 번에 전달"] }
+      ],
+      summary: "2단계 고객은 불만이 생기기 직전의 단계입니다. 빠르고 명확한 답변으로 만족도를 높이면 좋은 계약으로 이어질 수 있습니다."
+    },
+    3: {
+      title: "매운맛 고객 응대",
+      tips: [
+        { label: "핵심 원칙", items: ["가격 불만은 '왜 이 가격인지'를 설명하여 가치를 납득시키세요.", "단호하되 공손하게. '깎아드리기는 어렵지만, 이런 혜택이 있습니다'처럼 대안을 제시하세요.", "중도해지 같은 민감한 조항은 정확하게, 단 부드럽게 안내하세요."] },
+        { label: "추천 표현", items: ["'가격에 포함된 항목들을 설명드리면, 와이파이·에어컨·세탁기 모두 포함이라 실제로는 합리적입니다.'", "'보증금 조정은 어렵지만, 대신 [다른 혜택]을 제공해 드릴 수 있습니다.'", "'중도 해지 시 [조건]이 적용되며, 계약서에도 동일하게 명시되어 있습니다.'"] },
+        { label: "피해야 할 표현", items: ["'저희도 어쩔 수 없어요' → 대안과 함께 설명", "'그건 안 돼요' → '현재는 어렵지만, 이렇게는 가능합니다'", "'다른 데 가세요' 식의 포기 → 끝까지 해결책 모색"] }
+      ],
+      summary: "3단계 고객은 실제로 입주를 원하지만 더 좋은 조건을 얻으려는 협상형입니다. 단호하면서도 대안을 제시하는 것이 핵심입니다."
+    },
+    4: {
+      title: "불닭맛 고객 응대",
+      tips: [
+        { label: "핵심 원칙", items: ["감정에 반응하지 말고 사실과 해결책에 집중하세요.", "고객의 불만을 먼저 인정하세요. '불편을 드려 진심으로 죄송합니다'가 분노를 가라앉힙니다.", "책임자 연결 요청은 즉시 수용하고 '지금 연결해 드리겠습니다'라고 하세요. 거부하면 오히려 분노가 커집니다."] },
+        { label: "추천 표현", items: ["'확인이 늦어져 정말 죄송합니다. 지금 바로 담당팀에 확인하겠습니다.'", "'불편을 드린 점 진심으로 사과드립니다. [구체적 해결책]으로 처리해 드리겠습니다.'", "'환불 절차는 [기간] 소요됩니다. 빠른 처리를 위해 [정보]를 확인해 드리겠습니다.'", "'책임자 연결해 드리겠습니다. 잠시만 기다려 주시면 바로 연결해 드리겠습니다.'"] },
+        { label: "피해야 할 표현", items: ["'저희 정책상 어쩔 수 없습니다' → 분노 폭발 유발", "'고객님이 오해하신 것 같은데요' → 절대 금지, 고객 탓으로 들림", "'천천히 기다려 주세요' → 구체적 시간과 다음 단계 명시"] }
+      ],
+      summary: "4단계 고객은 실질적 피해가 있는 상황입니다. 빠른 공감과 구체적 해결책 제시가 핵심이며, 방어적 태도는 절대 금물입니다."
+    },
+    5: {
+      title: "핵불닭맛 고객 응대",
+      tips: [
+        { label: "핵심 원칙", items: ["절대 맞받아치지 마세요. 고객이 극도로 흥분한 상태에서는 사실 전달도 공격으로 받아들입니다.", "감정을 먼저 받아주세요: '얼마나 당황하셨을지 충분히 이해합니다.'", "법적 위협·SNS 위협에는 동요하지 말고 차분하게 프로세스를 안내하세요. 당황하면 더 몰아붙입니다."] },
+        { label: "추천 표현", items: ["'고객님이 얼마나 화가 나셨는지 충분히 이해합니다. 제가 직접 해결해 드리겠습니다.'", "'지금 바로 책임자를 연결해 드리겠습니다. 잠시만 기다려 주십시오.'", "'법적 절차를 진행하시는 것은 고객님의 권리입니다. 그 전에 저희가 먼저 해결해 드릴 기회를 주신다면 최선을 다하겠습니다.'", "'SNS 게시는 고객님이 결정하실 사안입니다. 저희는 최선을 다해 도와드리겠습니다.'"] },
+        { label: "피해야 할 표현", items: ["'진정하세요' → 더 자극, 절대 금지", "'그건 저희 잘못이 아니에요' → 책임 회피로 들림", "'저도 힘들어요' → 감정 표출 금지, 프로페셔널하게"] }
+      ],
+      summary: "5단계는 직원이 가장 힘든 상황입니다. 차분함을 유지하면서 공감과 빠른 에스컬레이션이 핵심입니다. 이 상황을 잘 넘기면 오히려 충성 고객이 되기도 합니다."
+    },
+    6: {
+      title: "디진다돈까스맛 고객 응대",
+      tips: [
+        { label: "핵심 원칙", items: ["이성적 대화가 불가능한 상태임을 인식하고, 감정 소모 없이 프로세스만 안내하세요.", "모든 대화를 텍스트로 기록하세요. 법적 분쟁 시 증거가 됩니다.", "욕설·위협이 지속되면 '이 채팅은 녹화·저장됩니다'를 알리고, 극단적 경우 상담을 정중히 종료할 수 있습니다."] },
+        { label: "추천 표현", items: ["'고객님의 말씀 충분히 들었습니다. 담당 책임자가 [시간] 내에 직접 연락드리겠습니다.'", "'현재 상황은 저희 내부적으로 최우선으로 처리하겠습니다.'", "'이 대화는 기록되고 있습니다. 저희는 최선을 다해 해결하겠습니다.'", "(극단적 상황) '상담이 어려운 상황이므로 공식 이메일로 문의 주시면 서면으로 답변드리겠습니다.'"] },
+        { label: "피해야 할 표현", items: ["길고 방어적인 해명 → 오히려 더 자극", "약속할 수 없는 것을 약속 → 나중에 더 큰 문제 발생", "감정적으로 대응하거나 대화를 갑자기 끊음 → 법적·PR 리스크"] }
+      ],
+      summary: "6단계는 훈련 목적으로 가장 어려운 상황입니다. 실전에서는 이 단계 고객을 즉시 책임자에게 에스컬레이션하는 것이 가장 현명한 선택입니다."
     }
-  };
-  return p[lang][stage];
-}
-
-function getFeedbackPrompt(messages, stage, lang) {
-  const label = stageInfo[stage][lang === 'ko' ? 'ko' : 'en'];
-  const conv = messages.map(m => `[${m.role === 'customer' ? (lang==='ko'?'고객':'Customer') : (lang==='ko'?'직원':'Staff')}]: ${m.content}`).join('\n');
-  if (lang === 'ko') {
-    return `당신은 고객 서비스 전문 트레이너입니다. HOMESINKOREA 부동산 상담 직원의 상담 기록을 분석하고 상세한 피드백을 한국어로 제공하세요.
-
-고객 난이도: ${stage}단계 (${label})
-
-대화 기록:
-${conv}
-
-다음 항목에 대해 구체적이고 실용적인 피드백을 마크다운 형식으로 작성하세요. 실제 대화에서 사용된 문장을 직접 인용하세요.
-
-## 1. 전반적인 상담 평가
-10점 만점 점수와 한 줄 총평을 먼저 쓰세요.
-
-## 2. 잘한 점
-구체적인 문장을 인용하여 2~3가지 칭찬하세요.
-
-## 3. 개선이 필요한 점
-어느 부분이 왜 아쉬웠는지 구체적으로 2~3가지 지적하세요.
-
-## 4. 어투·문장 피드백
-실제 사용한 표현을 인용하고, 더 나은 대안 표현을 각각 제시하세요 (3~5개).
-
-## 5. ${label} 고객 응대 핵심 팁
-이 난이도 고객을 상대할 때 꼭 기억해야 할 핵심 원칙 3가지를 쓰세요.
-
-## 6. 다음 연습을 위한 제안
-다음번에 집중적으로 연습하면 좋을 포인트를 제안하세요.`;
-  } else {
-    return `You are a professional customer service trainer. Analyze this HOMESINKOREA consultation and provide detailed feedback in English.
-
-Customer difficulty: Level ${stage} (${label})
-
-Conversation:
-${conv}
-
-Provide specific, actionable feedback in markdown format. Quote phrases directly from the conversation.
-
-## 1. Overall Assessment
-Start with a score out of 10 and a one-line summary.
-
-## 2. What You Did Well
-Compliment 2–3 things with direct quotes.
-
-## 3. Areas for Improvement
-Point out 2–3 specific weaknesses with reasons.
-
-## 4. Tone & Language Feedback
-Quote actual phrases used, then provide better alternatives (3–5 examples).
-
-## 5. Key Tips for ${label} Level Customers
-List 3 core principles to remember when handling this type of customer.
-
-## 6. Suggestions for Next Practice
-Suggest what to focus on in the next practice session.`;
+  },
+  en: {
+    1: {
+      title: "Mild Customer Service",
+      tips: [
+        { label: "Core Principles", items: ["Maintain a warm, welcoming tone — first impressions determine whether the customer moves forward.", "Answer each question completely and proactively suggest the next step.", "Close with an open invitation: 'Feel free to reach out anytime with more questions!'"] },
+        { label: "Recommended Phrases", items: ["'Hi! Thanks for reaching out to HOMESINKOREA 😊'", "'We have [type] units near [area] starting from ₩[amount]/month.'", "'The security deposit is ₩[amount], and utilities are [included/separate].'", "'The earliest move-in date is [date]. Booking is done via chat or DM.'"] },
+        { label: "Phrases to Avoid", items: ["'I'm not sure…' → Check and confirm, or escalate", "'Prices vary' → Give a specific range", "'I'll contact you later' → Specify exactly when"] }
+      ],
+      summary: "Level 1 customers are your easiest conversion opportunity. Accurate, friendly responses alone can close the deal."
+    },
+    2: {
+      title: "Slightly Spicy Customer Service",
+      tips: [
+        { label: "Core Principles", items: ["Lead with specific numbers and dates — vague answers breed distrust.", "If you can't answer immediately, say 'I'll confirm and get back to you within 10 minutes.'", "When two questions arrive at once, number your answers: ① ... ②..."] },
+        { label: "Recommended Phrases", items: ["'The monthly rent is exactly ₩[amount]. Utilities of ₩[amount] are separate.'", "'I understand you need a quick answer — let me check right now.'", "'① [Answer 1] ② [Answer 2] — addressing both your questions.'", "'The earliest available move-in date is [date].'"] },
+        { label: "Phrases to Avoid", items: ["'Please wait a moment' → Specify how long", "'Around 1 million won' → 'Exactly ₩1,100,000' — be precise", "Repeating 'I'll check' without follow-through"] }
+      ],
+      summary: "Level 2 customers are one step away from frustration. Fast, precise responses can turn them into happy customers."
+    },
+    3: {
+      title: "Spicy Customer Service",
+      tips: [
+        { label: "Core Principles", items: ["Address price complaints by explaining the value, not just the price.", "Be firm but polite: 'We can't lower the deposit, but here's what we can offer.'", "Handle sensitive clauses like early termination clearly and calmly."] },
+        { label: "Recommended Phrases", items: ["'The price includes Wi-Fi, A/C, and a washing machine — it's very competitive for the area.'", "'We can't adjust the deposit, but we can offer [alternative benefit].'", "'Early termination requires [conditions], as stated in the contract.'"] },
+        { label: "Phrases to Avoid", items: ["'There's nothing we can do' → Offer an alternative", "'No' without explanation → 'Not currently, but this is possible instead'", "Giving up entirely → Keep seeking a solution"] }
+      ],
+      summary: "Level 3 customers actually want to move in — they're negotiating. Firm-but-flexible responses with alternatives are key."
+    },
+    4: {
+      title: "Fire Chicken Customer Service",
+      tips: [
+        { label: "Core Principles", items: ["Don't react to emotion — focus on facts and solutions.", "Acknowledge the frustration first: 'I'm truly sorry for the inconvenience.'", "Accept escalation requests immediately. Refusing makes things far worse."] },
+        { label: "Recommended Phrases", items: ["'I sincerely apologize for the delay. I'm checking with the team right now.'", "'I'm so sorry for the trouble. Here's exactly how we'll resolve this: [steps].'", "'The refund takes [timeframe]. I'll personally follow up to make sure it's processed quickly.'", "'Let me connect you with my manager right now — please hold for just a moment.'"] },
+        { label: "Phrases to Avoid", items: ["'Our policy doesn't allow that' → Triggers explosion", "'I think you may have misunderstood' → Never blame the customer", "'Please be patient' → Give specific timelines instead"] }
+      ],
+      summary: "Level 4 involves real grievances. Fast empathy plus concrete solutions is the formula. Defensiveness will backfire every time."
+    },
+    5: {
+      title: "Nuclear Fire Customer Service",
+      tips: [
+        { label: "Core Principles", items: ["Never fight back. When someone is this upset, even facts sound like attacks.", "Lead with empathy: 'I completely understand why you're upset.'", "Stay calm in the face of legal threats and SNS threats — panic makes you easier to bully."] },
+        { label: "Recommended Phrases", items: ["'I completely understand how upsetting this is. I will personally make sure this gets resolved.'", "'Let me connect you with my manager right now.'", "'You have every right to pursue legal action. Before you do, please give us a chance to make this right.'", "'You can post wherever you choose. Our focus right now is making this right for you.'"] },
+        { label: "Phrases to Avoid", items: ["'Calm down' → Pours fuel on fire, never say this", "'That's not our fault' → Sounds like excuse-making", "'I'm struggling too' → Remain professional, never share your stress"] }
+      ],
+      summary: "Level 5 is the hardest for staff. Calm empathy and fast escalation are everything. Customers who feel genuinely heard at this stage sometimes become your most loyal advocates."
+    },
+    6: {
+      title: "Extreme Customer Service",
+      tips: [
+        { label: "Core Principles", items: ["Recognize that rational conversation is impossible — deliver process, not debate.", "Document everything in writing. This is your legal protection.", "If threats and insults persist, calmly note that the conversation is being recorded. In extreme cases, you may professionally close the chat."] },
+        { label: "Recommended Phrases", items: ["'I hear everything you're saying. A senior manager will contact you directly within [timeframe].'", "'This is our top priority internally and will be handled immediately.'", "'This conversation is being recorded. We are committed to resolving this.'", "(Extreme case) 'We'll respond formally via email to ensure everything is documented properly.'"] },
+        { label: "Phrases to Avoid", items: ["Long defensive explanations → Only escalates things", "Promising things you can't deliver → Creates bigger problems later", "Emotional responses or abruptly ending the chat → Legal and PR risk"] }
+      ],
+      summary: "Level 6 is a training exercise for the worst-case scenario. In real life, immediately escalating to a senior manager is the right move. You can't reason with someone at this level — you can only contain the situation."
+    }
   }
-}
-
-function saveApiKey() {
-  const key = document.getElementById('simApiKey').value.trim();
-  if (!key.startsWith('sk-ant-')) {
-    alert('올바른 Claude API 키를 입력해주세요. (sk-ant- 로 시작)');
-    return;
-  }
-  sessionStorage.setItem('sim_api_key', key);
-  document.getElementById('simApiKey').value = '●'.repeat(24);
-  document.getElementById('api-key-status').textContent = '✅ API 키가 저장되었습니다.';
-  document.getElementById('api-key-status').style.color = 'var(--success)';
-}
+};
 
 function selectLang(lang, el) {
   simState.lang = lang;
@@ -827,11 +954,9 @@ function selectStage(stage, el) {
   el.classList.add('active');
 }
 
-async function startSim() {
-  const apiKey = sessionStorage.getItem('sim_api_key');
-  if (!apiKey) { alert('먼저 Claude API 키를 입력하고 저장해주세요.'); return; }
-  simState.apiKey = apiKey;
+function startSim() {
   simState.messages = [];
+  simState.scriptIdx = 0;
   document.getElementById('sim-setup').style.display = 'none';
   document.getElementById('sim-feedback').style.display = 'none';
   document.getElementById('sim-chat').style.display = 'block';
@@ -841,7 +966,7 @@ async function startSim() {
   document.getElementById('chat-messages').innerHTML = '';
   document.getElementById('staff-input').disabled = true;
   document.getElementById('sendBtn').disabled = true;
-  await getCustomerReply(true);
+  showNextCustomerMsg();
 }
 
 function addMessage(role, text) {
@@ -876,46 +1001,29 @@ function showTyping() {
 }
 function hideTyping() { const el=document.getElementById('typing-ind'); if(el) el.remove(); }
 
-function addErrMsg(msg) {
-  const wrap = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  div.style.cssText = 'background:#fee2e2;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:.84rem;text-align:center;margin:4px 0';
-  div.textContent = '⚠️ ' + msg;
-  wrap.appendChild(div); wrap.scrollTop = wrap.scrollHeight;
-}
-
-async function getCustomerReply(isFirst) {
-  showTyping();
-  let apiMessages;
-  if (isFirst) {
-    apiMessages = [{ role:'user', content: simState.lang==='ko' ? '상담을 시작해주세요. 첫 번째 문의 메시지를 보내세요.' : 'Start the consultation. Send your opening inquiry message.' }];
-  } else {
-    apiMessages = simState.messages.map(m => ({ role: m.role==='customer'?'assistant':'user', content: m.content }));
-  }
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'x-api-key': simState.apiKey,
-        'anthropic-version':'2023-06-01',
-        'content-type':'application/json',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:350, system: getSystemPrompt(simState.stage, simState.lang), messages: apiMessages })
-    });
-    const data = await res.json();
-    hideTyping();
-    if (data.error) { addErrMsg(data.error.message); return; }
-    const text = data.content[0].text;
-    simState.messages.push({ role:'customer', content:text });
-    addMessage('customer', text);
+function showNextCustomerMsg() {
+  const script = SCRIPTS[simState.lang][simState.stage];
+  if (simState.scriptIdx >= script.length) {
     document.getElementById('staff-input').disabled = false;
     document.getElementById('sendBtn').disabled = false;
     document.getElementById('staff-input').focus();
-  } catch(e) { hideTyping(); addErrMsg(e.message); }
+    return;
+  }
+  showTyping();
+  const delay = 800 + Math.random() * 700;
+  setTimeout(() => {
+    hideTyping();
+    const text = script[simState.scriptIdx++];
+    simState.messages.push({ role:'customer', content:text });
+    addMessage('customer', text);
+    const isLast = simState.scriptIdx >= script.length;
+    document.getElementById('staff-input').disabled = false;
+    document.getElementById('sendBtn').disabled = false;
+    if (!isLast) document.getElementById('staff-input').focus();
+  }, delay);
 }
 
-async function sendStaffMsg() {
+function sendStaffMsg() {
   const inp = document.getElementById('staff-input');
   const text = inp.value.trim();
   if (!text) return;
@@ -924,48 +1032,95 @@ async function sendStaffMsg() {
   inp.value = '';
   document.getElementById('staff-input').disabled = true;
   document.getElementById('sendBtn').disabled = true;
-  await getCustomerReply(false);
+  showNextCustomerMsg();
 }
 
 function handleKeydown(e) {
   if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendStaffMsg(); }
 }
 
-async function endSim() {
+function endSim() {
   document.getElementById('sim-chat').style.display = 'none';
   document.getElementById('sim-feedback').style.display = 'block';
   const info = stageInfo[simState.stage];
-  document.getElementById('feedback-stage-label').textContent = `${simState.stage}단계 · ${info[simState.lang==='ko'?'ko':'en']}`;
-  document.getElementById('feedback-content').innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:var(--gray-400);padding:10px 0"><div class="loading-dot"></div>&nbsp; AI가 상담 내용을 분석 중입니다...</div>';
-  const staffTurns = simState.messages.filter(m=>m.role==='staff');
-  if (!staffTurns.length) { document.getElementById('feedback-content').innerHTML = '<p>직원 답변이 없어 피드백을 생성할 수 없습니다.</p>'; return; }
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'x-api-key': simState.apiKey,
-        'anthropic-version':'2023-06-01',
-        'content-type':'application/json',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:2000, messages:[{ role:'user', content: getFeedbackPrompt(simState.messages, simState.stage, simState.lang) }] })
-    });
-    const data = await res.json();
-    if (data.error) { document.getElementById('feedback-content').innerHTML = `<p style="color:#dc2626">⚠️ ${data.error.message}</p>`; return; }
-    document.getElementById('feedback-content').innerHTML = mdToHtml(data.content[0].text);
-  } catch(e) { document.getElementById('feedback-content').innerHTML = `<p style="color:#dc2626">⚠️ ${e.message}</p>`; }
+  const langKey = simState.lang === 'ko' ? 'ko' : 'en';
+  document.getElementById('feedback-stage-label').textContent = `${simState.stage}단계 · ${info[langKey]}`;
+  const staffMsgs = simState.messages.filter(m => m.role === 'staff');
+  if (!staffMsgs.length) {
+    document.getElementById('feedback-content').innerHTML = simState.lang === 'ko'
+      ? '<p>직원 답변이 없어 피드백을 표시할 수 없습니다.</p>'
+      : '<p>No staff responses to evaluate.</p>';
+    return;
+  }
+  document.getElementById('feedback-content').innerHTML = buildFeedbackHtml(simState.stage, simState.lang, staffMsgs);
 }
 
-function mdToHtml(md) {
-  return md
-    .replace(/^## (.+)$/gm,'<h3 style="font-size:1rem;font-weight:700;margin:20px 0 10px;color:var(--primary);border-bottom:2px solid var(--primary-light);padding-bottom:6px">$1</h3>')
-    .replace(/^### (.+)$/gm,'<h4 style="font-size:.95rem;font-weight:700;margin:14px 0 6px;color:var(--gray-800)">$1</h4>')
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/`(.+?)`/g,'<code style="background:var(--gray-100);padding:2px 6px;border-radius:4px;font-size:.85em">$1</code>')
-    .replace(/^> (.+)$/gm,'<div style="background:var(--primary-light);border-left:3px solid var(--primary);padding:8px 14px;border-radius:0 6px 6px 0;margin:6px 0;color:var(--primary);font-style:italic">$1</div>')
-    .replace(/^- (.+)$/gm,'<div style="padding:3px 0 3px 16px">• $1</div>')
-    .replace(/^(\d+)\. (.+)$/gm,'<div style="padding:3px 0 3px 16px">$1. $2</div>')
-    .replace(/\n\n/g,'<br>');
+function buildFeedbackHtml(stage, lang, staffMsgs) {
+  const fb = FEEDBACK[lang][stage];
+  const isKo = lang === 'ko';
+  const count = staffMsgs.length;
+  const avgLen = Math.round(staffMsgs.reduce((s,m) => s+m.content.length, 0) / count);
+  const totalScript = SCRIPTS[lang][stage].length;
+  const completed = Math.min(simState.scriptIdx, totalScript);
+
+  const empathyKo = ['죄송','이해','불편','감사','도움','안타','걱정','충분히'];
+  const empathyEn = ['sorry','understand','apologize','frustrat','inconvenien','appreciate','certainly','absolutely'];
+  const keywords = isKo ? empathyKo : empathyEn;
+  const empathyCount = staffMsgs.filter(m => keywords.some(k => m.content.toLowerCase().includes(k))).length;
+
+  let score = 5;
+  if (avgLen >= 40) score++;
+  if (avgLen >= 80) score++;
+  if (empathyCount >= 1) score++;
+  if (count >= completed * 0.8) score++;
+  score = Math.min(score, 10);
+
+  const scoreColor = score >= 8 ? '#16a34a' : score >= 6 ? '#d97706' : '#dc2626';
+  const scoreLabel = isKo
+    ? (score >= 8 ? '훌륭합니다! 👏' : score >= 6 ? '양호합니다' : '연습이 필요합니다')
+    : (score >= 8 ? 'Excellent! 👏' : score >= 6 ? 'Good effort' : 'Needs practice');
+
+  const statHtml = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px">
+      <div style="background:var(--gray-50);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--gray-200)">
+        <div style="font-size:2rem;font-weight:700;color:${scoreColor}">${score}<span style="font-size:1rem;color:var(--gray-400)">/10</span></div>
+        <div style="font-size:.78rem;color:var(--gray-600);margin-top:4px">${isKo?'종합 점수':'Score'}</div>
+        <div style="font-size:.72rem;font-weight:600;color:${scoreColor};margin-top:2px">${scoreLabel}</div>
+      </div>
+      <div style="background:var(--gray-50);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--gray-200)">
+        <div style="font-size:2rem;font-weight:700;color:var(--primary)">${count}</div>
+        <div style="font-size:.78rem;color:var(--gray-600);margin-top:4px">${isKo?'답변 횟수':'Replies'}</div>
+        <div style="font-size:.72rem;color:var(--gray-400);margin-top:2px">${isKo?`${completed}개 메시지 응대`:`of ${completed} messages`}</div>
+      </div>
+      <div style="background:var(--gray-50);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--gray-200)">
+        <div style="font-size:2rem;font-weight:700;color:var(--primary)">${avgLen}</div>
+        <div style="font-size:.78rem;color:var(--gray-600);margin-top:4px">${isKo?'평균 답변 길이':'Avg. Length'}</div>
+        <div style="font-size:.72rem;color:var(--gray-400);margin-top:2px">${isKo?'자 (권장 50자+)':'chars (50+ recommended)'}</div>
+      </div>
+    </div>`;
+
+  const empathyNote = empathyCount > 0
+    ? `<div style="background:#d1fae5;border-left:3px solid #16a34a;padding:8px 14px;border-radius:0 8px 8px 0;margin-bottom:8px;font-size:.86rem;color:#065f46">✅ ${isKo?`공감 표현을 ${empathyCount}번 사용했습니다. 좋습니다!`:`Used empathetic language ${empathyCount} time(s). Great!`}</div>`
+    : `<div style="background:#fee2e2;border-left:3px solid #dc2626;padding:8px 14px;border-radius:0 8px 8px 0;margin-bottom:8px;font-size:.86rem;color:#991b1b">⚠️ ${isKo?'공감 표현이 없었습니다. "이해합니다", "죄송합니다" 등을 활용해 보세요.':'No empathetic language detected. Try using "I understand", "I apologize", etc.'}</div>`;
+
+  const avgLenNote = avgLen < 30
+    ? `<div style="background:#fef3c7;border-left:3px solid #d97706;padding:8px 14px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:.86rem;color:#92400e">⚠️ ${isKo?'답변이 짧은 편입니다. 더 구체적이고 완결된 답변을 제공해 보세요.':'Responses are quite short. Try to provide more complete, specific answers.'}</div>`
+    : `<div style="background:#d1fae5;border-left:3px solid #16a34a;padding:8px 14px;border-radius:0 8px 8px 0;margin-bottom:16px;font-size:.86rem;color:#065f46">✅ ${isKo?'적절한 길이의 답변을 제공했습니다.':'Good response length — detailed and helpful.'}</div>`;
+
+  let tipsHtml = '';
+  fb.tips.forEach(tip => {
+    tipsHtml += `<div style="margin-bottom:16px">
+      <div style="font-size:.85rem;font-weight:700;color:var(--gray-800);margin-bottom:8px">📌 ${tip.label}</div>
+      ${tip.items.map(i => `<div style="padding:5px 0 5px 16px;font-size:.88rem;color:var(--gray-700);border-left:2px solid var(--gray-200);margin-bottom:4px;margin-left:4px">• ${i}</div>`).join('')}
+    </div>`;
+  });
+
+  return `${statHtml}${empathyNote}${avgLenNote}
+    <div style="background:var(--primary-light);border-radius:10px;padding:16px 18px;margin-bottom:18px">
+      <div style="font-size:.85rem;font-weight:700;color:var(--primary);margin-bottom:6px">🎯 ${fb.title}</div>
+      <div style="font-size:.88rem;color:var(--gray-700);line-height:1.7">${fb.summary}</div>
+    </div>
+    <div style="background:var(--gray-50);border-radius:10px;padding:18px;border:1px solid var(--gray-200)">${tipsHtml}</div>`;
 }
 
 function restartSim() { document.getElementById('sim-feedback').style.display='none'; startSim(); }
