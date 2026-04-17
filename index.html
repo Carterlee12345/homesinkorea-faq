@@ -669,6 +669,7 @@
             <button class="purpose-btn" onclick="selectPurpose(this,'시설 점검 공지')">🔧 시설 점검 공지</button>
             <button class="purpose-btn" onclick="selectPurpose(this,'프로모션')">🎁 프로모션</button>
             <button class="purpose-btn" onclick="selectPurpose(this,'긴급 공지')">⚠️ 긴급 공지</button>
+            <button class="purpose-btn" style="grid-column:1/-1;border-color:#6366f1;color:#4f46e5" onclick="selectPurpose(this,'__RAW__')">📝 내용 그대로 발송</button>
           </div>
         </div>
 
@@ -1730,16 +1731,24 @@ async function generateBroadcast() {
   document.getElementById('broadcastGenBtn').disabled = true;
 
   try {
-    const res = await fetch('/api/broadcast', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ brief, purpose: selectedPurpose, tags })
-    });
-    const result = await res.json();
-    if (!res.ok) throw new Error(result.error || '서버 오류가 발생했습니다.');
+    let koMsg, enMsg;
+    if (selectedPurpose === '__RAW__') {
+      koMsg = brief;
+      enMsg = brief;
+    } else {
+      const res = await fetch('/api/broadcast', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ brief, purpose: selectedPurpose, tags })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || '서버 오류가 발생했습니다.');
+      koMsg = result.ko_message;
+      enMsg = result.en_message;
+    }
 
-    document.getElementById('broadcast-ko').textContent = result.ko_message;
-    document.getElementById('broadcast-en').textContent = result.en_message;
+    document.getElementById('broadcast-ko').textContent = koMsg;
+    document.getElementById('broadcast-en').textContent = enMsg;
 
     const tagStr = tags.map(t => `<span class="recipient-badge">${t}</span>`).join(' ');
     const statusStr = statusLabel ? ` · <strong>${statusLabel}</strong>` : '';
