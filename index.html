@@ -130,6 +130,20 @@
   .hook-fail{display:inline-flex;align-items:center;gap:5px;background:#fee2e2;color:#991b1b;border-radius:6px;padding:3px 10px;font-size:.75rem;font-weight:600}
   .draft-box{font-size:.9rem;line-height:1.85;color:var(--gray-800);white-space:pre-wrap;background:var(--gray-50);padding:16px;border-radius:8px;border:1px solid var(--gray-200)}
   @media(max-width:700px){.memo-grid{grid-template-columns:1fr!important}}
+  /* ── Broadcast Tab ── */
+  .tag-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .tag-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:2px solid var(--gray-200);border-radius:20px;cursor:pointer;font-size:.82rem;font-weight:500;color:var(--gray-600);background:#fff;transition:all .15s;user-select:none}
+  .tag-chip input{display:none}
+  .tag-chip.selected{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:700}
+  .purpose-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .purpose-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;border:2px solid var(--gray-200);border-radius:10px;cursor:pointer;font-size:.82rem;font-weight:500;color:var(--gray-600);background:#fff;transition:all .15s;text-align:left}
+  .purpose-btn.selected{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:700}
+  .audience-summary{background:linear-gradient(135deg,var(--primary-light),#e0e7ff);border:1px solid #c7d2fe;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:.84rem;color:#3730a3;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .send-btn{width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px}
+  .send-btn:hover{opacity:.88}
+  .send-btn:disabled{opacity:.5;cursor:not-allowed}
+  .broadcast-preview{font-size:.9rem;line-height:1.85;color:var(--gray-800);white-space:pre-wrap;background:var(--gray-50);padding:18px;border-radius:8px;border:1px solid var(--gray-200)}
+  .recipient-badge{background:#6366f1;color:#fff;font-size:.7rem;font-weight:700;padding:2px 9px;border-radius:12px}
 </style>
 </head>
 <body>
@@ -153,6 +167,7 @@
     <button class="tab" onclick="switchTab('notion',this)">Notion 내보내기</button>
     <button class="tab" onclick="switchTab('sim',this)">🌶️ 상담 체험</button>
     <button class="tab" onclick="switchTab('draft',this)">✍️ 초안 생성기</button>
+    <button class="tab" onclick="switchTab('broadcast',this)">📢 공지</button>
   </div>
 
   <!-- ① FAQ 목록 -->
@@ -619,6 +634,103 @@
               <div id="draft-q" style="font-size:.88rem;line-height:1.75;color:var(--gray-700);background:var(--primary-light);padding:14px;border-radius:8px;border-left:3px solid var(--primary)"></div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑦ 공지 (Broadcast) -->
+  <div id="tab-broadcast" class="section">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title" style="margin-bottom:6px">📢 공지 발송 <span class="badge">Channel Talk</span></div>
+      <p style="font-size:.86rem;color:var(--gray-600);line-height:1.6">수신 대상 태그와 메시지 목적을 선택하면 AI가 발송용 메시지를 자동 생성합니다. 생성된 메시지를 검토한 뒤 발송 버튼을 누르세요.</p>
+    </div>
+
+    <div class="grid-2" style="align-items:start">
+      <!-- Left: Settings -->
+      <div>
+        <!-- Tag selection -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:4px">🏷️ Channel Talk 태그 선택 <span style="font-size:.75rem;font-weight:400;color:var(--gray-400)">(복수 선택 가능)</span></div>
+          <div class="tag-grid" id="tagGrid">
+            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="입주예정">📋 입주예정</label>
+            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="입주중">🏠 입주중</label>
+            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="퇴실완료">🚪 퇴실완료</label>
+            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="잠재고객">🔍 잠재고객</label>
+            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="장기계약">💎 장기계약</label>
+            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="비자진행중">📄 비자진행중</label>
+            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="VIP">⭐ VIP</label>
+            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="전체">📣 전체 발송</label>
+          </div>
+        </div>
+
+        <!-- Status filter -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:8px">👤 고객 상태 필터 <span style="font-size:.75rem;font-weight:400;color:var(--gray-400)">(선택)</span></div>
+          <select id="statusFilter" style="width:100%;padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;color:var(--gray-700);outline:none;background:#fff">
+            <option value="">전체 상태</option>
+            <option value="active">현재 입주 중</option>
+            <option value="upcoming">입주 예정 (30일 이내)</option>
+            <option value="churned">퇴실 후 6개월 이내</option>
+            <option value="prospect">상담 진행 중</option>
+          </select>
+        </div>
+
+        <!-- Purpose -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:4px">🎯 메시지 목적</div>
+          <div class="purpose-grid" id="purposeGrid">
+            <button class="purpose-btn" onclick="selectPurpose(this,'일반 공지')">📢 일반 공지</button>
+            <button class="purpose-btn" onclick="selectPurpose(this,'입주/퇴실 안내')">🏠 입주/퇴실 안내</button>
+            <button class="purpose-btn" onclick="selectPurpose(this,'결제/요금 안내')">💰 결제/요금 안내</button>
+            <button class="purpose-btn" onclick="selectPurpose(this,'시설 점검 공지')">🔧 시설 점검 공지</button>
+            <button class="purpose-btn" onclick="selectPurpose(this,'프로모션')">🎁 프로모션</button>
+            <button class="purpose-btn" onclick="selectPurpose(this,'긴급 공지')">⚠️ 긴급 공지</button>
+          </div>
+        </div>
+
+        <!-- Brief input -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px">✏️ 전달 내용 요약</div>
+          <textarea id="broadcastBrief" placeholder="예: 5월 1일부터 건물 정기 점검이 있어서 오전 10시~12시 엘리베이터 사용이 제한됩니다." rows="4" style="width:100%;padding:12px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:.88rem;resize:vertical;outline:none;font-family:inherit;line-height:1.65;transition:border-color .15s;box-sizing:border-box" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'"></textarea>
+          <button onclick="generateBroadcast()" id="broadcastGenBtn" style="margin-top:10px;width:100%;padding:10px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:.9rem;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">✨ 메시지 생성</button>
+        </div>
+      </div>
+
+      <!-- Right: Preview -->
+      <div>
+        <div id="broadcast-placeholder" class="card" style="padding:48px 24px;text-align:center;color:var(--gray-400)">
+          <div style="font-size:2.8rem;margin-bottom:12px">📢</div>
+          <div style="font-size:.92rem;line-height:1.7">태그·목적·내용을 입력하고<br>메시지 생성 버튼을 누르세요</div>
+        </div>
+
+        <div id="broadcast-generating" style="display:none" class="card" style="padding:40px 24px;text-align:center;color:var(--gray-400)">
+          <div class="loading-dot" style="margin:0 auto 14px"></div>
+          <div style="font-size:.9rem">메시지를 생성하고 있습니다...</div>
+        </div>
+
+        <div id="broadcast-results" style="display:none">
+          <div id="broadcast-audience-summary" class="audience-summary" style="margin-bottom:16px"></div>
+
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title" style="margin-bottom:10px">
+              🇰🇷 한국어 발송 메시지
+              <button class="copy-draft-btn" id="copy-bc-ko" onclick="copyBroadcast('ko')">📋 복사</button>
+            </div>
+            <div id="broadcast-ko" class="broadcast-preview"></div>
+          </div>
+
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title" style="margin-bottom:10px">
+              🇬🇧 English Message
+              <button class="copy-draft-btn" id="copy-bc-en" onclick="copyBroadcast('en')">📋 Copy</button>
+            </div>
+            <div id="broadcast-en" class="broadcast-preview"></div>
+          </div>
+
+          <button class="send-btn" id="sendBtn" onclick="handleSend()">
+            📤 Channel Talk으로 발송
+          </button>
         </div>
       </div>
     </div>
@@ -1578,6 +1690,101 @@ async function generateDraft() {
   } finally {
     document.getElementById('generateBtn').disabled = false;
   }
+}
+
+/* ── Broadcast ── */
+let selectedPurpose = '';
+
+function toggleTag(label) {
+  label.classList.toggle('selected');
+  const cb = label.querySelector('input');
+  cb.checked = !cb.checked;
+  if (cb.value === '전체') {
+    document.querySelectorAll('#tagGrid .tag-chip').forEach(l => {
+      if (l.querySelector('input').value !== '전체') { l.classList.remove('selected'); l.querySelector('input').checked = false; }
+    });
+    label.classList.toggle('selected', cb.checked);
+  } else {
+    const allChip = document.querySelector('#tagGrid .tag-chip:last-child');
+    allChip.classList.remove('selected');
+    allChip.querySelector('input').checked = false;
+  }
+}
+
+function selectPurpose(btn, value) {
+  document.querySelectorAll('.purpose-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedPurpose = value;
+}
+
+async function generateBroadcast() {
+  const brief = document.getElementById('broadcastBrief').value.trim();
+  if (!brief) { alert('전달 내용을 입력해주세요.'); return; }
+  if (!selectedPurpose) { alert('메시지 목적을 선택해주세요.'); return; }
+
+  const tags = [...document.querySelectorAll('#tagGrid input:checked')].map(i => i.value);
+  if (!tags.length) { alert('수신 태그를 하나 이상 선택해주세요.'); return; }
+
+  const statusEl = document.getElementById('statusFilter');
+  const statusLabel = statusEl.value ? statusEl.options[statusEl.selectedIndex].text : '';
+
+  document.getElementById('broadcast-placeholder').style.display = 'none';
+  document.getElementById('broadcast-results').style.display = 'none';
+  document.getElementById('broadcast-generating').style.display = 'block';
+  document.getElementById('broadcastGenBtn').disabled = true;
+
+  try {
+    const res = await fetch('/api/broadcast', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ brief, purpose: selectedPurpose, tags, statusFilter: statusLabel })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || '서버 오류가 발생했습니다.');
+
+    document.getElementById('broadcast-ko').textContent = result.ko_message;
+    document.getElementById('broadcast-en').textContent = result.en_message;
+
+    const tagStr = tags.map(t => `<span class="recipient-badge">${t}</span>`).join(' ');
+    const statusStr = statusLabel ? ` · <strong>${statusLabel}</strong>` : '';
+    document.getElementById('broadcast-audience-summary').innerHTML =
+      `📣 수신 대상: ${tagStr}${statusStr} · 목적: <strong>${selectedPurpose}</strong>`;
+
+    document.getElementById('broadcast-generating').style.display = 'none';
+    document.getElementById('broadcast-results').style.display = 'block';
+  } catch(e) {
+    document.getElementById('broadcast-generating').style.display = 'none';
+    document.getElementById('broadcast-placeholder').style.display = 'block';
+    document.getElementById('broadcast-placeholder').innerHTML =
+      `<div style="font-size:1.5rem;margin-bottom:10px">⚠️</div><div style="font-size:.88rem;color:#dc2626">${e.message}</div>`;
+  } finally {
+    document.getElementById('broadcastGenBtn').disabled = false;
+  }
+}
+
+function copyBroadcast(type) {
+  const el = document.getElementById(type === 'ko' ? 'broadcast-ko' : 'broadcast-en');
+  const btn = document.getElementById(type === 'ko' ? 'copy-bc-ko' : 'copy-bc-en');
+  const orig = btn.textContent;
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    btn.textContent = '✅ 복사됨'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function handleSend() {
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ 발송 준비 중...';
+  setTimeout(() => {
+    btn.innerHTML = '✅ 발송 완료 (Channel Talk API 연동 후 실제 발송됩니다)';
+    btn.style.background = 'var(--success)';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '📤 Channel Talk으로 발송';
+      btn.style.background = '';
+    }, 3500);
+  }, 1200);
 }
 
 let chartsReady=false;
