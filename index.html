@@ -649,19 +649,14 @@
     <div class="grid-2" style="align-items:start">
       <!-- Left: Settings -->
       <div>
-        <!-- Tag selection -->
+        <!-- Tag input -->
         <div class="card" style="margin-bottom:16px">
-          <div class="card-title" style="margin-bottom:4px">🏷️ Channel Talk 태그 선택 <span style="font-size:.75rem;font-weight:400;color:var(--gray-400)">(복수 선택 가능)</span></div>
-          <div class="tag-grid" id="tagGrid">
-            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="입주예정">📋 입주예정</label>
-            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="입주중">🏠 입주중</label>
-            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="퇴실완료">🚪 퇴실완료</label>
-            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="잠재고객">🔍 잠재고객</label>
-            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="장기계약">💎 장기계약</label>
-            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="비자진행중">📄 비자진행중</label>
-            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="VIP">⭐ VIP</label>
-            <label class="tag-chip" onclick="toggleTag(this)"><input type="checkbox" value="전체">📣 전체 발송</label>
+          <div class="card-title" style="margin-bottom:8px">🏷️ Channel Talk 태그 입력 <span style="font-size:.75rem;font-weight:400;color:var(--gray-400)">(Enter로 추가)</span></div>
+          <div style="display:flex;gap:8px">
+            <input id="tagInput" type="text" placeholder="태그명 입력 후 Enter" style="flex:1;padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:.88rem;outline:none;font-family:inherit;transition:border-color .15s" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag()}">
+            <button onclick="addTag()" style="padding:9px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.84rem;font-weight:600;white-space:nowrap">추가</button>
           </div>
+          <div id="tagList" class="tag-grid" style="margin-top:10px;min-height:0"></div>
         </div>
 
         <!-- Status filter -->
@@ -1694,21 +1689,28 @@ async function generateDraft() {
 
 /* ── Broadcast ── */
 let selectedPurpose = '';
+let broadcastTags = [];
 
-function toggleTag(label) {
-  label.classList.toggle('selected');
-  const cb = label.querySelector('input');
-  cb.checked = !cb.checked;
-  if (cb.value === '전체') {
-    document.querySelectorAll('#tagGrid .tag-chip').forEach(l => {
-      if (l.querySelector('input').value !== '전체') { l.classList.remove('selected'); l.querySelector('input').checked = false; }
-    });
-    label.classList.toggle('selected', cb.checked);
-  } else {
-    const allChip = document.querySelector('#tagGrid .tag-chip:last-child');
-    allChip.classList.remove('selected');
-    allChip.querySelector('input').checked = false;
-  }
+function addTag() {
+  const input = document.getElementById('tagInput');
+  const val = input.value.trim();
+  if (!val || broadcastTags.includes(val)) { input.value = ''; return; }
+  broadcastTags.push(val);
+  renderTagList();
+  input.value = '';
+  input.focus();
+}
+
+function removeTag(tag) {
+  broadcastTags = broadcastTags.filter(t => t !== tag);
+  renderTagList();
+}
+
+function renderTagList() {
+  const list = document.getElementById('tagList');
+  list.innerHTML = broadcastTags.map(t =>
+    `<span class="tag-chip selected" style="cursor:default">${t} <span onclick="removeTag('${t}')" style="margin-left:4px;cursor:pointer;opacity:.6;font-size:.8rem">✕</span></span>`
+  ).join('');
 }
 
 function selectPurpose(btn, value) {
@@ -1722,8 +1724,8 @@ async function generateBroadcast() {
   if (!brief) { alert('전달 내용을 입력해주세요.'); return; }
   if (!selectedPurpose) { alert('메시지 목적을 선택해주세요.'); return; }
 
-  const tags = [...document.querySelectorAll('#tagGrid input:checked')].map(i => i.value);
-  if (!tags.length) { alert('수신 태그를 하나 이상 선택해주세요.'); return; }
+  const tags = broadcastTags;
+  if (!tags.length) { alert('수신 태그를 하나 이상 입력해주세요.'); return; }
 
   const statusEl = document.getElementById('statusFilter');
   const statusLabel = statusEl.value ? statusEl.options[statusEl.selectedIndex].text : '';
