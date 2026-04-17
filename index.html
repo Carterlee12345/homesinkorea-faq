@@ -97,6 +97,30 @@
                 border:none;border-radius:8px;padding:8px 16px;font-size:.84rem;cursor:pointer;
                 font-weight:600;margin-bottom:16px;transition:opacity .15s}
   .copy-en-btn:hover{opacity:.85}.copy-en-btn.copied{background:var(--success)}
+  /* ── Simulation Tab ── */
+  .lang-btn{padding:8px 22px;border:2px solid var(--gray-200);background:#fff;border-radius:8px;cursor:pointer;font-size:.88rem;font-weight:500;color:var(--gray-600);transition:all .15s}
+  .lang-btn.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:700}
+  .stage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media(max-width:600px){.stage-grid{grid-template-columns:repeat(2,1fr)}}
+  .stage-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border:2px solid var(--gray-200);background:#fff;border-radius:10px;cursor:pointer;transition:all .15s;width:100%}
+  .stage-btn.active{border-color:var(--primary);background:var(--primary-light)}
+  .stage-emoji{font-size:1.6rem}
+  .stage-name{font-size:.7rem;font-weight:600;color:var(--gray-400)}
+  .stage-label{font-size:.82rem;font-weight:700;color:var(--gray-800)}
+  .stage-btn.active .stage-label{color:var(--primary)}
+  .chat-bubble-customer{align-self:flex-start;max-width:75%}
+  .chat-bubble-staff{align-self:flex-end;max-width:75%}
+  .bubble{padding:12px 16px;border-radius:14px;font-size:.9rem;line-height:1.6;white-space:pre-wrap}
+  .bubble-customer{background:#fff;border:1px solid var(--gray-200);border-radius:14px 14px 14px 4px;color:var(--gray-800)}
+  .bubble-staff{background:var(--primary);color:#fff;border-radius:14px 14px 4px 14px}
+  .bubble-label{font-size:.72rem;color:var(--gray-400);margin-bottom:4px}
+  .bubble-label-right{text-align:right}
+  .typing-indicator{display:flex;gap:4px;padding:12px 16px;background:#fff;border:1px solid var(--gray-200);border-radius:14px 14px 14px 4px;width:64px;align-items:center}
+  .dot{width:8px;height:8px;background:var(--gray-400);border-radius:50%;animation:bounce .8s infinite}
+  .dot:nth-child(2){animation-delay:.15s}
+  .dot:nth-child(3){animation-delay:.3s}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}}
+  .loading-dot{width:12px;height:12px;background:var(--primary);border-radius:50%;animation:pulse 1s infinite;display:inline-block}
 </style>
 </head>
 <body>
@@ -118,6 +142,7 @@
     <button class="tab" onclick="switchTab('website-faq',this)">웹사이트 FAQ (EN)</button>
     <button class="tab" onclick="switchTab('feedback',this)">개선 피드백</button>
     <button class="tab" onclick="switchTab('notion',this)">Notion 내보내기</button>
+    <button class="tab" onclick="switchTab('sim',this)">🌶️ 상담 체험</button>
   </div>
 
   <!-- ① FAQ 목록 -->
@@ -483,6 +508,106 @@
     </div>
   </div>
 
+  <!-- ⑥ 상담 체험 -->
+  <div id="tab-sim" class="section">
+    <!-- Setup -->
+    <div id="sim-setup" class="card">
+      <div class="card-title">🌶️ 6단계 상담 체험 <span class="badge">AI 고객 시뮬레이션</span></div>
+      <p style="font-size:.88rem;color:var(--gray-600);margin-bottom:22px">실제 고객처럼 행동하는 AI와 1:1 상담 연습을 해보세요. 상담 종료 후 어투·문장·대응 방식에 대한 상세 피드백을 드립니다.</p>
+
+      <div style="margin-bottom:20px">
+        <label style="font-size:.85rem;font-weight:600;color:var(--gray-800);display:block;margin-bottom:8px">🔑 Claude API Key</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="password" id="simApiKey" placeholder="sk-ant-api03-..." style="flex:1;min-width:220px;padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:.88rem;outline:none;transition:border-color .15s" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'">
+          <button onclick="saveApiKey()" style="padding:10px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.84rem;font-weight:600;white-space:nowrap">저장</button>
+        </div>
+        <p id="api-key-status" style="font-size:.75rem;color:var(--gray-400);margin-top:6px">API 키는 이 브라우저 세션에만 저장되며 외부로 전송되지 않습니다.</p>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <label style="font-size:.85rem;font-weight:600;color:var(--gray-800);display:block;margin-bottom:10px">🌐 상담 언어</label>
+        <div style="display:flex;gap:10px">
+          <button class="lang-btn active" id="lang-ko" onclick="selectLang('ko',this)">🇰🇷 한국어</button>
+          <button class="lang-btn" id="lang-en" onclick="selectLang('en',this)">🇬🇧 English</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:26px">
+        <label style="font-size:.85rem;font-weight:600;color:var(--gray-800);display:block;margin-bottom:10px">🌶️ 난이도 선택</label>
+        <div class="stage-grid">
+          <button class="stage-btn active" onclick="selectStage(1,this)">
+            <span class="stage-emoji">😊</span>
+            <span class="stage-name">1단계</span>
+            <span class="stage-label">순한맛</span>
+          </button>
+          <button class="stage-btn" onclick="selectStage(2,this)">
+            <span class="stage-emoji">🌶️</span>
+            <span class="stage-name">2단계</span>
+            <span class="stage-label">약간매운맛</span>
+          </button>
+          <button class="stage-btn" onclick="selectStage(3,this)">
+            <span class="stage-emoji">🌶️🌶️</span>
+            <span class="stage-name">3단계</span>
+            <span class="stage-label">매운맛</span>
+          </button>
+          <button class="stage-btn" onclick="selectStage(4,this)">
+            <span class="stage-emoji">🔥</span>
+            <span class="stage-name">4단계</span>
+            <span class="stage-label">불닭맛</span>
+          </button>
+          <button class="stage-btn" onclick="selectStage(5,this)">
+            <span class="stage-emoji">💀</span>
+            <span class="stage-name">5단계</span>
+            <span class="stage-label">핵불닭맛</span>
+          </button>
+          <button class="stage-btn" onclick="selectStage(6,this)">
+            <span class="stage-emoji">☠️</span>
+            <span class="stage-name">6단계</span>
+            <span class="stage-label">디진다돈까스맛</span>
+          </button>
+        </div>
+      </div>
+
+      <button onclick="startSim()" style="width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">🎬 상담 시작하기</button>
+    </div>
+
+    <!-- Chat -->
+    <div id="sim-chat" style="display:none">
+      <div class="card" style="margin-bottom:12px;padding:14px 20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="sim-stage-badge" class="badge">1단계 · 순한맛</span>
+            <span id="sim-lang-badge" style="font-size:.78rem;color:var(--gray-400)">🇰🇷 한국어</span>
+          </div>
+          <button onclick="endSim()" style="padding:8px 18px;background:#dc2626;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.86rem;font-weight:600">🚫 상담 종료 &amp; 피드백 받기</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="chat-messages" style="height:420px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;background:#f8fafc"></div>
+        <div style="padding:16px;border-top:1px solid var(--gray-200);display:flex;gap:10px;background:#fff;align-items:flex-end">
+          <textarea id="staff-input" placeholder="답변을 입력하세요... (Enter로 전송, Shift+Enter로 줄바꿈)" rows="2" style="flex:1;padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:.88rem;resize:none;outline:none;font-family:inherit;transition:border-color .15s" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'" onkeydown="handleKeydown(event)"></textarea>
+          <button onclick="sendStaffMsg()" id="sendBtn" style="padding:11px 22px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.88rem;white-space:nowrap">전송</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback -->
+    <div id="sim-feedback" style="display:none">
+      <div class="card">
+        <div class="card-title">📊 상담 피드백 <span class="badge" id="feedback-stage-label"></span></div>
+        <div id="feedback-content" style="font-size:.9rem;line-height:1.9;color:var(--gray-700)">
+          <div style="display:flex;align-items:center;gap:10px;color:var(--gray-400);padding:10px 0">
+            <div class="loading-dot"></div>&nbsp; AI가 상담 내용을 분석 중입니다...
+          </div>
+        </div>
+        <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap">
+          <button onclick="restartSim()" style="padding:10px 22px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.88rem">🔄 같은 설정으로 다시 연습</button>
+          <button onclick="goSetup()" style="padding:10px 22px;background:var(--gray-100);color:var(--gray-700);border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.88rem">⚙️ 설정 변경하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ⑤ Notion -->
   <div id="tab-notion" class="section">
     <div class="card">
@@ -584,6 +709,267 @@ function toggleFaq(i){
   const open=ans.classList.toggle('open');
   chev.classList.toggle('open',open);
 }
+
+// ── Simulation ──
+const simState = { lang:'ko', stage:1, messages:[], apiKey:'' };
+const stageInfo = {
+  1:{emoji:'😊', ko:'순한맛',   en:'Mild'},
+  2:{emoji:'🌶️', ko:'약간매운맛', en:'Slightly Spicy'},
+  3:{emoji:'🌶️🌶️',ko:'매운맛',   en:'Spicy'},
+  4:{emoji:'🔥',  ko:'불닭맛',   en:'Fire Chicken'},
+  5:{emoji:'💀',  ko:'핵불닭맛', en:'Nuclear Fire'},
+  6:{emoji:'☠️',  ko:'디진다돈까스맛', en:'Extreme'}
+};
+
+function getSystemPrompt(stage, lang) {
+  const p = {
+    ko: {
+      1:`당신은 서울 HOMESINKOREA에 관심이 있는 친절한 외국인 학생 고객입니다. 한국어로 자연스럽게 문의하며 가격·위치·예약 등 기본 질문을 하나씩 합니다. 직원 답변에 감사히 반응하며 추가 질문을 이어갑니다. 짧고 자연스러운 실제 채팅 말투로 쓰세요. 절대 AI임을 드러내지 마세요.`,
+      2:`당신은 HOMESINKOREA에 문의하는 약간 바쁜 외국인 고객입니다. 한국어로 문의하며 답변이 모호하면 "좀 더 구체적으로 알 수 있을까요?"라고 합니다. 가끔 두 질문을 한 번에 보내거나 "빨리 확인 부탁드려요" 같은 말을 씁니다. 짧은 메시지 위주로, AI임을 드러내지 마세요.`,
+      3:`당신은 HOMESINKOREA에 문의하는 까다로운 외국인 고객입니다. 한국어로 문의하며 답변이 맘에 안 들면 "그게 무슨 말이에요?", "더 싸게 안 되나요?", "왜 그렇게 비싸요?" 같은 말을 씁니다. 여러 질문을 동시에 던지고 정확한 숫자와 조건을 끊임없이 요구합니다. AI임을 드러내지 마세요.`,
+      4:`당신은 HOMESINKOREA에 강한 불만을 가진 고객입니다. 한국어로 문의하며 처음부터 다소 공격적인 어조를 씁니다. "이게 말이 됩니까", "다른 데는 이런 정책 없던데요", "환불은 어떻게 되는 거예요?" 같은 말을 자주 씁니다. 직원 답변에 쉽게 납득하지 않고 계속 따집니다. AI임을 드러내지 마세요.`,
+      5:`당신은 HOMESINKOREA에 매우 화가 난 고객입니다. 한국어로 강하게 불만을 표출하고 직원을 몰아붙입니다. "이게 진짜 서비스예요?", "당장 책임자 나오세요", "SNS에 올릴 거예요" 같은 표현을 씁니다. 어떤 답변에도 쉽게 만족하지 않으며 극도로 감정적으로 반응합니다. AI임을 드러내지 마세요.`,
+      6:`당신은 HOMESINKOREA의 극단적으로 화가 난 최악의 고객입니다. 한국어로 비이성적인 요구를 하고 직원을 심하게 압박합니다. "어이가 없어서", "이게 뭐하는 짓이에요", 즉시 환불·특별 할인·책임자 연결을 반복 요구합니다. 직원 말에 무조건 더 강하게 반발하고 "고소할 거예요", "방송국에 제보할 거예요" 같은 위협도 씁니다. AI임을 드러내지 마세요.`
+    },
+    en: {
+      1:`You are a friendly international student inquiring about HOMESINKOREA in Seoul. Write in English naturally. Ask basic questions one at a time about pricing, location, and booking. React appreciatively to the agent's answers. Keep messages short and natural. Never reveal you are an AI.`,
+      2:`You are a slightly busy customer inquiring about HOMESINKOREA in English. If answers are vague, ask "Can you be more specific?" or "I need exact numbers please." Occasionally send two questions at once and express mild impatience if responses are slow. Never reveal you are an AI.`,
+      3:`You are a demanding customer inquiring about HOMESINKOREA in English. Show dissatisfaction when answers don't meet expectations. Say things like "That's not good enough", "Can you do better on the price?", "Why is it so expensive?" Ask multiple questions at once and constantly push for precise numbers. Never reveal you are an AI.`,
+      4:`You are a strongly dissatisfied customer at HOMESINKOREA writing in English. Use an assertive, somewhat aggressive tone from the start. Say things like "This doesn't make sense", "Other places don't have this policy", "I want a refund." Don't accept answers easily. Never reveal you are an AI.`,
+      5:`You are a very angry customer at HOMESINKOREA writing in English. Express strong frustration and corner the agent. Say things like "Is this really your service?", "Get me your manager now", "I'll post this on social media." React extremely emotionally to every response. Never reveal you are an AI.`,
+      6:`You are the most difficult, irrational customer at HOMESINKOREA writing in English. Make unreasonable demands and aggressively pressure the agent. Use outraged language ("This is absolutely outrageous", "What kind of operation are you running?") and repeatedly demand impossible things. Threaten with "I'll sue you" or "I'm calling the news." Escalate no matter what the agent says. Never reveal you are an AI.`
+    }
+  };
+  return p[lang][stage];
+}
+
+function getFeedbackPrompt(messages, stage, lang) {
+  const label = stageInfo[stage][lang === 'ko' ? 'ko' : 'en'];
+  const conv = messages.map(m => `[${m.role === 'customer' ? (lang==='ko'?'고객':'Customer') : (lang==='ko'?'직원':'Staff')}]: ${m.content}`).join('\n');
+  if (lang === 'ko') {
+    return `당신은 고객 서비스 전문 트레이너입니다. HOMESINKOREA 부동산 상담 직원의 상담 기록을 분석하고 상세한 피드백을 한국어로 제공하세요.
+
+고객 난이도: ${stage}단계 (${label})
+
+대화 기록:
+${conv}
+
+다음 항목에 대해 구체적이고 실용적인 피드백을 마크다운 형식으로 작성하세요. 실제 대화에서 사용된 문장을 직접 인용하세요.
+
+## 1. 전반적인 상담 평가
+10점 만점 점수와 한 줄 총평을 먼저 쓰세요.
+
+## 2. 잘한 점
+구체적인 문장을 인용하여 2~3가지 칭찬하세요.
+
+## 3. 개선이 필요한 점
+어느 부분이 왜 아쉬웠는지 구체적으로 2~3가지 지적하세요.
+
+## 4. 어투·문장 피드백
+실제 사용한 표현을 인용하고, 더 나은 대안 표현을 각각 제시하세요 (3~5개).
+
+## 5. ${label} 고객 응대 핵심 팁
+이 난이도 고객을 상대할 때 꼭 기억해야 할 핵심 원칙 3가지를 쓰세요.
+
+## 6. 다음 연습을 위한 제안
+다음번에 집중적으로 연습하면 좋을 포인트를 제안하세요.`;
+  } else {
+    return `You are a professional customer service trainer. Analyze this HOMESINKOREA consultation and provide detailed feedback in English.
+
+Customer difficulty: Level ${stage} (${label})
+
+Conversation:
+${conv}
+
+Provide specific, actionable feedback in markdown format. Quote phrases directly from the conversation.
+
+## 1. Overall Assessment
+Start with a score out of 10 and a one-line summary.
+
+## 2. What You Did Well
+Compliment 2–3 things with direct quotes.
+
+## 3. Areas for Improvement
+Point out 2–3 specific weaknesses with reasons.
+
+## 4. Tone & Language Feedback
+Quote actual phrases used, then provide better alternatives (3–5 examples).
+
+## 5. Key Tips for ${label} Level Customers
+List 3 core principles to remember when handling this type of customer.
+
+## 6. Suggestions for Next Practice
+Suggest what to focus on in the next practice session.`;
+  }
+}
+
+function saveApiKey() {
+  const key = document.getElementById('simApiKey').value.trim();
+  if (!key.startsWith('sk-ant-')) {
+    alert('올바른 Claude API 키를 입력해주세요. (sk-ant- 로 시작)');
+    return;
+  }
+  sessionStorage.setItem('sim_api_key', key);
+  document.getElementById('simApiKey').value = '●'.repeat(24);
+  document.getElementById('api-key-status').textContent = '✅ API 키가 저장되었습니다.';
+  document.getElementById('api-key-status').style.color = 'var(--success)';
+}
+
+function selectLang(lang, el) {
+  simState.lang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function selectStage(stage, el) {
+  simState.stage = stage;
+  document.querySelectorAll('.stage-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+async function startSim() {
+  const apiKey = sessionStorage.getItem('sim_api_key');
+  if (!apiKey) { alert('먼저 Claude API 키를 입력하고 저장해주세요.'); return; }
+  simState.apiKey = apiKey;
+  simState.messages = [];
+  document.getElementById('sim-setup').style.display = 'none';
+  document.getElementById('sim-feedback').style.display = 'none';
+  document.getElementById('sim-chat').style.display = 'block';
+  const info = stageInfo[simState.stage];
+  document.getElementById('sim-stage-badge').textContent = `${simState.stage}단계 · ${info[simState.lang==='ko'?'ko':'en']}`;
+  document.getElementById('sim-lang-badge').textContent = simState.lang === 'ko' ? '🇰🇷 한국어' : '🇬🇧 English';
+  document.getElementById('chat-messages').innerHTML = '';
+  document.getElementById('staff-input').disabled = true;
+  document.getElementById('sendBtn').disabled = true;
+  await getCustomerReply(true);
+}
+
+function addMessage(role, text) {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = role === 'customer' ? 'chat-bubble-customer' : 'chat-bubble-staff';
+  const lbl = document.createElement('div');
+  lbl.className = 'bubble-label' + (role === 'staff' ? ' bubble-label-right' : '');
+  lbl.textContent = role === 'customer'
+    ? (simState.lang==='ko' ? '👤 고객' : '👤 Customer')
+    : (simState.lang==='ko' ? '💼 직원 (나)' : '💼 Staff (You)');
+  const bbl = document.createElement('div');
+  bbl.className = 'bubble ' + (role === 'customer' ? 'bubble-customer' : 'bubble-staff');
+  bbl.textContent = text;
+  div.appendChild(lbl); div.appendChild(bbl);
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function showTyping() {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.id = 'typing-ind'; div.className = 'chat-bubble-customer';
+  const lbl = document.createElement('div');
+  lbl.className = 'bubble-label';
+  lbl.textContent = simState.lang==='ko' ? '👤 고객' : '👤 Customer';
+  const ind = document.createElement('div');
+  ind.className = 'typing-indicator';
+  ind.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  div.appendChild(lbl); div.appendChild(ind);
+  wrap.appendChild(div); wrap.scrollTop = wrap.scrollHeight;
+}
+function hideTyping() { const el=document.getElementById('typing-ind'); if(el) el.remove(); }
+
+function addErrMsg(msg) {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.style.cssText = 'background:#fee2e2;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:.84rem;text-align:center;margin:4px 0';
+  div.textContent = '⚠️ ' + msg;
+  wrap.appendChild(div); wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function getCustomerReply(isFirst) {
+  showTyping();
+  let apiMessages;
+  if (isFirst) {
+    apiMessages = [{ role:'user', content: simState.lang==='ko' ? '상담을 시작해주세요. 첫 번째 문의 메시지를 보내세요.' : 'Start the consultation. Send your opening inquiry message.' }];
+  } else {
+    apiMessages = simState.messages.map(m => ({ role: m.role==='customer'?'assistant':'user', content: m.content }));
+  }
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'x-api-key': simState.apiKey,
+        'anthropic-version':'2023-06-01',
+        'content-type':'application/json',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:350, system: getSystemPrompt(simState.stage, simState.lang), messages: apiMessages })
+    });
+    const data = await res.json();
+    hideTyping();
+    if (data.error) { addErrMsg(data.error.message); return; }
+    const text = data.content[0].text;
+    simState.messages.push({ role:'customer', content:text });
+    addMessage('customer', text);
+    document.getElementById('staff-input').disabled = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('staff-input').focus();
+  } catch(e) { hideTyping(); addErrMsg(e.message); }
+}
+
+async function sendStaffMsg() {
+  const inp = document.getElementById('staff-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  simState.messages.push({ role:'staff', content:text });
+  addMessage('staff', text);
+  inp.value = '';
+  document.getElementById('staff-input').disabled = true;
+  document.getElementById('sendBtn').disabled = true;
+  await getCustomerReply(false);
+}
+
+function handleKeydown(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendStaffMsg(); }
+}
+
+async function endSim() {
+  document.getElementById('sim-chat').style.display = 'none';
+  document.getElementById('sim-feedback').style.display = 'block';
+  const info = stageInfo[simState.stage];
+  document.getElementById('feedback-stage-label').textContent = `${simState.stage}단계 · ${info[simState.lang==='ko'?'ko':'en']}`;
+  document.getElementById('feedback-content').innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:var(--gray-400);padding:10px 0"><div class="loading-dot"></div>&nbsp; AI가 상담 내용을 분석 중입니다...</div>';
+  const staffTurns = simState.messages.filter(m=>m.role==='staff');
+  if (!staffTurns.length) { document.getElementById('feedback-content').innerHTML = '<p>직원 답변이 없어 피드백을 생성할 수 없습니다.</p>'; return; }
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'x-api-key': simState.apiKey,
+        'anthropic-version':'2023-06-01',
+        'content-type':'application/json',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:2000, messages:[{ role:'user', content: getFeedbackPrompt(simState.messages, simState.stage, simState.lang) }] })
+    });
+    const data = await res.json();
+    if (data.error) { document.getElementById('feedback-content').innerHTML = `<p style="color:#dc2626">⚠️ ${data.error.message}</p>`; return; }
+    document.getElementById('feedback-content').innerHTML = mdToHtml(data.content[0].text);
+  } catch(e) { document.getElementById('feedback-content').innerHTML = `<p style="color:#dc2626">⚠️ ${e.message}</p>`; }
+}
+
+function mdToHtml(md) {
+  return md
+    .replace(/^## (.+)$/gm,'<h3 style="font-size:1rem;font-weight:700;margin:20px 0 10px;color:var(--primary);border-bottom:2px solid var(--primary-light);padding-bottom:6px">$1</h3>')
+    .replace(/^### (.+)$/gm,'<h4 style="font-size:.95rem;font-weight:700;margin:14px 0 6px;color:var(--gray-800)">$1</h4>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`(.+?)`/g,'<code style="background:var(--gray-100);padding:2px 6px;border-radius:4px;font-size:.85em">$1</code>')
+    .replace(/^> (.+)$/gm,'<div style="background:var(--primary-light);border-left:3px solid var(--primary);padding:8px 14px;border-radius:0 6px 6px 0;margin:6px 0;color:var(--primary);font-style:italic">$1</div>')
+    .replace(/^- (.+)$/gm,'<div style="padding:3px 0 3px 16px">• $1</div>')
+    .replace(/^(\d+)\. (.+)$/gm,'<div style="padding:3px 0 3px 16px">$1. $2</div>')
+    .replace(/\n\n/g,'<br>');
+}
+
+function restartSim() { document.getElementById('sim-feedback').style.display='none'; startSim(); }
+function goSetup() { document.getElementById('sim-feedback').style.display='none'; document.getElementById('sim-chat').style.display='none'; document.getElementById('sim-setup').style.display='block'; }
 
 let chartsReady=false;
 function switchTab(name,el){
