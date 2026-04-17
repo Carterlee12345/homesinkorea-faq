@@ -40,29 +40,33 @@ module.exports = async function handler(req, res) {
   const { inquiry, categoryLabel } = req.body;
   if (!inquiry || !inquiry.trim()) return res.status(400).json({ error: '고객 문의 내용이 없습니다.' });
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: '서버 설정 오류: API 키가 없습니다.' });
 
   const categoryNote = categoryLabel ? `\n\n[카테고리 힌트: ${categoryLabel}]` : '';
   const userMessage = `다음 고객 문의에 대한 답변 초안을 생성해주세요:${categoryNote}\n\n---\n${inquiry.trim()}\n---`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const url = 'https://api.groq.com/openai/v1/chat/completions';
 
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: DRAFT_SYSTEM }] },
-        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: DRAFT_SYSTEM },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
       })
     });
 
     const data = await response.json();
     if (data.error) return res.status(502).json({ error: data.error.message });
 
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const raw = data.choices?.[0]?.message?.content;
     if (!raw) return res.status(502).json({ error: '응답 파싱 실패. 다시 시도해주세요.' });
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
