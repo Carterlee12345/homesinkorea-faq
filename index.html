@@ -659,18 +659,6 @@
           <div id="tagList" class="tag-grid" style="margin-top:10px;min-height:0"></div>
         </div>
 
-        <!-- Status filter -->
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-title" style="margin-bottom:8px">👤 고객 상태 필터 <span style="font-size:.75rem;font-weight:400;color:var(--gray-400)">(선택)</span></div>
-          <select id="statusFilter" style="width:100%;padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;color:var(--gray-700);outline:none;background:#fff">
-            <option value="">전체 상태</option>
-            <option value="active">현재 입주 중</option>
-            <option value="upcoming">입주 예정 (30일 이내)</option>
-            <option value="churned">퇴실 후 6개월 이내</option>
-            <option value="prospect">상담 진행 중</option>
-          </select>
-        </div>
-
         <!-- Purpose -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-title" style="margin-bottom:4px">🎯 메시지 목적</div>
@@ -1735,8 +1723,6 @@ async function generateBroadcast() {
   const tags = broadcastTags;
   if (!tags.length) { alert('수신 태그를 하나 이상 입력해주세요.'); return; }
 
-  const statusEl = document.getElementById('statusFilter');
-  const statusLabel = statusEl.value ? statusEl.options[statusEl.selectedIndex].text : '';
 
   document.getElementById('broadcast-placeholder').style.display = 'none';
   document.getElementById('broadcast-results').style.display = 'none';
@@ -1747,7 +1733,7 @@ async function generateBroadcast() {
     const res = await fetch('/api/broadcast', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ brief, purpose: selectedPurpose, tags, statusFilter: statusLabel })
+      body: JSON.stringify({ brief, purpose: selectedPurpose, tags })
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || '서버 오류가 발생했습니다.');
