@@ -40,34 +40,33 @@ module.exports = async function handler(req, res) {
   const { inquiry, categoryLabel } = req.body;
   if (!inquiry || !inquiry.trim()) return res.status(400).json({ error: '고객 문의 내용이 없습니다.' });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: '서버 설정 오류: API 키가 없습니다.' });
 
   const categoryNote = categoryLabel ? `\n\n[카테고리 힌트: ${categoryLabel}]` : '';
   const userMessage = `다음 고객 문의에 대한 답변 초안을 생성해주세요:${categoryNote}\n\n---\n${inquiry.trim()}\n---`;
 
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json'
-      },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        system: DRAFT_SYSTEM,
-        messages: [{ role: 'user', content: userMessage }]
+        systemInstruction: { parts: [{ text: DRAFT_SYSTEM }] },
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2000 }
       })
     });
 
     const data = await response.json();
     if (data.error) return res.status(502).json({ error: data.error.message });
 
-    const raw = data.content[0].text;
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!raw) return res.status(502).json({ error: '응답 파싱 실패. 다시 시도해주세요.' });
+
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return res.status(502).json({ error: '응답 파싱 실패. 다시 시도해주세요.' });
+    if (!jsonMatch) return res.status(502).json({ error: '응답 형식 오류. 다시 시도해주세요.' });
 
     const result = JSON.parse(jsonMatch[0]);
     const required = ['ko_draft', 'en_draft', 'internal_memo', 'clarifying_question'];
