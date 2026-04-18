@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HOMES IN KOREA CX DASHBOARD</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root {
     --primary:#2563eb;--primary-light:#eff6ff;--success:#16a34a;
@@ -942,7 +943,11 @@
   <div id="tab-cleaning" class="section">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
       <div style="font-size:1rem;font-weight:700;color:var(--gray-800)">🧹 청소 일정 관리</div>
-      <button onclick="loadCleaning()" style="padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer">🔄 새로고침</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="loadCleaning()" style="padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer">🔄 새로고침</button>
+        <button onclick="downloadExcel()" style="padding:8px 18px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer">📊 엑셀 다운로드</button>
+        <button onclick="downloadNotion()" style="padding:8px 18px;background:#374151;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer">📋 Notion 내보내기</button>
+      </div>
     </div>
 
     <!-- 상태 그룹 4개 -->
@@ -2314,6 +2319,53 @@ async function saveClModal() {
     closeClModal();
     renderCleaningGroups();
   } catch(e) { alert(e.message); }
+}
+
+const STATUS_LABEL = { staying:'투숙 중', scheduled:'청소 예약 완료', check:'청소 점검 필요', done:'청소 완료' };
+
+function buildCleaningRows() {
+  return cleaningReservations.map(r => {
+    const cl = cleaningData[r.id] || {};
+    return {
+      '리스팅 이름': r.listingName || '',
+      '방': r.bedrooms || 0,
+      '욕실': r.bathrooms || 0,
+      '주소': r.address || '',
+      '게스트': r.guestName || '',
+      '체크인': r.arrivalDate,
+      '체크아웃': r.departureDate,
+      '상태': STATUS_LABEL[cl.status || 'staying'],
+      '청소 예정일': cl.cleaningDate || '',
+      '청소 금액(원)': cl.cost || '',
+      '청소 담당자': cl.cleaner || ''
+    };
+  });
+}
+
+function downloadExcel() {
+  if (!cleaningReservations.length) { alert('데이터를 먼저 로드해주세요.'); return; }
+  const rows = buildCleaningRows();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '청소일정');
+  const today = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `청소일정_${today}.xlsx`);
+}
+
+function downloadNotion() {
+  if (!cleaningReservations.length) { alert('데이터를 먼저 로드해주세요.'); return; }
+  const rows = buildCleaningRows();
+  const headers = Object.keys(rows[0]);
+  const csv = [
+    headers.join(','),
+    ...rows.map(r => headers.map(h => `"${String(r[h]).replace(/"/g, '""')}"`).join(','))
+  ].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const today = new Date().toISOString().split('T')[0];
+  a.download = `청소일정_Notion_${today}.csv`;
+  a.click();
 }
 </script>
 </body>
