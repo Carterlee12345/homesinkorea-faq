@@ -225,6 +225,7 @@
     <button class="tab" onclick="switchTab('broadcast',this)">📢 공지</button>
     <button class="tab" onclick="switchTab('cleaning',this)">🧹 청소 일정</button>
     <button class="tab" onclick="switchTab('deposit',this)">🔐 보증금</button>
+    <button class="tab" onclick="switchTab('sales',this)">📊 세일즈 현황</button>
   </div>
 
   <!-- ① FAQ 목록 -->
@@ -1021,6 +1022,56 @@
     </div>
   </div>
 
+  <!-- ⑪ 세일즈 현황 탭 -->
+  <div id="tab-sales" class="section">
+    <div id="sales-kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px"></div>
+    <div class="card">
+      <div class="card-title" style="flex-wrap:wrap;gap:10px">
+        📊 세일즈 현황
+        <span id="sales-save-status" style="font-size:.75rem;color:var(--gray-400);font-weight:400"></span>
+        <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
+          <button onclick="addSalesRow()" style="padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">+ 행 추가</button>
+          <button onclick="openSalesConfig()" style="padding:6px 14px;background:var(--gray-100);color:var(--gray-600);border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">⚙️ 라벨 설정</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;margin:0 -24px;padding:0 8px">
+        <table class="sales-tbl" id="sales-table">
+          <thead><tr>
+            <th style="min-width:100px">아이템</th>
+            <th style="min-width:90px">지점</th>
+            <th style="min-width:110px">위치</th>
+            <th style="min-width:120px">HOLD</th>
+            <th style="min-width:130px">상태</th>
+            <th style="min-width:130px">국적</th>
+            <th style="min-width:85px">보증금</th>
+            <th style="min-width:80px">월세</th>
+            <th style="min-width:130px">계약일</th>
+            <th style="min-width:100px">계약기간</th>
+            <th style="min-width:140px">계약경로</th>
+            <th style="width:36px"></th>
+          </tr></thead>
+          <tbody id="sales-tbody"><tr><td colspan="12" style="padding:24px;text-align:center;color:var(--gray-400)">로딩 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 세일즈 플로팅 드롭다운 -->
+  <div id="sales-dd" style="display:none;position:fixed;z-index:6000;background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.14);min-width:150px;max-height:280px;overflow-y:auto;padding:5px"></div>
+
+  <!-- 국가 피커 -->
+  <div id="sales-country-dd" style="display:none;position:fixed;z-index:6000;background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.14);width:250px;padding:10px">
+    <input id="sales-country-search" type="text" placeholder="국가 검색..." oninput="renderSalesCountryList(this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--gray-200);border-radius:7px;font-size:.85rem;outline:none;margin-bottom:6px;font-family:inherit">
+    <div id="sales-country-list" style="max-height:200px;overflow-y:auto"></div>
+  </div>
+
+  <!-- 라벨 설정 모달 -->
+  <div id="sales-config-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:5000;overflow-y:auto;padding:20px 16px">
+    <div style="background:#fff;border-radius:16px;max-width:700px;margin:auto;padding:28px 24px;box-shadow:0 24px 64px rgba(0,0,0,.2)">
+      <div id="sales-config-content"></div>
+    </div>
+  </div>
+
   <!-- 삭제 확인 팝업 -->
   <div id="dep-confirm-overlay" style="display:none">
     <div id="dep-confirm-box">
@@ -1113,6 +1164,26 @@
 /* dep modal comment */
 .dep-comment-item{background:var(--gray-50);border-radius:8px;padding:10px 14px;margin-bottom:8px}
 .dep-comment-item:last-child{margin-bottom:0}
+/* ── Sales Tab ── */
+.sales-tbl{width:100%;border-collapse:collapse;font-size:.85rem}
+.sales-tbl th{background:var(--gray-50);border-bottom:2px solid var(--gray-200);padding:10px 12px;text-align:left;font-weight:600;color:var(--gray-600);font-size:.79rem;white-space:nowrap}
+.sales-tbl td{border-bottom:1px solid var(--gray-100);padding:0;vertical-align:middle}
+.sales-tbl tr:hover td{background:#fafbff}
+.s-cell{display:block;padding:9px 12px;width:100%;min-height:36px;outline:none;cursor:text;white-space:nowrap;overflow:hidden;font-family:inherit;font-size:.85rem;color:var(--gray-800)}
+.s-cell:focus{background:var(--primary-light);box-shadow:inset 0 0 0 2px var(--primary)}
+.s-click{padding:9px 12px;cursor:pointer;display:flex;align-items:center;min-height:36px;gap:6px;white-space:nowrap}
+.s-click:hover{background:#f0f4ff}
+.s-lbl{display:inline-block;padding:2px 10px;border-radius:5px;font-size:.77rem;font-weight:700;color:#fff;white-space:nowrap}
+.s-lbl-plain{background:var(--gray-100);color:var(--gray-700)!important}
+.s-date{border:none;background:transparent;font-size:.83rem;font-family:inherit;color:var(--gray-800);cursor:pointer;padding:9px 12px;width:100%;outline:none}
+.s-date:focus{background:var(--primary-light)}
+.s-dd-item{padding:7px 12px;border-radius:7px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.s-dd-item:hover{background:var(--gray-50)}
+.s-del{padding:5px 9px;background:transparent;color:var(--gray-300);border:none;border-radius:6px;cursor:pointer;font-size:.9rem;transition:all .15s}
+.s-del:hover{background:#fee2e2;color:#dc2626}
+.cfg-swatch{width:22px;height:22px;border-radius:5px;cursor:pointer;border:2.5px solid transparent;flex-shrink:0;transition:transform .1s}
+.cfg-swatch:hover{transform:scale(1.2)}
+.cfg-swatch.sel{border-color:#000}
 .dep-sort-btn{padding:5px 12px;border:none;background:#fff;font-size:.8rem;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all .15s}
 .dep-sort-btn.active{background:var(--primary);color:#fff;font-weight:700}
 /* confirm popup */
@@ -2220,6 +2291,7 @@ function switchTab(name,el){
   if(name==='analysis'&&!chartsReady){chartsReady=true;setTimeout(renderCharts,50);}
   if(name==='cleaning'&&!cleaningReservations.length){loadCleaning();}
   if(name==='deposit'&&!depositLoaded){loadDepositTab();}
+  if(name==='sales'&&!salesLoaded){loadSales();}
   sendLog('탭 전환', name);
 }
 
@@ -2836,6 +2908,245 @@ async function saveDepositForm() {
   }
 }
 
+
+/* ══════════════════════════════════════
+   SALES TAB
+══════════════════════════════════════ */
+let salesRows=[], salesConfig={}, salesUsers=[], salesLoaded=false;
+let _salesTimer=null, _salesDDCb=null, _countryRowId2=null, salesCfgTab='area';
+
+const SALES_COUNTRIES=[
+  {n:'South Korea',f:'🇰🇷'},{n:'United States',f:'🇺🇸'},{n:'Canada',f:'🇨🇦'},
+  {n:'United Kingdom',f:'🇬🇧'},{n:'Australia',f:'🇦🇺'},{n:'New Zealand',f:'🇳🇿'},
+  {n:'China',f:'🇨🇳'},{n:'Japan',f:'🇯🇵'},{n:'Taiwan',f:'🇹🇼'},{n:'Hong Kong',f:'🇭🇰'},
+  {n:'Singapore',f:'🇸🇬'},{n:'Malaysia',f:'🇲🇾'},{n:'Thailand',f:'🇹🇭'},
+  {n:'Vietnam',f:'🇻🇳'},{n:'Indonesia',f:'🇮🇩'},{n:'Philippines',f:'🇵🇭'},
+  {n:'India',f:'🇮🇳'},{n:'Pakistan',f:'🇵🇰'},{n:'Bangladesh',f:'🇧🇩'},
+  {n:'UAE',f:'🇦🇪'},{n:'Saudi Arabia',f:'🇸🇦'},{n:'Turkey',f:'🇹🇷'},
+  {n:'Russia',f:'🇷🇺'},{n:'Germany',f:'🇩🇪'},{n:'France',f:'🇫🇷'},
+  {n:'Spain',f:'🇪🇸'},{n:'Italy',f:'🇮🇹'},{n:'Netherlands',f:'🇳🇱'},
+  {n:'Belgium',f:'🇧🇪'},{n:'Switzerland',f:'🇨🇭'},{n:'Austria',f:'🇦🇹'},
+  {n:'Sweden',f:'🇸🇪'},{n:'Norway',f:'🇳🇴'},{n:'Denmark',f:'🇩🇰'},
+  {n:'Finland',f:'🇫🇮'},{n:'Poland',f:'🇵🇱'},{n:'Czech Republic',f:'🇨🇿'},
+  {n:'Hungary',f:'🇭🇺'},{n:'Romania',f:'🇷🇴'},{n:'Ukraine',f:'🇺🇦'},
+  {n:'Brazil',f:'🇧🇷'},{n:'Mexico',f:'🇲🇽'},{n:'Argentina',f:'🇦🇷'},
+  {n:'Chile',f:'🇨🇱'},{n:'Colombia',f:'🇨🇴'},{n:'Peru',f:'🇵🇪'},
+  {n:'South Africa',f:'🇿🇦'},{n:'Egypt',f:'🇪🇬'},{n:'Nigeria',f:'🇳🇬'},
+  {n:'Morocco',f:'🇲🇦'},{n:'Kenya',f:'🇰🇪'}
+];
+const CFG_PALETTE=['#1d4ed8','#d97706','#db2777','#047857','#7c3aed','#dc2626','#0891b2','#374151','#6b7280','#b45309','#0369a1','#166534'];
+
+function sEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ── Load ── */
+async function loadSales(){
+  salesLoaded=true;
+  const token=localStorage.getItem('hik_token');
+  try{
+    const res=await fetch('/api/sales?action=get-all',{headers:{Authorization:`Bearer ${token}`}});
+    const d=await res.json();
+    salesRows=d.rows||[]; salesConfig=d.config||{}; salesUsers=d.users||[];
+    renderSalesTable(); renderSalesKPI();
+  }catch(e){
+    document.getElementById('sales-tbody').innerHTML=`<tr><td colspan="12" style="padding:20px;text-align:center;color:#dc2626">❌ ${e.message}</td></tr>`;
+  }
+}
+
+/* ── Table ── */
+function renderSalesTable(){
+  const tb=document.getElementById('sales-tbody');
+  if(!salesRows.length){
+    tb.innerHTML='<tr><td colspan="12" style="padding:24px;text-align:center;color:var(--gray-400)">행이 없습니다. + 행 추가를 눌러주세요.</td></tr>';
+    return;
+  }
+  tb.innerHTML=salesRows.map(r=>renderSalesRow(r)).join('');
+}
+
+function renderSalesRow(r){
+  const aL=(salesConfig.areaLabels||[]).find(l=>l.label===r.area);
+  const sL=(salesConfig.statusLabels||[]).find(l=>l.label===r.status);
+  const hold=r.hold?`<span style="font-size:.78rem;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:12px;font-weight:600">${r.hold.split('@')[0]}</span>`:'<span style="color:var(--gray-400);font-size:.85rem">—</span>';
+  return `<tr data-id="${r.id}">
+    <td><div class="s-cell" contenteditable="true" onblur="sSaveText('${r.id}','item',this)">${sEsc(r.item)}</div></td>
+    <td><div class="s-cell" contenteditable="true" onblur="sSaveText('${r.id}','branch',this)">${sEsc(r.branch)}</div></td>
+    <td><div class="s-click" onclick="sPickLabel('area','${r.id}',this)">${aL?`<span class="s-lbl" style="background:${aL.color}">${aL.label}</span>`:'<span style="color:var(--gray-400)">—</span>'}</div></td>
+    <td><div class="s-click" onclick="sPickUser('${r.id}',this)">${hold}</div></td>
+    <td><div class="s-click" onclick="sPickLabel('status','${r.id}',this)">${sL?`<span class="s-lbl" style="background:${sL.color}">${sL.label}</span>`:'<span style="color:var(--gray-400)">—</span>'}</div></td>
+    <td><div class="s-click" onclick="sPickCountry('${r.id}',this)">${r.nationality?`${r.nationalityFlag||''} ${r.nationality}`:'<span style="color:var(--gray-400)">—</span>'}</div></td>
+    <td><div class="s-cell" contenteditable="true" onblur="sSaveText('${r.id}','deposit',this)">${sEsc(r.deposit)}</div></td>
+    <td><div class="s-cell" contenteditable="true" onblur="sSaveText('${r.id}','rent',this)">${sEsc(r.rent)}</div></td>
+    <td><input type="date" class="s-date" value="${r.contractDate||''}" onchange="sSaveVal('${r.id}','contractDate',this.value)"></td>
+    <td><div class="s-click" onclick="sPickLabel('period','${r.id}',this)">${r.contractPeriod?`<span class="s-lbl s-lbl-plain">${r.contractPeriod}</span>`:'<span style="color:var(--gray-400)">—</span>'}</div></td>
+    <td><div class="s-click" onclick="sPickLabel('source','${r.id}',this)">${r.contractSource?`<span class="s-lbl s-lbl-plain">${r.contractSource}</span>`:'<span style="color:var(--gray-400)">—</span>'}</div></td>
+    <td><button class="s-del" onclick="deleteSalesRow('${r.id}')">🗑</button></td>
+  </tr>`;
+}
+
+function sSaveText(id,field,el){sSaveVal(id,field,el.textContent.trim());}
+function sSaveVal(id,field,val){
+  const r=salesRows.find(x=>x.id===id); if(!r||r[field]===val)return;
+  r[field]=val; scheduleSalesSave(); renderSalesKPI();
+}
+function scheduleSalesSave(){
+  document.getElementById('sales-save-status').textContent='● 저장 중...';
+  clearTimeout(_salesTimer);
+  _salesTimer=setTimeout(async()=>{
+    const token=localStorage.getItem('hik_token');
+    try{
+      await fetch('/api/sales?action=save-rows',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({rows:salesRows})});
+      document.getElementById('sales-save-status').textContent='✓ 저장됨';
+      setTimeout(()=>document.getElementById('sales-save-status').textContent='',2000);
+    }catch{document.getElementById('sales-save-status').textContent='❌ 저장 실패';}
+  },1200);
+}
+function addSalesRow(){
+  salesRows.push({id:Date.now().toString(),item:'',branch:'',area:'',hold:'',status:'',nationality:'',nationalityFlag:'',deposit:'',rent:'',contractDate:'',contractPeriod:'',contractSource:''});
+  renderSalesTable(); scheduleSalesSave();
+}
+function deleteSalesRow(id){
+  if(!confirm('이 행을 삭제할까요?'))return;
+  salesRows=salesRows.filter(r=>r.id!==id);
+  renderSalesTable(); renderSalesKPI(); scheduleSalesSave();
+}
+
+/* ── Floating dropdown ── */
+function showSalesDd(items,anchorEl,cb){
+  const dd=document.getElementById('sales-dd');
+  dd.innerHTML=items.map((it,i)=>`<div class="s-dd-item" data-i="${i}">${it.html}</div>`).join('');
+  dd.querySelectorAll('.s-dd-item').forEach((el,i)=>el.onclick=e=>{e.stopPropagation();cb(items[i].val);closeSalesDd();});
+  const rect=anchorEl.getBoundingClientRect();
+  const top=rect.bottom+4; const left=rect.left;
+  dd.style.cssText=`display:block;top:${top}px;left:${left}px;position:fixed;z-index:6000`;
+}
+function closeSalesDd(){document.getElementById('sales-dd').style.display='none';}
+
+function sPickLabel(type,id,el){
+  const r=salesRows.find(x=>x.id===id); if(!r)return;
+  const isColored=type==='area'||type==='status';
+  const key=type==='area'?'areaLabels':type==='status'?'statusLabels':type==='period'?'periodLabels':'sourceLabels';
+  const labels=salesConfig[key]||[];
+  const field={area:'area',status:'status',period:'contractPeriod',source:'contractSource'}[type];
+  const items=[{val:'',html:'<span style="color:var(--gray-400)">— 없음</span>'},...labels.map(l=>{
+    const txt=l.label||l;
+    return {val:txt, html:isColored?`<span class="s-lbl" style="background:${l.color}">${txt}</span>`:`<span>${txt}</span>`};
+  })];
+  showSalesDd(items,el,val=>{sSaveVal(id,field,val);renderSalesTable();});
+}
+function sPickUser(id,el){
+  const items=[{val:'',html:'<span style="color:var(--gray-400)">— 없음</span>'},...salesUsers.map(u=>({val:u.email,html:`<span style="font-size:.85rem">${u.email}</span>`}))];
+  showSalesDd(items,el,val=>{sSaveVal(id,'hold',val);renderSalesTable();});
+}
+
+/* ── Country picker ── */
+function sPickCountry(id,el){
+  _countryRowId2=id;
+  const dd=document.getElementById('sales-country-dd');
+  const rect=el.getBoundingClientRect();
+  dd.style.cssText=`display:block;top:${rect.bottom+4}px;left:${rect.left}px;position:fixed;z-index:6000`;
+  const inp=document.getElementById('sales-country-search');
+  inp.value=''; inp.focus();
+  renderSalesCountryList('');
+}
+function renderSalesCountryList(q){
+  const filtered=q?SALES_COUNTRIES.filter(c=>c.n.toLowerCase().includes(q.toLowerCase())):SALES_COUNTRIES;
+  document.getElementById('sales-country-list').innerHTML=[
+    `<div class="s-dd-item" onclick="selectSalesCountry('','')"><span style="color:var(--gray-400)">— 없음</span></div>`,
+    ...filtered.map(c=>`<div class="s-dd-item" onclick="selectSalesCountry('${c.n}','${c.f}')">${c.f} ${c.n}</div>`)
+  ].join('');
+}
+function selectSalesCountry(name,flag){
+  if(_countryRowId2){
+    const r=salesRows.find(x=>x.id===_countryRowId2);
+    if(r){r.nationality=name;r.nationalityFlag=flag;scheduleSalesSave();renderSalesTable();renderSalesKPI();}
+  }
+  document.getElementById('sales-country-dd').style.display='none'; _countryRowId2=null;
+}
+
+/* ── KPI ── */
+function renderSalesKPI(){
+  const g=document.getElementById('sales-kpi-grid'); if(!g)return;
+  const total=salesRows.length;
+  const working=salesRows.filter(r=>r.status==='working on').length;
+  const notSale=salesRows.filter(r=>r.status==='not for sale').length;
+  const totalRent=salesRows.reduce((s,r)=>s+(parseFloat(r.rent)||0),0);
+  g.innerHTML=[
+    {v:total,l:'전체 유닛',c:'var(--primary)'},
+    {v:working,l:'Working on',c:'#d97706'},
+    {v:notSale,l:'Not for sale',c:'#6b7280'},
+    {v:totalRent?totalRent.toLocaleString()+'만':'—',l:'월세 합계',c:'#16a34a'}
+  ].map(k=>`<div class="kpi" style="border-left-color:${k.c}"><div class="kpi-val" style="color:${k.c}">${k.v}</div><div class="kpi-lbl">${k.l}</div></div>`).join('');
+}
+
+/* ── Label config ── */
+function openSalesConfig(){salesCfgTab='area';renderSalesCfg();}
+function closeSalesConfig(){document.getElementById('sales-config-overlay').style.display='none';}
+function renderSalesCfg(){
+  document.getElementById('sales-config-overlay').style.display='block';
+  const tabs=[{k:'area',l:'위치(AREA)'},{k:'status',l:'상태'},{k:'period',l:'계약기간'},{k:'source',l:'계약경로'}];
+  document.getElementById('sales-config-content').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:1.05rem;font-weight:700">⚙️ 라벨 설정</div>
+      <button onclick="closeSalesConfig()" style="padding:6px 14px;border:1px solid var(--gray-200);background:#fff;border-radius:8px;font-size:.85rem;cursor:pointer">✕ 닫기</button>
+    </div>
+    <div style="display:flex;gap:4px;background:var(--gray-100);border-radius:10px;padding:4px;margin-bottom:20px">
+      ${tabs.map(t=>`<button onclick="switchSalesCfgTab('${t.k}')" style="flex:1;padding:8px 4px;border:none;background:${salesCfgTab===t.k?'#fff':'transparent'};border-radius:7px;font-size:.8rem;font-weight:${salesCfgTab===t.k?700:500};color:${salesCfgTab===t.k?'var(--primary)':'var(--gray-600)'};cursor:pointer">${t.l}</button>`).join('')}
+    </div>
+    <div id="sales-cfg-body"></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+      <button onclick="closeSalesConfig()" style="padding:10px 20px;border:1px solid var(--gray-200);background:#fff;border-radius:8px;cursor:pointer">취소</button>
+      <button onclick="saveSalesCfg()" style="padding:10px 20px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">💾 저장</button>
+    </div>`;
+  renderSalesCfgBody();
+}
+function switchSalesCfgTab(k){salesCfgTab=k;renderSalesCfg();}
+function renderSalesCfgBody(){
+  const body=document.getElementById('sales-cfg-body');
+  const colored=salesCfgTab==='area'||salesCfgTab==='status';
+  const key=salesCfgTab==='area'?'areaLabels':salesCfgTab==='status'?'statusLabels':salesCfgTab==='period'?'periodLabels':'sourceLabels';
+  const labels=salesConfig[key]||[];
+  if(colored){
+    body.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px" id="scfg-list">
+      ${labels.map((l,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gray-50);border-radius:8px">
+        <input type="text" value="${sEsc(l.label)}" oninput="sCfgUpd(${i},'label',this.value)" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:7px;font-size:.85rem;outline:none;font-family:inherit">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;max-width:180px">
+          ${CFG_PALETTE.map(c=>`<div class="cfg-swatch ${l.color===c?'sel':''}" style="background:${c}" onclick="sCfgUpd(${i},'color','${c}')"></div>`).join('')}
+        </div>
+        <span class="s-lbl" style="background:${l.color};min-width:64px;text-align:center;font-size:.77rem">${l.label||'미리보기'}</span>
+        <button onclick="sCfgRemove(${i})" style="padding:4px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600">삭제</button>
+      </div>`).join('')}
+    </div>
+    <button onclick="sCfgAdd()" style="width:100%;padding:9px;border:1.5px dashed var(--gray-200);background:var(--gray-50);border-radius:8px;font-size:.82rem;cursor:pointer;margin-top:10px">+ 라벨 추가</button>`;
+  } else {
+    body.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px" id="scfg-list">
+      ${labels.map((l,i)=>`<div style="display:flex;gap:8px">
+        <input type="text" value="${sEsc(l)}" oninput="sCfgSimpleUpd(${i},this.value)" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:7px;font-size:.85rem;outline:none;font-family:inherit">
+        <button onclick="sCfgSimpleRemove(${i})" style="padding:4px 10px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:600">삭제</button>
+      </div>`).join('')}
+    </div>
+    <button onclick="sCfgSimpleAdd()" style="width:100%;padding:9px;border:1.5px dashed var(--gray-200);background:var(--gray-50);border-radius:8px;font-size:.82rem;cursor:pointer;margin-top:10px">+ 항목 추가</button>`;
+  }
+}
+function sCfgKey(){return salesCfgTab==='area'?'areaLabels':salesCfgTab==='status'?'statusLabels':salesCfgTab==='period'?'periodLabels':'sourceLabels';}
+function sCfgUpd(i,k,v){const a=salesConfig[sCfgKey()];if(a&&a[i]){a[i][k]=v;if(k==='color')renderSalesCfgBody();}}
+function sCfgRemove(i){salesConfig[sCfgKey()]=salesConfig[sCfgKey()].filter((_,j)=>j!==i);renderSalesCfgBody();}
+function sCfgAdd(){const k=sCfgKey();if(!salesConfig[k])salesConfig[k]=[];salesConfig[k].push({label:'새 라벨',color:CFG_PALETTE[salesConfig[k].length%CFG_PALETTE.length]});renderSalesCfgBody();}
+function sCfgSimpleUpd(i,v){const a=salesConfig[sCfgKey()];if(a)a[i]=v;}
+function sCfgSimpleRemove(i){salesConfig[sCfgKey()]=(salesConfig[sCfgKey()]||[]).filter((_,j)=>j!==i);renderSalesCfgBody();}
+function sCfgSimpleAdd(){const k=sCfgKey();if(!salesConfig[k])salesConfig[k]=[];salesConfig[k].push('새 항목');renderSalesCfgBody();}
+async function saveSalesCfg(){
+  const token=localStorage.getItem('hik_token');
+  try{
+    await fetch('/api/sales?action=save-config',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({config:salesConfig})});
+    closeSalesConfig(); renderSalesTable();
+  }catch{alert('설정 저장 실패');}
+}
+
+/* ── Close on outside click ── */
+document.addEventListener('click',e=>{
+  if(!document.getElementById('sales-dd').contains(e.target)&&!e.target.closest('.s-click'))closeSalesDd();
+  const cdp=document.getElementById('sales-country-dd');
+  if(cdp.style.display!=='none'&&!cdp.contains(e.target)&&!e.target.closest('[onclick*="sPickCountry"]')){cdp.style.display='none';_countryRowId2=null;}
+});
 
 function downloadNotion() {
   if (!cleaningReservations.length) { alert('데이터를 먼저 로드해주세요.'); return; }
