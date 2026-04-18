@@ -1137,6 +1137,15 @@
           </select>
         </div>
       </div>
+      <!-- 카테고리 관리 -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:.8rem;font-weight:600;color:var(--gray-600);margin-bottom:8px">카테고리</div>
+        <div id="upsell-cat-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:6px">
+          <input id="upsell-cat-input" type="text" placeholder="카테고리 이름 입력" onkeydown="if(event.key==='Enter'){event.preventDefault();upsellAddCat();}" style="flex:1;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;font-family:inherit;outline:none">
+          <button onclick="upsellAddCat()" style="padding:7px 14px;background:var(--gray-100);color:var(--gray-700);border:none;border-radius:8px;font-size:.84rem;font-weight:600;cursor:pointer">+ 추가</button>
+        </div>
+      </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--gray-600)">
           🔗 고객 링크:
@@ -3345,7 +3354,7 @@ async function saveSalesCfg(){
 }
 
 /* ── Upsell ── */
-let upsellItems=[], upsellLoaded=false;
+let upsellItems=[], upsellCategories=[], upsellLoaded=false;
 
 async function loadUpsell(){
   upsellLoaded=true;
@@ -3353,10 +3362,37 @@ async function loadUpsell(){
     const res=await fetch('/api/upsell?action=get-items');
     const d=await res.json();
     upsellItems=d.items||[];
+    upsellCategories=d.categories||[];
     document.getElementById('upsell-paypal-id').value=d.paypalClientId||'';
     document.getElementById('upsell-currency').value=d.currency||'USD';
+    renderUpsellCatTags();
     renderUpsellList();
   }catch(e){document.getElementById('upsell-items-list').innerHTML=`<div style="color:#dc2626;padding:16px">로딩 실패: ${e.message}</div>`;}
+}
+
+function renderUpsellCatTags(){
+  const el=document.getElementById('upsell-cat-tags');
+  if(!el)return;
+  el.innerHTML=upsellCategories.length
+    ? upsellCategories.map(c=>`<span style="display:inline-flex;align-items:center;gap:5px;background:#e0e7ff;color:#3730a3;border-radius:20px;padding:4px 12px;font-size:.8rem;font-weight:600">${c}<button onclick="upsellRemoveCat('${c}')" style="background:none;border:none;cursor:pointer;color:#6366f1;font-size:.9rem;line-height:1;padding:0">×</button></span>`).join('')
+    : '<span style="font-size:.8rem;color:var(--gray-400)">카테고리 없음</span>';
+}
+
+function upsellAddCat(){
+  const inp=document.getElementById('upsell-cat-input');
+  const val=(inp.value||'').trim();
+  if(!val||upsellCategories.includes(val))return;
+  upsellCategories.push(val);
+  inp.value='';
+  renderUpsellCatTags();
+  renderUpsellList();
+}
+
+function upsellRemoveCat(name){
+  upsellCategories=upsellCategories.filter(c=>c!==name);
+  upsellItems.forEach(i=>{if(i.category===name)i.category='';});
+  renderUpsellCatTags();
+  renderUpsellList();
 }
 
 function renderUpsellList(){
@@ -3376,12 +3412,16 @@ function renderUpsellList(){
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
           <input type="text" placeholder="아이템 이름" value="${item.name||''}" oninput="upsellUpd('${item.id}','name',this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.9rem;font-weight:600;font-family:inherit;outline:none">
           <textarea placeholder="아이템 설명" rows="2" oninput="upsellUpd('${item.id}','description',this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;font-family:inherit;resize:vertical;outline:none">${item.description||''}</textarea>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="number" placeholder="금액" value="${item.price||''}" oninput="upsellUpd('${item.id}','price',this.value)" style="width:100px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.9rem;font-family:inherit;outline:none">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="number" placeholder="금액" value="${item.price||''}" oninput="upsellUpd('${item.id}','price',this.value)" style="width:90px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.9rem;font-family:inherit;outline:none">
             <select onchange="upsellUpd('${item.id}','currency',this.value)" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;font-family:inherit;cursor:pointer">
               ${['USD','EUR','GBP','JPY','AUD','CAD'].map(c=>`<option value="${c}" ${(item.currency||'USD')===c?'selected':''}>${c}</option>`).join('')}
             </select>
-            <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;color:var(--gray-600);cursor:pointer;margin-left:4px">
+            <select onchange="upsellUpd('${item.id}','category',this.value)" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;font-family:inherit;cursor:pointer;color:${item.category?'inherit':'var(--gray-400)'}">
+              <option value="">분류 없음</option>
+              ${upsellCategories.map(c=>`<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;color:var(--gray-600);cursor:pointer">
               <input type="checkbox" ${item.active!==false?'checked':''} onchange="upsellUpd('${item.id}','active',this.checked)"> 공개
             </label>
             <button onclick="upsellDelete('${item.id}')" style="margin-left:auto;padding:6px 12px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer">삭제</button>
@@ -3407,7 +3447,7 @@ function upsellUploadImg(id,input){
 async function saveUpsellSettings(){
   const btn=document.getElementById('upsell-save-settings-btn');
   const token=localStorage.getItem('hik_token');
-  await fetch('/api/upsell?action=save-settings',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({paypalClientId:document.getElementById('upsell-paypal-id').value.trim(),currency:document.getElementById('upsell-currency').value})});
+  await fetch('/api/upsell?action=save-settings',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({paypalClientId:document.getElementById('upsell-paypal-id').value.trim(),currency:document.getElementById('upsell-currency').value,categories:upsellCategories})});
   if(btn){btn.textContent='✓ 저장됨';setTimeout(()=>{btn.textContent='저장';},2000);}
 }
 

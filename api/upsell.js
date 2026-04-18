@@ -28,15 +28,17 @@ module.exports = async function handler(req, res) {
   const action = req.query.action;
 
   if (action === 'get-items' && req.method === 'GET') {
-    const [itemsRaw, paypalId, currency] = await Promise.all([
+    const [itemsRaw, paypalId, currency, catsRaw] = await Promise.all([
       redis(['GET', 'upsell:items']),
       redis(['GET', 'upsell:paypal']),
-      redis(['GET', 'upsell:currency'])
+      redis(['GET', 'upsell:currency']),
+      redis(['GET', 'upsell:categories'])
     ]);
     return res.status(200).json({
       items: itemsRaw ? JSON.parse(itemsRaw) : [],
       paypalClientId: paypalId || '',
-      currency: currency || 'USD'
+      currency: currency || 'USD',
+      categories: catsRaw ? JSON.parse(catsRaw) : []
     });
   }
 
@@ -49,10 +51,11 @@ module.exports = async function handler(req, res) {
   }
 
   if (action === 'save-settings' && req.method === 'POST') {
-    const { paypalClientId, currency } = req.body;
+    const { paypalClientId, currency, categories } = req.body;
     await Promise.all([
       redis(['SET', 'upsell:paypal', paypalClientId || '']),
-      redis(['SET', 'upsell:currency', currency || 'USD'])
+      redis(['SET', 'upsell:currency', currency || 'USD']),
+      redis(['SET', 'upsell:categories', JSON.stringify(categories || [])])
     ]);
     return res.status(200).json({ success: true });
   }
