@@ -979,6 +979,7 @@ async function doLogin() {
   localStorage.setItem('hik_token', data.token);
   document.getElementById('user-email-display').textContent = data.email;
   document.getElementById('auth-overlay').style.display = 'none';
+  sendLog('로그인', data.email);
 }
 
 async function doSignup() {
@@ -996,6 +997,7 @@ async function doSignup() {
 }
 
 function doLogout() {
+  sendLog('로그아웃', '');
   localStorage.removeItem('hik_token');
   document.getElementById('user-email-display').textContent = '';
   document.getElementById('auth-login').style.display = 'block';
@@ -1006,6 +1008,17 @@ function doLogout() {
 }
 
 window.addEventListener('DOMContentLoaded', checkAuth);
+
+/* ── Activity Logging ── */
+async function sendLog(action, detail) {
+  const token = localStorage.getItem('hik_token');
+  if (!token) return;
+  fetch('/api/log', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ action, detail })
+  }).catch(() => {});
+}
 
 const monthlyData = {"2023-11": 7, "2023-12": 127, "2024-01": 159, "2024-02": 196, "2024-03": 330, "2024-04": 99, "2024-05": 276, "2024-06": 127, "2024-07": 292, "2024-08": 297, "2024-09": 377, "2024-10": 514, "2024-11": 241, "2024-12": 138, "2025-01": 207, "2025-02": 180, "2025-03": 174, "2025-04": 148, "2025-05": 578, "2025-06": 771, "2025-07": 297, "2025-08": 185, "2025-09": 71, "2025-10": 123, "2025-11": 662, "2025-12": 261, "2026-01": 54, "2026-02": 60, "2026-03": 53, "2026-04": 1};
 const catData     = {"기타": 4452, "가격/비용 문의": 1465, "예약/입주 방법": 444, "위치/지역 문의": 360, "룸 타입/인원": 134, "입주 기간/단기": 51, "서류/계약": 51, "반려동물": 30, "서울 외 지역": 11, "시설/편의": 4, "비자/서류 지원": 3};
@@ -1795,6 +1808,7 @@ async function generateDraft() {
     document.getElementById('draft-memo').textContent = result.internal_memo;
     document.getElementById('draft-q').textContent = result.clarifying_question;
 
+    sendLog('초안 생성', categoryLabel || '자동 감지');
     document.getElementById('draft-generating').style.display = 'none';
     document.getElementById('draft-results').style.display = 'block';
   } catch(e) {
@@ -1876,6 +1890,7 @@ async function generateBroadcast() {
     document.getElementById('broadcast-audience-summary').innerHTML =
       `📣 수신 대상: ${tagStr} · 목적: <strong>${selectedPurpose === 'raw' ? '내용 그대로 발송' : selectedPurpose}</strong>`;
 
+    sendLog('공지 메시지 생성', `목적:${selectedPurpose} 태그:${tags.join(',')}`);
     document.getElementById('broadcast-generating').style.display = 'none';
     document.getElementById('broadcast-results').style.display = 'block';
   } catch(e) {
@@ -1933,6 +1948,7 @@ async function handleSend() {
     } else {
       resultEl.style.cssText = 'display:block;margin-top:10px;padding:14px;border-radius:10px;font-size:.88rem;line-height:1.7;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7';
       resultEl.innerHTML = `✅ 발송 완료<br>발송 성공: <strong>${data.sent}건</strong> · 실패: ${data.failed}건 · 전체 스캔: ${data.scanned}건`;
+      sendLog('공지 발송', `태그:${broadcastTags.join(',')} 성공:${data.sent}건`);
     }
   } catch(e) {
     resultEl.style.cssText = 'display:block;margin-top:10px;padding:14px;border-radius:10px;font-size:.88rem;line-height:1.7;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5';
@@ -1950,6 +1966,7 @@ function switchTab(name,el){
   document.getElementById('tab-'+name).classList.add('active');
   el.classList.add('active');
   if(name==='analysis'&&!chartsReady){chartsReady=true;setTimeout(renderCharts,50);}
+  sendLog('탭 전환', name);
 }
 
 function renderCharts(){
