@@ -1008,11 +1008,28 @@
         <div style="display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap">
           <button class="dep-subtab active" onclick="switchDepTab('pending',this)">🔴 반환 필요 <span id="dep-cnt-pending" class="dep-subtab-cnt">0</span></button>
           <button class="dep-subtab" onclick="switchDepTab('completed',this)">✅ 반환 완료 <span id="dep-cnt-completed" class="dep-subtab-cnt">0</span></button>
+          <div style="display:flex;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden">
+            <button class="dep-sort-btn active" id="sort-newest" onclick="setDepSort('newest',this)">최신순</button>
+            <button class="dep-sort-btn" id="sort-oldest" onclick="setDepSort('oldest',this)">마지막순</button>
+          </div>
           <button onclick="loadDepositSubmissions()" style="padding:5px 12px;background:var(--gray-100);color:var(--gray-600);border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer">🔄</button>
         </div>
       </div>
       <div id="dep-submissions-wrap">
         <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 삭제 확인 팝업 -->
+  <div id="dep-confirm-overlay" style="display:none">
+    <div id="dep-confirm-box">
+      <div style="font-size:1.4rem;margin-bottom:12px">🗑</div>
+      <div style="font-size:1rem;font-weight:700;margin-bottom:8px">접수 건을 삭제할까요?</div>
+      <div style="font-size:.85rem;color:var(--gray-600);margin-bottom:24px">삭제된 데이터는 복구할 수 없습니다.</div>
+      <div style="display:flex;gap:10px">
+        <button onclick="closeDepConfirm()" style="flex:1;padding:11px;border:1px solid var(--gray-200);background:#fff;border-radius:8px;font-size:.9rem;cursor:pointer;font-weight:600">취소</button>
+        <button id="dep-confirm-ok" style="flex:1;padding:11px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer">삭제</button>
       </div>
     </div>
   </div>
@@ -1096,6 +1113,11 @@
 /* dep modal comment */
 .dep-comment-item{background:var(--gray-50);border-radius:8px;padding:10px 14px;margin-bottom:8px}
 .dep-comment-item:last-child{margin-bottom:0}
+.dep-sort-btn{padding:5px 12px;border:none;background:#fff;font-size:.8rem;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all .15s}
+.dep-sort-btn.active{background:var(--primary);color:#fff;font-weight:700}
+/* confirm popup */
+#dep-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px}
+#dep-confirm-box{background:#fff;border-radius:14px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 16px 48px rgba(0,0,0,.2);text-align:center}
 </style>
 
 <script>
@@ -2483,6 +2505,7 @@ let depositSubmissions = [];
 let depositMeta = {};
 let currentDepTab = 'pending';
 let currentDepModalId = null;
+let depSortOrder = 'newest';
 
 async function loadDepositTab() {
   depositLoaded = true;
@@ -2528,12 +2551,24 @@ function switchDepTab(tab, el) {
   renderDepSubmissions();
 }
 
+function setDepSort(order, el) {
+  depSortOrder = order;
+  document.querySelectorAll('.dep-sort-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderDepSubmissions();
+}
+
 function renderDepSubmissions() {
-  const pending = depositSubmissions.filter(s => (depositMeta[s.id]?.status || 'pending') === 'pending');
-  const completed = depositSubmissions.filter(s => (depositMeta[s.id]?.status || 'pending') === 'completed');
+  const visible = depositSubmissions.filter(s => !depositMeta[s.id]?.deleted);
+  const pending = visible.filter(s => (depositMeta[s.id]?.status || 'pending') === 'pending');
+  const completed = visible.filter(s => (depositMeta[s.id]?.status || 'pending') === 'completed');
   document.getElementById('dep-cnt-pending').textContent = pending.length;
   document.getElementById('dep-cnt-completed').textContent = completed.length;
-  const list = currentDepTab === 'pending' ? pending : completed;
+  let list = currentDepTab === 'pending' ? pending : completed;
+  list = [...list].sort((a, b) => {
+    const diff = new Date(a.submittedAt) - new Date(b.submittedAt);
+    return depSortOrder === 'newest' ? -diff : diff;
+  });
   const wrap = document.getElementById('dep-submissions-wrap');
   if (!list.length) {
     wrap.innerHTML = `<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:28px">${currentDepTab==='pending'?'반환 필요한 건이 없습니다.':'반환 완료된 건이 없습니다.'}</div>`;
@@ -2555,7 +2590,10 @@ function renderDepSubmissions() {
           ${p1}${p2}
           ${badges ? `<div style="font-size:.75rem;color:var(--gray-400);margin-top:6px">${badges}</div>` : ''}
         </div>
-        <button onclick="openDepModal(${s.id})" style="flex-shrink:0;padding:7px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">정보 보기</button>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button onclick="confirmDeleteDep(${s.id})" style="padding:7px 12px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">🗑 삭제</button>
+          <button onclick="openDepModal(${s.id})" style="padding:7px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">정보 보기</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2702,6 +2740,30 @@ async function uploadDepAttachment(id) {
     fileInput.value = '';
   };
   reader.readAsDataURL(file);
+}
+
+function confirmDeleteDep(id) {
+  const overlay = document.getElementById('dep-confirm-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('dep-confirm-ok').onclick = () => { closeDepConfirm(); executeDeleteDep(id); };
+}
+
+function closeDepConfirm() {
+  document.getElementById('dep-confirm-overlay').style.display = 'none';
+}
+
+async function executeDeleteDep(id) {
+  const token = localStorage.getItem('hik_token');
+  const res = await fetch('/api/deposit?action=delete-submission', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  if (res.ok) {
+    if (!depositMeta[id]) depositMeta[id] = {};
+    depositMeta[id].deleted = true;
+    renderDepSubmissions();
+  }
 }
 
 async function downloadDepAttachment(key, name) {

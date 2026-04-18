@@ -130,6 +130,18 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ success: true });
   }
 
+  // ── delete-submission (auth) ──
+  if (action === 'delete-submission' && req.method === 'POST') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const { id } = req.body;
+    const raw = await redis(['GET', `deposit:meta:${id}`]) || '{}';
+    const meta = JSON.parse(raw);
+    meta.deleted = true;
+    await redis(['SET', `deposit:meta:${id}`, JSON.stringify(meta)]);
+    return res.status(200).json({ success: true });
+  }
+
   // ── get-attachment (auth) ──
   if (action === 'get-attachment' && req.method === 'GET') {
     const token = req.headers['authorization']?.replace('Bearer ', '');
