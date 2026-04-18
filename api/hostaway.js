@@ -69,14 +69,11 @@ module.exports = async function handler(req, res) {
 
       const listingMap = {};
       (listingsData.result || []).forEach(l => {
-        const addr = typeof l.address === 'object'
-          ? (l.address?.full || l.address?.street || JSON.stringify(l.address))
-          : (l.address || '');
         listingMap[l.id] = {
-          name: l.externalName || l.publicName || l.name || l.internalListingName || '',
-          bedrooms: l.bedrooms ?? l.bedroomsNumber ?? l.numberOfBedrooms ?? 0,
-          bathrooms: l.bathrooms ?? l.bathroomsNumber ?? l.numberOfBathrooms ?? 0,
-          address: addr
+          name: l.externalListingName || l.name || '',
+          bedrooms: l.bedroomsNumber || 0,
+          bathrooms: l.bathroomsNumber || 0,
+          address: l.publicAddress || l.address || ''
         };
       });
 
