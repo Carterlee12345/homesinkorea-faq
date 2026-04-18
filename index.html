@@ -723,7 +723,7 @@
             <button class="purpose-btn" onclick="selectPurpose(this,'시설 점검 공지')">🔧 시설 점검 공지</button>
             <button class="purpose-btn" onclick="selectPurpose(this,'프로모션')">🎁 프로모션</button>
             <button class="purpose-btn" onclick="selectPurpose(this,'긴급 공지')">⚠️ 긴급 공지</button>
-            <button class="purpose-btn" style="grid-column:1/-1;border-color:#6366f1;color:#4f46e5" onclick="selectPurpose(this,'__RAW__')">📝 내용 그대로 발송</button>
+            <button class="purpose-btn" style="grid-column:1/-1;border-color:#6366f1;color:#4f46e5" onclick="selectPurpose(this,'raw')">📝 내용 그대로 발송</button>
           </div>
         </div>
 
@@ -1854,7 +1854,7 @@ async function generateBroadcast() {
 
   try {
     let koMsg, enMsg;
-    if (selectedPurpose === '__RAW__') {
+    if (selectedPurpose === 'raw') {
       koMsg = brief;
       enMsg = brief;
     } else {
@@ -1874,7 +1874,7 @@ async function generateBroadcast() {
 
     const tagStr = tags.map(t => `<span class="recipient-badge">${t}</span>`).join(' ');
     document.getElementById('broadcast-audience-summary').innerHTML =
-      `📣 수신 대상: ${tagStr} · 목적: <strong>${selectedPurpose === '__RAW__' ? '내용 그대로 발송' : selectedPurpose}</strong>`;
+      `📣 수신 대상: ${tagStr} · 목적: <strong>${selectedPurpose === 'raw' ? '내용 그대로 발송' : selectedPurpose}</strong>`;
 
     document.getElementById('broadcast-generating').style.display = 'none';
     document.getElementById('broadcast-results').style.display = 'block';
