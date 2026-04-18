@@ -62,9 +62,9 @@ module.exports = async function handler(req, res) {
       const today = new Date().toISOString().split('T')[0];
 
       const [activeData, listingsData, stayingData] = await Promise.all([
-        haFetch(`/reservations?status=confirmed&arrivalStartDate=${today}&limit=100`, haToken),
-        haFetch(`/listings?limit=100`, haToken),
-        haFetch(`/reservations?status=confirmed&arrivalEndDate=${today}&departureDateStart=${today}&limit=100`, haToken)
+        haFetch(`/reservations?arrivalStartDate=${today}&limit=200`, haToken),
+        haFetch(`/listings?limit=500`, haToken),
+        haFetch(`/reservations?arrivalEndDate=${today}&departureDateStart=${today}&limit=200`, haToken)
       ]);
 
       const listingMap = {};
@@ -79,14 +79,19 @@ module.exports = async function handler(req, res) {
 
       const seen = new Set();
       const reservations = [...(stayingData.result || []), ...(activeData.result || [])]
-        .filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true; })
+        .filter(r => {
+          if (seen.has(r.id)) return false;
+          seen.add(r.id);
+          const dep = r.departureDate?.split('T')[0] || '';
+          return dep >= today; // 체크아웃이 오늘 이후인 것만
+        })
         .map(r => {
-          const listing = listingMap[r.listingId] || {};
+          const listing = listingMap[r.listingMapId] || {}; // listingId → listingMapId
           const arr = r.arrivalDate?.split('T')[0] || '';
           const dep = r.departureDate?.split('T')[0] || '';
           const isStaying = arr <= today && dep > today;
           return {
-            id: r.id, listingId: r.listingId,
+            id: r.id, listingId: r.listingMapId,
             listingName: listing.name, bedrooms: listing.bedrooms,
             bathrooms: listing.bathrooms, address: listing.address,
             arrivalDate: arr, departureDate: dep,
