@@ -2236,11 +2236,7 @@ function renderCleaningGroups() {
     (groups[st] || groups.staying).push(r);
   });
   Object.keys(groups).forEach(key => {
-    groups[key].sort((a, b) => {
-      const da = a.isStaying ? a.departureDate : a.arrivalDate;
-      const db = b.isStaying ? b.departureDate : b.arrivalDate;
-      return da.localeCompare(db);
-    });
+    groups[key].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
   });
   Object.entries(groups).forEach(([key, items]) => renderGroup(key, items));
 }
@@ -2299,7 +2295,7 @@ function renderGroup(key, items) {
 function clGoPage(key, val, absolute) {
   const groups = { staying:[], scheduled:[], check:[], done:[] };
   cleaningReservations.forEach(r => { const st=getClStatus(r.id); (groups[st]||groups.staying).push(r); });
-  Object.keys(groups).forEach(k => groups[k].sort((a,b)=>{const da=a.isStaying?a.departureDate:a.arrivalDate,db=b.isStaying?b.departureDate:b.arrivalDate;return da.localeCompare(db);}));
+  Object.keys(groups).forEach(k => groups[k].sort((a,b) => a.departureDate.localeCompare(b.departureDate)));
   const total = Math.ceil(groups[key].length / PAGE_SIZE);
   clPages[key] = absolute ? Math.min(Math.max(val,1),total) : Math.min(Math.max((clPages[key]||1)+val,1),total);
   renderGroup(key, groups[key]);
