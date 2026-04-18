@@ -79,6 +79,35 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ success: true });
   }
 
+  if (action === 'export-notion' && req.method === 'POST') {
+    const NOTION_TOKEN = process.env.NOTION_TOKEN;
+    const NOTION_PARENT_PAGE_ID = process.env.NOTION_PARENT_PAGE_ID;
+    if (!NOTION_TOKEN || !NOTION_PARENT_PAGE_ID) {
+      return res.status(200).json({ error: 'Notion 설정이 필요합니다. (NOTION_TOKEN, NOTION_PARENT_PAGE_ID 환경변수)' });
+    }
+    const { rows } = req.body;
+    const headers = ['지점','위치','HOLD','상태','국적','보증금','월세','계약일','계약기간','계약경로'];
+    const fields = ['branch','area','hold','status','nationality','deposit','rent','contractDate','contractPeriod','contractSource'];
+    const cell = (v) => [{ type: 'text', text: { content: String(v || '') } }];
+    const tableRows = [
+      { object: 'block', type: 'table_row', table_row: { cells: headers.map(h => [{ type: 'text', text: { content: h }, annotations: { bold: true } }]) } },
+      ...(rows || []).map(r => ({ object: 'block', type: 'table_row', table_row: { cells: fields.map(f => cell(r[f])) } }))
+    ];
+    const today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });
+    const notionRes = await fetch('https://api.notion.com/v1/pages', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${NOTION_TOKEN}`, 'Content-Type': 'application/json', 'Notion-Version': '2022-06-28' },
+      body: JSON.stringify({
+        parent: { page_id: NOTION_PARENT_PAGE_ID },
+        properties: { title: [{ text: { content: `세일즈 현황 ${today}` } }] },
+        children: [{ object: 'block', type: 'table', table: { table_width: headers.length, has_column_header: true, has_row_header: false, children: tableRows } }]
+      })
+    });
+    const nd = await notionRes.json();
+    if (nd.url) return res.status(200).json({ url: nd.url });
+    return res.status(200).json({ error: nd.message || '알 수 없는 오류' });
+  }
+
   if (action === 'notify-hold' && req.method === 'POST') {
     const { branch, deposit, rent, contractPeriod, nationality, contractSource } = req.body;
     if (!SLACK_SALES_WEBHOOK) return res.status(200).json({ skipped: true });

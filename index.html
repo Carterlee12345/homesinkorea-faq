@@ -1025,11 +1025,44 @@
   <!-- ⑪ 세일즈 현황 탭 -->
   <div id="tab-sales" class="section">
     <div id="sales-kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px"></div>
+
+    <!-- 차트 분석 -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title" style="flex-wrap:wrap;gap:10px">
+        📈 세일즈 분석
+        <button onclick="renderSalesCharts()" style="margin-left:auto;padding:5px 12px;background:var(--gray-100);color:var(--gray-600);border:none;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer">↻ 새로고침</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--gray-500);margin-bottom:12px;text-align:center;letter-spacing:.04em;text-transform:uppercase">상태별</div>
+          <canvas id="sc-status" style="max-height:200px"></canvas>
+          <div id="sc-status-empty" style="display:none;text-align:center;padding:40px 0;color:var(--gray-400);font-size:.85rem">데이터 없음</div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--gray-500);margin-bottom:12px;text-align:center;letter-spacing:.04em;text-transform:uppercase">국적별</div>
+          <canvas id="sc-nationality" style="max-height:200px"></canvas>
+          <div id="sc-nat-empty" style="display:none;text-align:center;padding:40px 0;color:var(--gray-400);font-size:.85rem">데이터 없음</div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--gray-500);margin-bottom:12px;text-align:center;letter-spacing:.04em;text-transform:uppercase">계약경로별</div>
+          <canvas id="sc-source" style="max-height:200px"></canvas>
+          <div id="sc-src-empty" style="display:none;text-align:center;padding:40px 0;color:var(--gray-400);font-size:.85rem">데이터 없음</div>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--gray-500);margin-bottom:12px;text-align:center;letter-spacing:.04em;text-transform:uppercase">월별 계약</div>
+          <canvas id="sc-monthly" style="max-height:200px"></canvas>
+          <div id="sc-monthly-empty" style="display:none;text-align:center;padding:40px 0;color:var(--gray-400);font-size:.85rem">데이터 없음</div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title" style="flex-wrap:wrap;gap:10px">
         📊 세일즈 현황
         <span id="sales-save-status" style="font-size:.75rem;color:var(--gray-400);font-weight:400"></span>
         <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
+          <button onclick="downloadSalesExcel()" style="padding:6px 14px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">⬇ 엑셀 다운로드</button>
+          <button id="btn-notion-export" onclick="exportSalesNotion()" style="padding:6px 14px;background:#1e293b;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">📋 노션 내보내기</button>
           <button onclick="addSalesRow()" style="padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">+ 행 추가</button>
           <button onclick="openSalesConfig()" style="padding:6px 14px;background:var(--gray-100);color:var(--gray-600);border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">⚙️ 라벨 설정</button>
         </div>
@@ -2945,7 +2978,7 @@ async function loadSales(){
     const res=await fetch('/api/sales?action=get-all',{headers:{Authorization:`Bearer ${token}`}});
     const d=await res.json();
     salesRows=d.rows||[]; salesConfig=d.config||{}; salesUsers=d.users||[];
-    renderSalesTable(); renderSalesKPI();
+    renderSalesTable(); renderSalesKPI(); renderSalesCharts();
   }catch(e){
     document.getElementById('sales-tbody').innerHTML=`<tr><td colspan="12" style="padding:20px;text-align:center;color:#dc2626">❌ ${e.message}</td></tr>`;
   }
@@ -3081,6 +3114,120 @@ function renderSalesKPI(){
     {v:notSale,l:'Not for sale',c:'#6b7280'},
     {v:totalRent?totalRent.toLocaleString()+'만':'—',l:'월세 합계',c:'#16a34a'}
   ].map(k=>`<div class="kpi" style="border-left-color:${k.c}"><div class="kpi-val" style="color:${k.c}">${k.v}</div><div class="kpi-lbl">${k.l}</div></div>`).join('');
+}
+
+/* ── Charts ── */
+let _salesCharts={};
+function renderSalesCharts(){
+  Object.values(_salesCharts).forEach(c=>{try{c.destroy();}catch(e){}});
+  _salesCharts={};
+  const PIE_OPTS=(legendItems)=>({
+    plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:14,padding:10}}},
+    maintainAspectRatio:true
+  });
+  const PAL=['#3b82f6','#f59e0b','#8b5cf6','#ef4444','#22c55e','#06b6d4','#f97316','#ec4899','#94a3b8','#10b981'];
+
+  function show(id,emptyId,hasData){
+    const el=document.getElementById(id); const em=document.getElementById(emptyId);
+    if(el) el.style.display=hasData?'':'none';
+    if(em) em.style.display=hasData?'none':'';
+  }
+
+  // ── Status pie
+  const stCounts={};
+  salesRows.forEach(r=>{if(r.status) stCounts[r.status]=(stCounts[r.status]||0)+1;});
+  const stKeys=Object.keys(stCounts);
+  show('sc-status','sc-status-empty',stKeys.length>0);
+  if(stKeys.length){
+    const total=stKeys.reduce((s,k)=>s+stCounts[k],0);
+    const colors=stKeys.map(l=>(salesConfig.statusLabels||[]).find(s=>s.label===l)?.color||'#94a3b8');
+    _salesCharts.status=new Chart(document.getElementById('sc-status'),{
+      type:'pie',
+      data:{labels:stKeys.map(l=>`${l}: ${((stCounts[l]/total)*100).toFixed(1)}%`),datasets:[{data:stKeys.map(l=>stCounts[l]),backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},
+      options:PIE_OPTS()
+    });
+  }
+
+  // ── Nationality pie
+  const natCounts={};
+  salesRows.forEach(r=>{if(r.nationality) natCounts[r.nationality]=(natCounts[r.nationality]||0)+1;});
+  const natEntries=Object.entries(natCounts).sort((a,b)=>b[1]-a[1]);
+  const topNat=natEntries.slice(0,8); const otherNat=natEntries.slice(8).reduce((s,[,v])=>s+v,0);
+  if(otherNat) topNat.push(['Others',otherNat]);
+  show('sc-nationality','sc-nat-empty',topNat.length>0);
+  if(topNat.length){
+    const total=topNat.reduce((s,[,v])=>s+v,0);
+    _salesCharts.nat=new Chart(document.getElementById('sc-nationality'),{
+      type:'pie',
+      data:{labels:topNat.map(([l,v])=>`${l}: ${((v/total)*100).toFixed(1)}%`),datasets:[{data:topNat.map(([,v])=>v),backgroundColor:PAL,borderWidth:2,borderColor:'#fff'}]},
+      options:PIE_OPTS()
+    });
+  }
+
+  // ── Source pie
+  const srcCounts={};
+  salesRows.forEach(r=>{if(r.contractSource) srcCounts[r.contractSource]=(srcCounts[r.contractSource]||0)+1;});
+  const srcEntries=Object.entries(srcCounts).sort((a,b)=>b[1]-a[1]);
+  show('sc-source','sc-src-empty',srcEntries.length>0);
+  if(srcEntries.length){
+    const total=srcEntries.reduce((s,[,v])=>s+v,0);
+    _salesCharts.src=new Chart(document.getElementById('sc-source'),{
+      type:'pie',
+      data:{labels:srcEntries.map(([l,v])=>`${l}: ${((v/total)*100).toFixed(1)}%`),datasets:[{data:srcEntries.map(([,v])=>v),backgroundColor:PAL,borderWidth:2,borderColor:'#fff'}]},
+      options:PIE_OPTS()
+    });
+  }
+
+  // ── Monthly bar
+  const monthCounts={};
+  salesRows.forEach(r=>{if(r.contractDate){const m=r.contractDate.slice(0,7);monthCounts[m]=(monthCounts[m]||0)+1;}});
+  const months=Object.keys(monthCounts).sort();
+  show('sc-monthly','sc-monthly-empty',months.length>0);
+  if(months.length){
+    _salesCharts.monthly=new Chart(document.getElementById('sc-monthly'),{
+      type:'bar',
+      data:{
+        labels:months.map(m=>m.replace('-','년 ')+'월'),
+        datasets:[{label:'계약 건수',data:months.map(m=>monthCounts[m]),backgroundColor:'#3b82f6',borderRadius:6,borderSkipped:false}]
+      },
+      options:{
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}건`}}},
+        scales:{y:{beginAtZero:true,ticks:{stepSize:1,precision:0},grid:{color:'#f1f5f9'}},x:{grid:{display:false}}},
+        maintainAspectRatio:true
+      }
+    });
+  }
+}
+
+/* ── Excel download ── */
+function downloadSalesExcel(){
+  const headers=['지점','위치','HOLD','상태','국적','보증금','월세','계약일','계약기간','계약경로'];
+  const fields=['branch','area','hold','status','nationality','deposit','rent','contractDate','contractPeriod','contractSource'];
+  const rows=[headers,...salesRows.map(r=>fields.map(f=>r[f]||''))];
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`세일즈현황_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+/* ── Notion export ── */
+async function exportSalesNotion(){
+  const btn=document.getElementById('btn-notion-export');
+  if(btn){btn.disabled=true;btn.textContent='내보내는 중...';}
+  try{
+    const token=localStorage.getItem('hik_token');
+    const res=await fetch('/api/sales?action=export-notion',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({rows:salesRows})
+    });
+    const d=await res.json();
+    if(d.url) window.open(d.url,'_blank');
+    else alert('노션 내보내기 실패: '+(d.error||'알 수 없는 오류'));
+  }catch(e){alert('오류가 발생했습니다.');}
+  finally{if(btn){btn.disabled=false;btn.textContent='📋 노션 내보내기';}}
 }
 
 /* ── Label config ── */
