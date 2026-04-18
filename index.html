@@ -989,20 +989,8 @@
       <div style="font-size:.78rem;color:var(--gray-400);margin-top:8px">이 링크를 고객에게 전달하면 보증금 정보를 입력할 수 있습니다.</div>
     </div>
 
-    <!-- 폼 빌더 -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-title">
-        ✏️ 폼 필드 편집
-        <button onclick="addDepositField()" style="margin-left:auto;padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">+ 필드 추가</button>
-        <button onclick="saveDepositForm()" id="save-form-btn" style="padding:6px 14px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">💾 저장</button>
-      </div>
-      <div id="deposit-fields-list" style="display:flex;flex-direction:column;gap:8px">
-        <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
-      </div>
-    </div>
-
     <!-- 제출 목록 -->
-    <div class="card">
+    <div class="card" style="margin-bottom:16px">
       <div class="card-title" style="flex-wrap:wrap;gap:10px">
         📥 보증금 접수 현황
         <div style="display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap">
@@ -1016,6 +1004,18 @@
         </div>
       </div>
       <div id="dep-submissions-wrap">
+        <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
+      </div>
+    </div>
+
+    <!-- 폼 빌더 -->
+    <div class="card">
+      <div class="card-title">
+        ✏️ 폼 필드 편집
+        <button onclick="addDepositField()" style="margin-left:auto;padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">+ 필드 추가</button>
+        <button onclick="saveDepositForm()" id="save-form-btn" style="padding:6px 14px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">💾 저장</button>
+      </div>
+      <div id="deposit-fields-list" style="display:flex;flex-direction:column;gap:8px">
         <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
       </div>
     </div>
