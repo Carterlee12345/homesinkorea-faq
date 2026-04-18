@@ -68,8 +68,10 @@
   .copy-btn{display:inline-flex;align-items:center;gap:6px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.84rem;cursor:pointer;font-weight:600;margin-bottom:16px;transition:opacity .15s}
   .copy-btn:hover{opacity:.85}.copy-btn.copied{background:var(--success)}
   /* tabs */
-  .tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--gray-100);border-radius:10px;padding:4px;flex-wrap:wrap}
-  .tab{padding:8px 18px;border:none;background:transparent;border-radius:8px;font-size:.88rem;cursor:pointer;font-weight:500;color:var(--gray-600);transition:all .15s}
+  .tabs{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+  .tab-group{display:flex;align-items:center;gap:4px;background:var(--gray-100);border-radius:10px;padding:4px;flex-wrap:wrap}
+  .tab-group-label{font-size:.7rem;font-weight:700;color:var(--gray-400);letter-spacing:.06em;padding:0 8px 0 4px;white-space:nowrap;text-transform:uppercase;border-right:1px solid var(--gray-300);margin-right:2px;align-self:center}
+  .tab{padding:7px 16px;border:none;background:transparent;border-radius:8px;font-size:.85rem;cursor:pointer;font-weight:500;color:var(--gray-600);transition:all .15s;white-space:nowrap}
   .tab.active{background:#fff;color:var(--primary);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.1)}
   .section{display:none}.section.active{display:block}
   .chart-wrap{position:relative;height:280px}
@@ -215,17 +217,26 @@
 
 <div class="container">
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('faq',this)">FAQ 목록</button>
-    <button class="tab" onclick="switchTab('analysis',this)">데이터 분석</button>
-    <button class="tab" onclick="switchTab('website-faq',this)">웹사이트 FAQ (EN)</button>
-    <button class="tab" onclick="switchTab('feedback',this)">개선 피드백</button>
-    <button class="tab" onclick="switchTab('notion',this)">Notion 내보내기</button>
-    <button class="tab" onclick="switchTab('sim',this)">🌶️ 상담 체험</button>
-    <button class="tab" onclick="switchTab('draft',this)">✍️ 초안 생성기</button>
-    <button class="tab" onclick="switchTab('broadcast',this)">📢 공지</button>
-    <button class="tab" onclick="switchTab('cleaning',this)">🧹 청소 일정</button>
-    <button class="tab" onclick="switchTab('deposit',this)">🔐 보증금</button>
-    <button class="tab" onclick="switchTab('sales',this)">📊 세일즈 현황</button>
+    <div class="tab-group">
+      <span class="tab-group-label">분석</span>
+      <button class="tab active" onclick="switchTab('faq',this)">FAQ 목록</button>
+      <button class="tab" onclick="switchTab('analysis',this)">데이터 분석</button>
+      <button class="tab" onclick="switchTab('website-faq',this)">웹사이트 FAQ (EN)</button>
+      <button class="tab" onclick="switchTab('feedback',this)">개선 피드백</button>
+      <button class="tab" onclick="switchTab('notion',this)">Notion 내보내기</button>
+    </div>
+    <div class="tab-group">
+      <span class="tab-group-label">상담 AI</span>
+      <button class="tab" onclick="switchTab('sim',this)">🌶️ 상담 체험</button>
+      <button class="tab" onclick="switchTab('draft',this)">✍️ 초안 생성기</button>
+    </div>
+    <div class="tab-group">
+      <span class="tab-group-label">관리</span>
+      <button class="tab" onclick="switchTab('broadcast',this)">📢 공지</button>
+      <button class="tab" onclick="switchTab('cleaning',this)">🧹 청소 일정</button>
+      <button class="tab" onclick="switchTab('deposit',this)">🔐 보증금</button>
+      <button class="tab" onclick="switchTab('sales',this)">📊 세일즈 현황</button>
+    </div>
   </div>
 
   <!-- ① FAQ 목록 -->
