@@ -6,6 +6,7 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/deposit-form", "destination": "/deposit-form.html" },
+    { "source": "/shop", "destination": "/upsell.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

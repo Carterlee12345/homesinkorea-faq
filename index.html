@@ -236,6 +236,7 @@
       <button class="tab" onclick="switchTab('cleaning',this)">🧹 청소 일정</button>
       <button class="tab" onclick="switchTab('deposit',this)">🔐 보증금</button>
       <button class="tab" onclick="switchTab('sales',this)">📊 세일즈 현황</button>
+      <button class="tab" onclick="switchTab('upsell',this)">🛍 업셀링</button>
     </div>
   </div>
 
@@ -1112,6 +1113,48 @@
   <div id="sales-config-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:5000;overflow-y:auto;padding:20px 16px">
     <div style="background:#fff;border-radius:16px;max-width:700px;margin:auto;padding:28px 24px;box-shadow:0 24px 64px rgba(0,0,0,.2)">
       <div id="sales-config-content"></div>
+    </div>
+  </div>
+
+  <!-- 업셀링 탭 -->
+  <div id="tab-upsell" class="section">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">⚙️ 스토어 설정</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.8rem;font-weight:600;color:var(--gray-600);margin-bottom:6px">PayPal Client ID</div>
+          <input id="upsell-paypal-id" type="text" placeholder="Axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..." style="width:100%;padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:.82rem;font-family:monospace;outline:none">
+        </div>
+        <div>
+          <div style="font-size:.8rem;font-weight:600;color:var(--gray-600);margin-bottom:6px">통화</div>
+          <select id="upsell-currency" style="padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:.85rem;font-family:inherit;cursor:pointer">
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="JPY">JPY (¥)</option>
+            <option value="AUD">AUD (A$)</option>
+            <option value="CAD">CAD (C$)</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--gray-600)">
+          🔗 고객 링크:
+          <a href="/shop" target="_blank" style="color:var(--primary);font-weight:600">/shop</a>
+          <button onclick="navigator.clipboard.writeText(location.origin+'/shop').then(()=>{this.textContent='✓ 복사됨';setTimeout(()=>this.textContent='링크 복사',2000)})" style="padding:4px 10px;background:var(--gray-100);border:none;border-radius:6px;font-size:.78rem;cursor:pointer;font-weight:600">링크 복사</button>
+        </div>
+        <button id="upsell-save-settings-btn" onclick="saveUpsellSettings()" style="padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.84rem;font-weight:600;cursor:pointer">저장</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        🛍 아이템 목록
+        <div style="display:flex;gap:8px;margin-left:auto">
+          <button onclick="addUpsellItem()" style="padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">+ 아이템 추가</button>
+          <button id="upsell-save-btn" onclick="saveUpsellItems()" style="padding:6px 14px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">💾 저장</button>
+        </div>
+      </div>
+      <div id="upsell-items-list"></div>
     </div>
   </div>
 
@@ -2335,6 +2378,7 @@ function switchTab(name,el){
   if(name==='cleaning'&&!cleaningReservations.length){loadCleaning();}
   if(name==='deposit'&&!depositLoaded){loadDepositTab();}
   if(name==='sales'&&!salesLoaded){loadSales();}
+  if(name==='upsell'&&!upsellLoaded){loadUpsell();}
   sendLog('탭 전환', name);
 }
 
@@ -3298,6 +3342,81 @@ async function saveSalesCfg(){
     await fetch('/api/sales?action=save-config',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({config:salesConfig})});
     closeSalesConfig(); renderSalesTable();
   }catch{alert('설정 저장 실패');}
+}
+
+/* ── Upsell ── */
+let upsellItems=[], upsellLoaded=false;
+
+async function loadUpsell(){
+  upsellLoaded=true;
+  try{
+    const res=await fetch('/api/upsell?action=get-items');
+    const d=await res.json();
+    upsellItems=d.items||[];
+    document.getElementById('upsell-paypal-id').value=d.paypalClientId||'';
+    document.getElementById('upsell-currency').value=d.currency||'USD';
+    renderUpsellList();
+  }catch(e){document.getElementById('upsell-items-list').innerHTML=`<div style="color:#dc2626;padding:16px">로딩 실패: ${e.message}</div>`;}
+}
+
+function renderUpsellList(){
+  const el=document.getElementById('upsell-items-list');
+  if(!upsellItems.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--gray-400)">아이템이 없습니다. 위의 추가 버튼을 눌러주세요.</div>';return;}
+  el.innerHTML=upsellItems.map((item,i)=>{
+    const img=item.imageData||item.imageUrl;
+    return `<div style="border:1px solid var(--gray-200);border-radius:12px;padding:16px;margin-bottom:12px;background:var(--gray-50)">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="flex-shrink:0;display:flex;flex-direction:column;gap:6px">
+          <div onclick="document.getElementById('uimg-${item.id}').click()" style="width:96px;height:72px;border-radius:8px;overflow:hidden;background:var(--gray-200);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--gray-400)">
+            ${img?`<img src="${img}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:'🖼'}
+          </div>
+          <input type="file" id="uimg-${item.id}" accept="image/*" style="display:none" onchange="upsellUploadImg('${item.id}',this)">
+          <input type="text" placeholder="이미지 URL" value="${item.imageUrl||''}" oninput="upsellUpd('${item.id}','imageUrl',this.value);upsellUpd('${item.id}','imageData','')" style="width:96px;padding:4px 7px;border:1px solid var(--gray-200);border-radius:6px;font-size:.72rem;font-family:inherit;outline:none">
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+          <input type="text" placeholder="아이템 이름" value="${item.name||''}" oninput="upsellUpd('${item.id}','name',this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.9rem;font-weight:600;font-family:inherit;outline:none">
+          <textarea placeholder="아이템 설명" rows="2" oninput="upsellUpd('${item.id}','description',this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;font-family:inherit;resize:vertical;outline:none">${item.description||''}</textarea>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="number" placeholder="금액" value="${item.price||''}" oninput="upsellUpd('${item.id}','price',this.value)" style="width:100px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.9rem;font-family:inherit;outline:none">
+            <select onchange="upsellUpd('${item.id}','currency',this.value)" style="padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;font-family:inherit;cursor:pointer">
+              ${['USD','EUR','GBP','JPY','AUD','CAD'].map(c=>`<option value="${c}" ${(item.currency||'USD')===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+            <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;color:var(--gray-600);cursor:pointer;margin-left:4px">
+              <input type="checkbox" ${item.active!==false?'checked':''} onchange="upsellUpd('${item.id}','active',this.checked)"> 공개
+            </label>
+            <button onclick="upsellDelete('${item.id}')" style="margin-left:auto;padding:6px 12px;background:#fee2e2;color:#dc2626;border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer">삭제</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function upsellUpd(id,field,val){const it=upsellItems.find(i=>i.id===id);if(it)it[field]=val;}
+function upsellDelete(id){upsellItems=upsellItems.filter(i=>i.id!==id);renderUpsellList();}
+function addUpsellItem(){upsellItems.push({id:Date.now().toString(),name:'',description:'',imageUrl:'',imageData:'',price:'',currency:'USD',active:true});renderUpsellList();}
+
+function upsellUploadImg(id,input){
+  const file=input.files[0]; if(!file)return;
+  if(file.size>512*1024){alert('이미지는 500KB 이하로 업로드해주세요.');return;}
+  const r=new FileReader();
+  r.onload=e=>{upsellUpd(id,'imageData',e.target.result);upsellUpd(id,'imageUrl','');renderUpsellList();};
+  r.readAsDataURL(file);
+}
+
+async function saveUpsellSettings(){
+  const btn=document.getElementById('upsell-save-settings-btn');
+  const token=localStorage.getItem('hik_token');
+  await fetch('/api/upsell?action=save-settings',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({paypalClientId:document.getElementById('upsell-paypal-id').value.trim(),currency:document.getElementById('upsell-currency').value})});
+  if(btn){btn.textContent='✓ 저장됨';setTimeout(()=>{btn.textContent='저장';},2000);}
+}
+
+async function saveUpsellItems(){
+  const btn=document.getElementById('upsell-save-btn');
+  const token=localStorage.getItem('hik_token');
+  if(btn)btn.textContent='저장 중...';
+  await fetch('/api/upsell?action=save-items',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({items:upsellItems})});
+  if(btn){btn.textContent='✓ 저장됨';setTimeout(()=>{btn.textContent='💾 저장';},2000);}
 }
 
 /* ── Close on outside click ── */

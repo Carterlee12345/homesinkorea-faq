@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOMESINKOREA · Shop</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:#f8fafc;min-height:100vh;color:#1e293b}
+  header{background:#1e3a8a;color:#fff;padding:18px 32px;display:flex;align-items:center;gap:16px}
+  .header-logo{font-size:1.15rem;font-weight:800;letter-spacing:.05em}
+  .header-sub{font-size:.82rem;opacity:.65;margin-top:2px}
+  .container{max-width:1100px;margin:0 auto;padding:48px 24px}
+  .shop-heading{font-size:1.6rem;font-weight:800;color:#1e293b;margin-bottom:6px}
+  .shop-sub{font-size:.9rem;color:#64748b;margin-bottom:36px;line-height:1.6}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px}
+  .card{background:#fff;border-radius:18px;box-shadow:0 2px 16px rgba(0,0,0,.07);overflow:hidden;transition:transform .2s,box-shadow .2s;display:flex;flex-direction:column}
+  .card:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(0,0,0,.12)}
+  .card-img{width:100%;height:210px;object-fit:cover;display:block}
+  .card-img-ph{width:100%;height:210px;background:linear-gradient(135deg,#dbeafe,#ede9fe);display:flex;align-items:center;justify-content:center;font-size:3.5rem}
+  .card-body{padding:22px;flex:1;display:flex;flex-direction:column}
+  .card-name{font-size:1.1rem;font-weight:700;margin-bottom:8px;color:#1e293b}
+  .card-desc{font-size:.875rem;color:#64748b;line-height:1.65;margin-bottom:18px;flex:1}
+  .card-price{font-size:1.4rem;font-weight:800;color:#1e3a8a;margin-bottom:16px}
+  .pp-wrap{min-height:48px}
+  .center{text-align:center;padding:80px 24px;color:#94a3b8}
+  .center-icon{font-size:3rem;margin-bottom:16px}
+  /* success overlay */
+  #success-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+  .success-box{background:#fff;border-radius:20px;padding:44px 36px;text-align:center;max-width:420px;width:100%}
+  .success-icon{font-size:3.5rem;margin-bottom:16px}
+  .success-title{font-size:1.4rem;font-weight:800;color:#065f46;margin-bottom:8px}
+  .success-msg{color:#6b7280;font-size:.9rem;line-height:1.7;margin-bottom:28px}
+  .success-close{padding:13px 32px;background:#1e3a8a;color:#fff;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .success-close:hover{opacity:.88}
+  .no-paypal{padding:12px;background:#f1f5f9;border-radius:8px;text-align:center;font-size:.8rem;color:#94a3b8}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-logo">🏠 HOMESINKOREA</div>
+    <div class="header-sub">Additional Services</div>
+  </div>
+</header>
+
+<div class="container">
+  <div id="app"><div class="center"><div class="center-icon">⏳</div>Loading...</div></div>
+</div>
+
+<div id="success-ov" style="display:none">
+  <div class="success-box">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Payment Successful!</div>
+    <div class="success-msg" id="success-msg">Your payment has been processed. Our team will be in touch shortly.</div>
+    <button class="success-close" onclick="document.getElementById('success-ov').style.display='none'">Close</button>
+  </div>
+</div>
+
+<script>
+const PRICE_SYMBOLS = { USD:'$', EUR:'€', GBP:'£', KRW:'₩', JPY:'¥', AUD:'A$', CAD:'C$' };
+
+function fmt(price, cur) {
+  if (!price) return '—';
+  const sym = PRICE_SYMBOLS[cur] || (cur + ' ');
+  return sym + parseFloat(price).toLocaleString(undefined, { minimumFractionDigits: cur === 'KRW' || cur === 'JPY' ? 0 : 2, maximumFractionDigits: cur === 'KRW' || cur === 'JPY' ? 0 : 2 });
+}
+
+function cardHTML(item) {
+  let imgHtml = '';
+  if (item.imageData) {
+    imgHtml = `<img class="card-img" src="${item.imageData}" alt="${item.name||''}">`;
+  } else if (item.imageUrl) {
+    imgHtml = `<img class="card-img" src="${item.imageUrl}" alt="${item.name||''}" onerror="this.outerHTML='<div class=\\'card-img-ph\\'>🛍</div>'">`;
+  } else {
+    imgHtml = `<div class="card-img-ph">🛍</div>`;
+  }
+  return `<div class="card">
+    ${imgHtml}
+    <div class="card-body">
+      <div class="card-name">${item.name || 'Service'}</div>
+      <div class="card-desc">${(item.description || '').replace(/\n/g,'<br>')}</div>
+      <div class="card-price">${fmt(item.price, item.currency || 'USD')}</div>
+      <div class="pp-wrap" id="pp-${item.id}"></div>
+    </div>
+  </div>`;
+}
+
+function loadSDK(clientId, currency) {
+  return new Promise((resolve, reject) => {
+    if (window.paypal) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=${currency}&components=buttons`;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function mountButton(item, currency) {
+  const el = document.getElementById(`pp-${item.id}`);
+  if (!el || !window.paypal) return;
+  paypal.Buttons({
+    style: { layout:'horizontal', color:'blue', shape:'rect', label:'pay', height:42 },
+    createOrder: (_d, actions) => actions.order.create({
+      purchase_units: [{
+        amount: { value: parseFloat(item.price).toFixed(2), currency_code: item.currency || currency },
+        description: item.name || 'Service'
+      }]
+    }),
+    onApprove: (_d, actions) => actions.order.capture().then(det => {
+      const name = det.payer?.name?.given_name || 'Customer';
+      document.getElementById('success-msg').textContent =
+        `Thank you, ${name}! Your payment for "${item.name}" has been processed. Our team will contact you shortly.`;
+      document.getElementById('success-ov').style.display = 'flex';
+    }),
+    onError: () => alert('Payment failed. Please try again or contact us.')
+  }).render(`#pp-${item.id}`);
+}
+
+async function init() {
+  const app = document.getElementById('app');
+  try {
+    const res = await fetch('/api/upsell?action=get-items');
+    const { items, paypalClientId, currency } = await res.json();
+    const visible = (items || []).filter(i => i.active !== false && i.name);
+
+    if (!visible.length) {
+      app.innerHTML = `<div class="center"><div class="center-icon">🛍</div><p>No services available at the moment.</p></div>`;
+      return;
+    }
+
+    app.innerHTML = `
+      <h1 class="shop-heading">Additional Services</h1>
+      <p class="shop-sub">Enhance your stay with our premium add-on services.</p>
+      <div class="grid">${visible.map(cardHTML).join('')}</div>`;
+
+    if (paypalClientId) {
+      await loadSDK(paypalClientId, currency || 'USD');
+      visible.forEach(item => mountButton(item, currency || 'USD'));
+    } else {
+      document.querySelectorAll('.pp-wrap').forEach(el => {
+        el.innerHTML = '<div class="no-paypal">Contact us to purchase</div>';
+      });
+    }
+  } catch(e) {
+    app.innerHTML = '<div class="center"><div class="center-icon">⚠️</div><p>Unable to load. Please try again later.</p></div>';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
