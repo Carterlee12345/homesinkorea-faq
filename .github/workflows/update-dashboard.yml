@@ -1,0 +1,26 @@
+name: Update Dashboard Data
+
+on:
+  schedule:
+    - cron: '0 2 */2 * *'   # 매 48시간, UTC 02:00
+  workflow_dispatch:          # 수동 실행 가능
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Analyze Channel Talk data & update Upstash
+        run: node .github/scripts/analyze.js
+        env:
+          CHANNELTALK_ACCESS_KEY: ${{ secrets.CHANNELTALK_ACCESS_KEY }}
+          CHANNELTALK_ACCESS_SECRET: ${{ secrets.CHANNELTALK_ACCESS_SECRET }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          UPSTASH_URL: ${{ secrets.UPSTASH_URL }}
+          UPSTASH_TOKEN: ${{ secrets.UPSTASH_TOKEN }}

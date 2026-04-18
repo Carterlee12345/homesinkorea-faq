@@ -197,7 +197,7 @@
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
     <div>
       <h1>HOMESINKOREA · 고객 문의 FAQ 대시보드 <span class="badge-live">LIVE</span></h1>
-      <p>채널톡 종료 상담 데이터 자동 분석 · 마지막 업데이트: 2026-04-16 17:37</p>
+      <p>채널톡 종료 상담 데이터 자동 분석 · 마지막 업데이트: <span id="last-updated">2026-04-16 17:37</span></p>
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
       <span id="user-email-display" style="font-size:.8rem;opacity:.75"></span>
@@ -205,10 +205,10 @@
     </div>
   </div>
   <div class="header-meta">
-    <div class="meta-item"><div class="val">7,064</div><div class="lbl">총 분석 문의</div></div>
-    <div class="meta-item"><div class="val">7,005</div><div class="lbl">실제 고객 문의</div></div>
-    <div class="meta-item"><div class="val">59</div><div class="lbl">스팸/광고 필터</div></div>
-    <div class="meta-item"><div class="val">11</div><div class="lbl">FAQ 카테고리</div></div>
+    <div class="meta-item"><div class="val" id="kpi-total">7,064</div><div class="lbl">총 분석 문의</div></div>
+    <div class="meta-item"><div class="val" id="kpi-real">7,005</div><div class="lbl">실제 고객 문의</div></div>
+    <div class="meta-item"><div class="val" id="kpi-spam">59</div><div class="lbl">스팸/광고 필터</div></div>
+    <div class="meta-item"><div class="val" id="kpi-cats">11</div><div class="lbl">FAQ 카테고리</div></div>
   </div>
 </div>
 
@@ -227,25 +227,25 @@
   <!-- ① FAQ 목록 -->
   <div id="tab-faq" class="section active">
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-val">1,465</div>
-        <div class="kpi-lbl">가격/비용 문의</div>
-        <div class="kpi-sub">전체의 20.9%</div></div>
-      <div class="kpi"><div class="kpi-val">444</div>
-        <div class="kpi-lbl">예약/입주 방법</div>
-        <div class="kpi-sub">전체의 6.3%</div></div>
-      <div class="kpi"><div class="kpi-val">360</div>
-        <div class="kpi-lbl">위치/지역 문의</div>
-        <div class="kpi-sub">전체의 5.1%</div></div>
-      <div class="kpi"><div class="kpi-val">134</div>
-        <div class="kpi-lbl">룸 타입/인원</div>
-        <div class="kpi-sub">전체의 1.9%</div></div></div>
+      <div class="kpi"><div class="kpi-val" id="faq-kpi1-val">1,465</div>
+        <div class="kpi-lbl" id="faq-kpi1-lbl">가격/비용 문의</div>
+        <div class="kpi-sub" id="faq-kpi1-sub">전체의 20.9%</div></div>
+      <div class="kpi"><div class="kpi-val" id="faq-kpi2-val">444</div>
+        <div class="kpi-lbl" id="faq-kpi2-lbl">예약/입주 방법</div>
+        <div class="kpi-sub" id="faq-kpi2-sub">전체의 6.3%</div></div>
+      <div class="kpi"><div class="kpi-val" id="faq-kpi3-val">360</div>
+        <div class="kpi-lbl" id="faq-kpi3-lbl">위치/지역 문의</div>
+        <div class="kpi-sub" id="faq-kpi3-sub">전체의 5.1%</div></div>
+      <div class="kpi"><div class="kpi-val" id="faq-kpi4-val">134</div>
+        <div class="kpi-lbl" id="faq-kpi4-lbl">룸 타입/인원</div>
+        <div class="kpi-sub" id="faq-kpi4-sub">전체의 1.9%</div></div></div>
     <div class="card">
-      <div class="card-title">FAQ 목록 <span class="badge">빈도 높은 순 · 11개 카테고리</span>
-        <span class="updated-tag">업데이트: 2026-04-16 17:37</span></div>
+      <div class="card-title">FAQ 목록 <span class="badge" id="faq-badge">빈도 높은 순 · 11개 카테고리</span>
+        <span class="updated-tag" id="faq-updated">업데이트: 2026-04-16 17:37</span></div>
       <div class="table-scroll">
         <table class="faq-table">
           <thead><tr><th>#</th><th>카테고리</th><th>자주 묻는 질문</th><th>권장 답변</th><th>빈도</th></tr></thead>
-          <tbody>
+          <tbody id="faq-tbody">
       <tr>
         <td>1</td>
         <td><span class="cat-pill cat-price">가격/비용 문의</span></td>
@@ -948,6 +948,7 @@ async function checkAuth() {
   const { email } = await res.json();
   document.getElementById('user-email-display').textContent = email;
   document.getElementById('auth-overlay').style.display = 'none';
+  loadDashboardData();
 }
 
 function showOverlay() { document.getElementById('auth-overlay').style.display = 'flex'; }
@@ -980,6 +981,7 @@ async function doLogin() {
   document.getElementById('user-email-display').textContent = data.email;
   document.getElementById('auth-overlay').style.display = 'none';
   sendLog('로그인', data.email);
+  loadDashboardData();
 }
 
 async function doSignup() {
@@ -1008,6 +1010,74 @@ function doLogout() {
 }
 
 window.addEventListener('DOMContentLoaded', checkAuth);
+
+/* ── Dashboard Data ── */
+async function loadDashboardData() {
+  const token = localStorage.getItem('hik_token');
+  if (!token) return;
+  try {
+    const res = await fetch('/api/dashboard-data', { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!res.ok) return;
+    applyDashboardData(await res.json());
+  } catch(e) { console.warn('Dashboard data load failed:', e); }
+}
+
+const CAT_CLASS = {
+  '가격/비용 문의':'cat-price','예약/입주 방법':'cat-booking','위치/지역 문의':'cat-location',
+  '룸 타입/인원':'cat-roomtype','입주 기간/단기':'cat-duration','서류/계약':'cat-docs',
+  '반려동물':'cat-pets','기타':'cat-etc'
+};
+
+function applyDashboardData(data) {
+  const k = data.kpi || {};
+  if (k.total) document.getElementById('kpi-total').textContent = k.total.toLocaleString();
+  if (k.real)  document.getElementById('kpi-real').textContent  = k.real.toLocaleString();
+  if (k.spam !== undefined) document.getElementById('kpi-spam').textContent = k.spam.toLocaleString();
+  if (k.categories) document.getElementById('kpi-cats').textContent = k.categories;
+
+  if (data.updatedAt) {
+    const d = new Date(data.updatedAt);
+    const fmt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    document.getElementById('last-updated').textContent = fmt;
+    document.getElementById('faq-updated').textContent = '업데이트: ' + fmt;
+  }
+
+  const total = k.total || 1;
+  const cats = Object.entries(data.catData || {}).filter(([n])=>n!=='기타').sort((a,b)=>b[1]-a[1]);
+  [1,2,3,4].forEach(i => {
+    const entry = cats[i-1];
+    if (!entry) return;
+    document.getElementById(`faq-kpi${i}-val`).textContent = entry[1].toLocaleString();
+    document.getElementById(`faq-kpi${i}-lbl`).textContent = entry[0];
+    document.getElementById(`faq-kpi${i}-sub`).textContent = `전체의 ${(entry[1]/total*100).toFixed(1)}%`;
+  });
+
+  if (k.categories) document.getElementById('faq-badge').textContent = `빈도 높은 순 · ${k.categories}개 카테고리`;
+
+  const faqs = data.faqData || [];
+  if (faqs.length) {
+    const maxFreq = Math.max(...faqs.map(f => f.freq || 1));
+    document.getElementById('faq-tbody').innerHTML = faqs.map((f, i) => {
+      const cls = CAT_CLASS[f.category] || 'cat-etc';
+      const barW = Math.round(((f.freq||1)/maxFreq)*80);
+      return `<tr>
+        <td>${i+1}</td>
+        <td><span class="cat-pill ${cls}">${f.category||'기타'}</span></td>
+        <td><div class="faq-q">${f.question}</div></td>
+        <td><div class="faq-a">${f.answer}</div></td>
+        <td><div class="freq-bar"><div class="bar" style="width:${barW}px"></div><span class="num">${(f.freq||1).toLocaleString()}건</span></div>
+            <div style="font-size:.72rem;color:var(--gray-400);margin-top:3px">${((f.freq||1)/total*100).toFixed(1)}%</div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  if (data.monthlyData) Object.assign(monthlyData, data.monthlyData);
+  if (data.catData)     Object.assign(catData, data.catData);
+  if (data.tagData)     Object.assign(tagData, data.tagData);
+  if (data.locData)     Object.assign(locData, data.locData);
+
+  if (chartsReady) { chartsReady = false; setTimeout(renderCharts, 50); }
+}
 
 /* ── Activity Logging ── */
 async function sendLog(action, detail) {
@@ -1970,6 +2040,7 @@ function switchTab(name,el){
 }
 
 function renderCharts(){
+  ['trendChart','catChart','barChart','tagChart','locChart'].forEach(id=>{const c=Chart.getChart(id);if(c)c.destroy();});
   const months=Object.keys(monthlyData),vals=Object.values(monthlyData);
   new Chart(document.getElementById('trendChart'),{
     type:'line',
