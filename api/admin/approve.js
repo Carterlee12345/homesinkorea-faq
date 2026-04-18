@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 async function redis(cmd) {
   const res = await fetch(process.env.UPSTASH_URL, {
     method: 'POST',
@@ -7,6 +9,21 @@ async function redis(cmd) {
   return (await res.json()).result;
 }
 
+async function checkAdminAuth(key) {
+  if (key === process.env.ADMIN_PASSWORD) return true;
+  if (!key?.startsWith('bearer:')) return false;
+  const token = key.slice(7);
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  const [payload, ts, sig] = parts;
+  const expected = crypto.createHmac('sha256', process.env.SESSION_SECRET).update(`${payload}.${ts}`).digest('hex');
+  if (sig !== expected || Date.now() - parseInt(ts) > 7 * 24 * 60 * 60 * 1000) return false;
+  const email = Buffer.from(payload, 'base64').toString();
+  const raw = await redis(['GET', `user:${email}`]);
+  if (!raw) return false;
+  return JSON.parse(raw).isAdmin === true;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -14,7 +31,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.headers['x-admin-key'] !== process.env.ADMIN_PASSWORD)
+  if (!await checkAdminAuth(req.headers['x-admin-key']))
     return res.status(401).json({ error: '관리자 권한이 없습니다.' });
 
   const { email, approved } = req.body;
