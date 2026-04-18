@@ -1017,6 +1017,8 @@
 .cl-status-btn.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:700}
 .cleaning-card{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s}
 .cleaning-card:hover{box-shadow:var(--shadow)}
+.cleaning-card.urgent{border-color:#fca5a5;animation:urgentGlow 2s ease-in-out infinite}
+@keyframes urgentGlow{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{box-shadow:0 0 0 4px rgba(220,38,38,0.25),0 0 12px rgba(220,38,38,0.15)}}
 </style>
 
 <script>
@@ -2263,7 +2265,7 @@ function renderCleaningGroups() {
         cl.cost        ? `💰 ${Number(cl.cost).toLocaleString()}원` : '',
         cl.cleaner     ? `👤 ${cl.cleaner}` : ''
       ].filter(Boolean).join('  ·  ');
-      return `<div class="cleaning-card" onclick="openClModal('${r.id}')">
+      return `<div class="cleaning-card${diffDays <= 3 ? ' urgent' : ''}" onclick="openClModal('${r.id}')">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
           <div style="font-size:.88rem;font-weight:700">${r.listingName || '(이름 없음)'}</div>
           <div style="font-size:.78rem;font-weight:800;color:${ddayColor};background:${ddayColor}18;padding:2px 8px;border-radius:12px;flex-shrink:0">${dday}</div>
