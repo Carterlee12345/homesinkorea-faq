@@ -222,6 +222,7 @@
     <button class="tab" onclick="switchTab('sim',this)">🌶️ 상담 체험</button>
     <button class="tab" onclick="switchTab('draft',this)">✍️ 초안 생성기</button>
     <button class="tab" onclick="switchTab('broadcast',this)">📢 공지</button>
+    <button class="tab" onclick="switchTab('cleaning',this)">🧹 청소 일정</button>
   </div>
 
   <!-- ① FAQ 목록 -->
@@ -936,7 +937,82 @@
       </div>
     </div>
   </div>
+
+  <!-- 🧹 청소 일정 -->
+  <div id="tab-cleaning" class="section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div style="font-size:1rem;font-weight:700;color:var(--gray-800)">🧹 청소 일정 관리</div>
+      <button onclick="loadCleaning()" style="padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer">🔄 새로고침</button>
+    </div>
+
+    <!-- 상태 그룹 4개 -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px" id="cleaning-groups">
+      <!-- 투숙 중 -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title" style="color:#2563eb">🏠 투숙 중 <span class="badge" id="cnt-staying">0</span></div>
+        <div id="group-staying" style="display:flex;flex-direction:column;gap:10px"><div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">데이터 로딩 중...</div></div>
+      </div>
+      <!-- 청소 예약 완료 -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title" style="color:#7c3aed">📅 청소 예약 완료 <span class="badge" id="cnt-scheduled">0</span></div>
+        <div id="group-scheduled" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+      <!-- 청소 점검 필요 -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title" style="color:#d97706">⚠️ 청소 점검 필요 <span class="badge" id="cnt-check">0</span></div>
+        <div id="group-check" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+      <!-- 청소 완료 -->
+      <div class="card" style="margin-bottom:0">
+        <div class="card-title" style="color:#16a34a">✅ 청소 완료 <span class="badge" id="cnt-done">0</span></div>
+        <div id="group-done" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+    </div>
+
+    <!-- 편집 모달 -->
+    <div id="cleaning-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:16px">
+      <div style="background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.2)">
+        <div style="font-size:1rem;font-weight:700;margin-bottom:4px" id="modal-listing-name"></div>
+        <div style="font-size:.8rem;color:var(--gray-400);margin-bottom:20px" id="modal-listing-info"></div>
+
+        <div style="margin-bottom:14px">
+          <div style="font-size:.82rem;font-weight:600;margin-bottom:6px">청소 상태</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="modal-status-btns">
+            <button class="cl-status-btn" data-status="staying"   onclick="selectClStatus(this)">🏠 투숙 중</button>
+            <button class="cl-status-btn" data-status="scheduled" onclick="selectClStatus(this)">📅 청소 예약 완료</button>
+            <button class="cl-status-btn" data-status="check"     onclick="selectClStatus(this)">⚠️ 청소 점검 필요</button>
+            <button class="cl-status-btn" data-status="done"      onclick="selectClStatus(this)">✅ 청소 완료</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div style="font-size:.82rem;font-weight:600;margin-bottom:6px">청소 예정일</div>
+          <input type="date" id="modal-date" class="auth-input" style="margin-bottom:0">
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:.82rem;font-weight:600;margin-bottom:6px">청소 금액 (원)</div>
+          <input type="number" id="modal-cost" class="auth-input" style="margin-bottom:0" placeholder="예: 80000">
+        </div>
+        <div style="margin-bottom:20px">
+          <div style="font-size:.82rem;font-weight:600;margin-bottom:6px">청소 담당자</div>
+          <input type="text" id="modal-cleaner" class="auth-input" style="margin-bottom:0" placeholder="담당자 이름">
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button onclick="closeClModal()" style="flex:1;padding:11px;border:1px solid var(--gray-200);background:#fff;border-radius:8px;font-size:.9rem;cursor:pointer">취소</button>
+          <button onclick="saveClModal()" style="flex:2;padding:11px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+
+<style>
+.cl-status-btn{padding:9px 6px;border:2px solid var(--gray-200);background:#fff;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:500;color:var(--gray-600);transition:all .15s;text-align:center}
+.cl-status-btn.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:700}
+.cleaning-card{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s}
+.cleaning-card:hover{box-shadow:var(--shadow)}
+</style>
 
 <script>
 /* ── Auth ── */
@@ -2036,6 +2112,7 @@ function switchTab(name,el){
   document.getElementById('tab-'+name).classList.add('active');
   el.classList.add('active');
   if(name==='analysis'&&!chartsReady){chartsReady=true;setTimeout(renderCharts,50);}
+  if(name==='cleaning'&&!cleaningReservations.length){loadCleaning();}
   sendLog('탭 전환', name);
 }
 
@@ -2102,6 +2179,134 @@ function renderCharts(){
       }
     }
   });
+}
+
+/* ── Cleaning Schedule ── */
+let cleaningReservations = [];
+let cleaningData = {};
+let currentModalId = null;
+let currentModalStatus = '';
+
+const STATUS_GROUP = { staying:'staying', scheduled:'scheduled', check:'check', done:'done' };
+const DEFAULT_STATUS = 'staying';
+
+async function loadCleaning() {
+  const token = localStorage.getItem('hik_token');
+  if (!token) return;
+
+  ['staying','scheduled','check','done'].forEach(g => {
+    document.getElementById('group-' + g).innerHTML =
+      '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>';
+  });
+
+  try {
+    const [resRes, clRes] = await Promise.all([
+      fetch('/api/hostaway/reservations', { headers: { 'Authorization': `Bearer ${token}` } }),
+      fetch('/api/hostaway/cleaning',      { headers: { 'Authorization': `Bearer ${token}` } })
+    ]);
+    if (!resRes.ok) throw new Error('예약 조회 실패');
+    const { reservations } = await resRes.json();
+    cleaningData = clRes.ok ? await clRes.json() : {};
+    cleaningReservations = reservations;
+    renderCleaningGroups();
+  } catch(e) {
+    document.getElementById('group-staying').innerHTML =
+      `<div style="color:#dc2626;font-size:.85rem;padding:12px">❌ ${e.message}</div>`;
+  }
+}
+
+function getClStatus(resId) {
+  return cleaningData[resId]?.status || DEFAULT_STATUS;
+}
+
+function renderCleaningGroups() {
+  const groups = { staying:[], scheduled:[], check:[], done:[] };
+  cleaningReservations.forEach(r => {
+    const st = getClStatus(r.id);
+    (groups[st] || groups.staying).push(r);
+  });
+
+  Object.entries(groups).forEach(([key, items]) => {
+    document.getElementById('cnt-' + key).textContent = items.length;
+    const el = document.getElementById('group-' + key);
+    if (!items.length) {
+      el.innerHTML = '<div style="color:var(--gray-400);font-size:.82rem;text-align:center;padding:16px">없음</div>';
+      return;
+    }
+    el.innerHTML = items.map(r => {
+      const cl = cleaningData[r.id] || {};
+      const dateLabel = r.isStaying
+        ? `체크아웃: <strong>${r.departureDate}</strong>`
+        : `체크인: <strong>${r.arrivalDate}</strong>`;
+      const extras = [
+        cl.cleaningDate ? `🗓 청소일: ${cl.cleaningDate}` : '',
+        cl.cost        ? `💰 ${Number(cl.cost).toLocaleString()}원` : '',
+        cl.cleaner     ? `👤 ${cl.cleaner}` : ''
+      ].filter(Boolean).join('  ·  ');
+      return `<div class="cleaning-card" onclick="openClModal('${r.id}')">
+        <div style="font-size:.88rem;font-weight:700;margin-bottom:4px">${r.listingName || '(이름 없음)'}</div>
+        <div style="font-size:.78rem;color:var(--gray-400);margin-bottom:6px">${r.bedrooms}BR / ${r.bathrooms}BA · ${r.address || ''}</div>
+        <div style="font-size:.8rem;color:var(--gray-600);margin-bottom:${extras?'6':'0'}px">${dateLabel} · ${r.guestName}</div>
+        ${extras ? `<div style="font-size:.78rem;color:var(--primary);margin-top:4px">${extras}</div>` : ''}
+      </div>`;
+    }).join('');
+  });
+}
+
+function openClModal(resId) {
+  currentModalId = resId;
+  const r = cleaningReservations.find(x => x.id == resId);
+  const cl = cleaningData[resId] || {};
+  currentModalStatus = cl.status || DEFAULT_STATUS;
+
+  document.getElementById('modal-listing-name').textContent = r?.listingName || '';
+  document.getElementById('modal-listing-info').textContent =
+    `${r?.bedrooms || 0}BR / ${r?.bathrooms || 0}BA · ${r?.address || ''}`;
+  document.getElementById('modal-date').value    = cl.cleaningDate || '';
+  document.getElementById('modal-cost').value    = cl.cost || '';
+  document.getElementById('modal-cleaner').value = cl.cleaner || '';
+
+  document.querySelectorAll('.cl-status-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.status === currentModalStatus);
+  });
+
+  const modal = document.getElementById('cleaning-modal');
+  modal.style.display = 'flex';
+}
+
+function closeClModal() {
+  document.getElementById('cleaning-modal').style.display = 'none';
+  currentModalId = null;
+}
+
+function selectClStatus(btn) {
+  document.querySelectorAll('.cl-status-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentModalStatus = btn.dataset.status;
+}
+
+async function saveClModal() {
+  if (!currentModalId) return;
+  const token = localStorage.getItem('hik_token');
+  const body = {
+    reservationId: currentModalId,
+    status:        currentModalStatus,
+    cleaningDate:  document.getElementById('modal-date').value,
+    cost:          document.getElementById('modal-cost').value,
+    cleaner:       document.getElementById('modal-cleaner').value
+  };
+  try {
+    const res = await fetch('/api/hostaway/cleaning', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('저장 실패');
+    if (!cleaningData[currentModalId]) cleaningData[currentModalId] = {};
+    Object.assign(cleaningData[currentModalId], body);
+    closeClModal();
+    renderCleaningGroups();
+  } catch(e) { alert(e.message); }
 }
 </script>
 </body>
