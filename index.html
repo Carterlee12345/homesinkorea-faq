@@ -1003,13 +1003,24 @@
 
     <!-- 제출 목록 -->
     <div class="card">
-      <div class="card-title">
-        📥 제출된 보증금 정보
-        <button onclick="loadDepositSubmissions()" style="margin-left:auto;padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">🔄 새로고침</button>
+      <div class="card-title" style="flex-wrap:wrap;gap:10px">
+        📥 보증금 접수 현황
+        <div style="display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap">
+          <button class="dep-subtab active" onclick="switchDepTab('pending',this)">🔴 반환 필요 <span id="dep-cnt-pending" class="dep-subtab-cnt">0</span></button>
+          <button class="dep-subtab" onclick="switchDepTab('completed',this)">✅ 반환 완료 <span id="dep-cnt-completed" class="dep-subtab-cnt">0</span></button>
+          <button onclick="loadDepositSubmissions()" style="padding:5px 12px;background:var(--gray-100);color:var(--gray-600);border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer">🔄</button>
+        </div>
       </div>
-      <div id="deposit-submissions-list">
+      <div id="dep-submissions-wrap">
         <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
       </div>
+    </div>
+  </div>
+
+  <!-- 보증금 상세 모달 -->
+  <div id="dep-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;overflow-y:auto;padding:20px 16px">
+    <div style="background:#fff;border-radius:16px;max-width:600px;margin:auto;padding:28px 24px;box-shadow:0 24px 64px rgba(0,0,0,.2)">
+      <div id="dep-modal-content"></div>
     </div>
   </div>
 
@@ -1073,6 +1084,18 @@
 .dep-submission-row:last-child{border-bottom:none}
 .dep-submission-label{font-weight:600;color:var(--gray-600);width:140px;flex-shrink:0}
 .dep-submission-val{color:var(--gray-800)}
+/* dep sub-tabs */
+.dep-subtab{padding:6px 14px;border:2px solid var(--gray-200);background:#fff;border-radius:8px;font-size:.82rem;font-weight:600;color:var(--gray-600);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.dep-subtab.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary)}
+.dep-subtab-cnt{background:var(--primary);color:#fff;border-radius:10px;padding:1px 7px;font-size:.72rem;min-width:20px;text-align:center}
+.dep-subtab.active .dep-subtab-cnt{background:var(--primary)}
+.dep-subtab:not(.active) .dep-subtab-cnt{background:var(--gray-400)}
+/* dep card */
+.dep-card{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.dep-card:last-child{margin-bottom:0}
+/* dep modal comment */
+.dep-comment-item{background:var(--gray-50);border-radius:8px;padding:10px 14px;margin-bottom:8px}
+.dep-comment-item:last-child{margin-bottom:0}
 </style>
 
 <script>
@@ -2456,6 +2479,11 @@ function copyDepositLink() {
   });
 }
 
+let depositSubmissions = [];
+let depositMeta = {};
+let currentDepTab = 'pending';
+let currentDepModalId = null;
+
 async function loadDepositTab() {
   depositLoaded = true;
   document.getElementById('deposit-link-display').textContent = window.location.origin + '/deposit-form';
@@ -2477,11 +2505,212 @@ async function loadDepositTab() {
       ];
     }
     renderDepositFields();
-    const subData = subRes.ok ? await subRes.json() : { submissions: [] };
-    renderDepositSubmissions(subData.submissions || []);
+    depositSubmissions = subRes.ok ? (await subRes.json()).submissions || [] : [];
+    await loadDepositMetas();
+    renderDepSubmissions();
   } catch(e) {
     document.getElementById('deposit-fields-list').innerHTML = `<div style="color:#dc2626;font-size:.85rem;padding:12px">❌ ${e.message}</div>`;
   }
+}
+
+async function loadDepositMetas() {
+  const token = localStorage.getItem('hik_token');
+  try {
+    const res = await fetch('/api/deposit?action=get-all-meta', { headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.ok) depositMeta = (await res.json()).meta || {};
+  } catch(e) {}
+}
+
+function switchDepTab(tab, el) {
+  currentDepTab = tab;
+  document.querySelectorAll('.dep-subtab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderDepSubmissions();
+}
+
+function renderDepSubmissions() {
+  const pending = depositSubmissions.filter(s => (depositMeta[s.id]?.status || 'pending') === 'pending');
+  const completed = depositSubmissions.filter(s => (depositMeta[s.id]?.status || 'pending') === 'completed');
+  document.getElementById('dep-cnt-pending').textContent = pending.length;
+  document.getElementById('dep-cnt-completed').textContent = completed.length;
+  const list = currentDepTab === 'pending' ? pending : completed;
+  const wrap = document.getElementById('dep-submissions-wrap');
+  if (!list.length) {
+    wrap.innerHTML = `<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:28px">${currentDepTab==='pending'?'반환 필요한 건이 없습니다.':'반환 완료된 건이 없습니다.'}</div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(s => {
+    const meta = depositMeta[s.id] || {};
+    const time = new Date(s.submittedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+    const p1 = s.answers?.[0] ? `<div style="font-size:.9rem;font-weight:600;color:var(--gray-800)">${s.answers[0].value || '(미입력)'}</div>` : '';
+    const p2 = s.answers?.[1] ? `<div style="font-size:.82rem;color:var(--gray-600)">${s.answers[1].label}: ${s.answers[1].value || '(미입력)'}</div>` : '';
+    const badges = [
+      (meta.comments||[]).length ? `💬 ${meta.comments.length}` : '',
+      (meta.attachments||[]).length ? `📎 ${meta.attachments.length}` : ''
+    ].filter(Boolean).join('  ');
+    return `<div class="dep-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.72rem;color:var(--gray-400);margin-bottom:4px">📅 ${time}</div>
+          ${p1}${p2}
+          ${badges ? `<div style="font-size:.75rem;color:var(--gray-400);margin-top:6px">${badges}</div>` : ''}
+        </div>
+        <button onclick="openDepModal(${s.id})" style="flex-shrink:0;padding:7px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">정보 보기</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function loadDepositSubmissions() {
+  const token = localStorage.getItem('hik_token');
+  document.getElementById('dep-submissions-wrap').innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>';
+  try {
+    const [subRes] = await Promise.all([
+      fetch('/api/deposit?action=get-submissions', { headers: { 'Authorization': `Bearer ${token}` } })
+    ]);
+    depositSubmissions = subRes.ok ? (await subRes.json()).submissions || [] : [];
+    await loadDepositMetas();
+    renderDepSubmissions();
+  } catch(e) {
+    document.getElementById('dep-submissions-wrap').innerHTML = `<div style="color:#dc2626;font-size:.85rem;padding:12px">❌ ${e.message}</div>`;
+  }
+}
+
+function openDepModal(id) {
+  currentDepModalId = id;
+  renderDepModal();
+  document.getElementById('dep-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDepModal() {
+  document.getElementById('dep-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  currentDepModalId = null;
+}
+
+function renderDepModal() {
+  const s = depositSubmissions.find(x => x.id === currentDepModalId);
+  if (!s) return;
+  const meta = depositMeta[s.id] || { status: 'pending', comments: [], attachments: [] };
+  const time = new Date(s.submittedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+  const answersHtml = (s.answers || []).map(a =>
+    `<div class="dep-submission-row"><div class="dep-submission-label">${a.label}</div><div class="dep-submission-val">${a.value || '(미입력)'}</div></div>`
+  ).join('');
+  const commentsHtml = (meta.comments || []).length
+    ? (meta.comments).map(c => {
+        const ct = new Date(c.createdAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+        return `<div class="dep-comment-item"><div style="font-size:.85rem;color:var(--gray-800);white-space:pre-wrap">${c.text}</div><div style="font-size:.72rem;color:var(--gray-400);margin-top:4px">${ct}</div></div>`;
+      }).join('')
+    : '<div style="color:var(--gray-400);font-size:.82rem;padding:6px 0">댓글이 없습니다.</div>';
+  const attachmentsHtml = (meta.attachments || []).length
+    ? (meta.attachments).map(a =>
+        `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-100)">
+          <span>📎</span>
+          <span style="font-size:.85rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}</span>
+          <button onclick="downloadDepAttachment('${a.key}','${a.name}')" style="flex-shrink:0;padding:4px 12px;background:var(--primary-light);color:var(--primary);border:none;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer">다운로드</button>
+        </div>`).join('')
+    : '<div style="color:var(--gray-400);font-size:.82rem;padding:6px 0">첨부파일이 없습니다.</div>';
+  const statusSection = meta.status === 'completed'
+    ? `<div style="display:flex;align-items:center;gap:8px;background:#d1fae5;color:#065f46;border-radius:8px;padding:10px 16px;font-size:.9rem;font-weight:700">✅ 보증금 반환 완료 <span style="font-size:.75rem;font-weight:400;opacity:.7">${meta.completedAt ? new Date(meta.completedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}) : ''}</span></div>`
+    : `<button onclick="markDepCompleted(${s.id})" style="width:100%;padding:11px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer">✅ 보증금 반환 완료 처리</button>`;
+
+  document.getElementById('dep-modal-content').innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px">
+      <div>
+        <div style="font-size:1.05rem;font-weight:700">${s.answers?.[0]?.value || '제출 정보'}</div>
+        <div style="font-size:.76rem;color:var(--gray-400);margin-top:3px">📅 ${time}</div>
+      </div>
+      <button onclick="closeDepModal()" style="flex-shrink:0;padding:6px 14px;border:1px solid var(--gray-200);background:#fff;border-radius:8px;font-size:.85rem;cursor:pointer">✕ 닫기</button>
+    </div>
+
+    <div style="margin-bottom:20px">${answersHtml}</div>
+
+    <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--gray-100)">${statusSection}</div>
+
+    <div style="margin-bottom:20px;padding-top:16px;border-top:1px solid var(--gray-100)">
+      <div style="font-size:.9rem;font-weight:600;margin-bottom:10px">📎 첨부파일</div>
+      ${attachmentsHtml}
+      <div style="margin-top:10px">
+        <input type="file" id="dep-file-input" style="display:none" onchange="uploadDepAttachment(${s.id})">
+        <button onclick="document.getElementById('dep-file-input').click()" style="width:100%;padding:9px;border:1.5px dashed var(--gray-200);background:var(--gray-50);color:var(--gray-600);border-radius:8px;font-size:.82rem;cursor:pointer">+ 파일 첨부 (최대 500KB)</button>
+      </div>
+    </div>
+
+    <div style="padding-top:16px;border-top:1px solid var(--gray-100)">
+      <div style="font-size:.9rem;font-weight:600;margin-bottom:10px">💬 댓글</div>
+      <div id="dep-comments-list">${commentsHtml}</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input type="text" id="dep-comment-input" class="auth-input" style="margin-bottom:0;flex:1" placeholder="댓글 입력...">
+        <button onclick="addDepComment(${s.id})" style="padding:10px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap">등록</button>
+      </div>
+    </div>`;
+}
+
+async function markDepCompleted(id) {
+  const token = localStorage.getItem('hik_token');
+  const res = await fetch('/api/deposit?action=update-status', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, status: 'completed' })
+  });
+  if (res.ok) {
+    if (!depositMeta[id]) depositMeta[id] = {};
+    depositMeta[id].status = 'completed';
+    depositMeta[id].completedAt = new Date().toISOString();
+    renderDepModal();
+    renderDepSubmissions();
+  }
+}
+
+async function addDepComment(id) {
+  const input = document.getElementById('dep-comment-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const token = localStorage.getItem('hik_token');
+  const res = await fetch('/api/deposit?action=add-comment', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, text })
+  });
+  if (res.ok) {
+    if (!depositMeta[id]) depositMeta[id] = {};
+    if (!depositMeta[id].comments) depositMeta[id].comments = [];
+    depositMeta[id].comments.push({ text, createdAt: new Date().toISOString() });
+    input.value = '';
+    renderDepModal();
+  }
+}
+
+async function uploadDepAttachment(id) {
+  const fileInput = document.getElementById('dep-file-input');
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (file.size > 500 * 1024) { alert('파일 크기가 500KB를 초과합니다.'); fileInput.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const token = localStorage.getItem('hik_token');
+    const res = await fetch('/api/deposit?action=add-attachment', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, name: file.name, type: file.type, data: e.target.result })
+    });
+    if (res.ok) {
+      await loadDepositMetas();
+      renderDepModal();
+    } else { alert('첨부 실패'); }
+    fileInput.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function downloadDepAttachment(key, name) {
+  const token = localStorage.getItem('hik_token');
+  const res = await fetch(`/api/deposit?action=get-attachment&key=${encodeURIComponent(key)}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const { data } = await res.json();
+  const a = document.createElement('a'); a.href = data; a.download = name; a.click();
 }
 
 function renderDepositFields() {
@@ -2545,32 +2774,6 @@ async function saveDepositForm() {
   }
 }
 
-async function loadDepositSubmissions() {
-  const token = localStorage.getItem('hik_token');
-  document.getElementById('deposit-submissions-list').innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>';
-  try {
-    const res = await fetch('/api/deposit?action=get-submissions', { headers: { 'Authorization': `Bearer ${token}` } });
-    const { submissions } = await res.json();
-    renderDepositSubmissions(submissions || []);
-  } catch(e) {
-    document.getElementById('deposit-submissions-list').innerHTML = `<div style="color:#dc2626;font-size:.85rem;padding:12px">❌ ${e.message}</div>`;
-  }
-}
-
-function renderDepositSubmissions(submissions) {
-  const el = document.getElementById('deposit-submissions-list');
-  if (!submissions.length) {
-    el.innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">아직 제출된 정보가 없습니다.</div>';
-    return;
-  }
-  el.innerHTML = submissions.map(s => {
-    const time = new Date(s.submittedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
-    const rows = (s.answers || []).map(a =>
-      `<div class="dep-submission-row"><div class="dep-submission-label">${a.label}</div><div class="dep-submission-val">${a.value || '(미입력)'}</div></div>`
-    ).join('');
-    return `<div class="dep-submission"><div class="dep-submission-time">📅 제출일시: ${time}</div>${rows}</div>`;
-  }).join('');
-}
 
 function downloadNotion() {
   if (!cleaningReservations.length) { alert('데이터를 먼저 로드해주세요.'); return; }

@@ -74,5 +74,69 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ submissions });
   }
 
+  // ── get-all-meta (auth) ──
+  if (action === 'get-all-meta' && req.method === 'GET') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const raw = await redis(['LRANGE', 'deposit:submissions', 0, 199]) || [];
+    const ids = raw.map(r => { try { return JSON.parse(r).id; } catch { return null; } }).filter(Boolean);
+    if (!ids.length) return res.status(200).json({ meta: {} });
+    const metas = await Promise.all(ids.map(id => redis(['GET', `deposit:meta:${id}`])));
+    const meta = {};
+    ids.forEach((id, i) => {
+      meta[id] = metas[i] ? JSON.parse(metas[i]) : { status: 'pending', comments: [], attachments: [] };
+    });
+    return res.status(200).json({ meta });
+  }
+
+  // ── update-status (auth) ──
+  if (action === 'update-status' && req.method === 'POST') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const { id, status } = req.body;
+    const raw = await redis(['GET', `deposit:meta:${id}`]) || '{}';
+    const meta = JSON.parse(raw);
+    meta.status = status;
+    if (status === 'completed') meta.completedAt = new Date().toISOString();
+    await redis(['SET', `deposit:meta:${id}`, JSON.stringify(meta)]);
+    return res.status(200).json({ success: true });
+  }
+
+  // ── add-comment (auth) ──
+  if (action === 'add-comment' && req.method === 'POST') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const { id, text } = req.body;
+    const raw = await redis(['GET', `deposit:meta:${id}`]) || '{}';
+    const meta = JSON.parse(raw);
+    if (!meta.comments) meta.comments = [];
+    meta.comments.push({ text, createdAt: new Date().toISOString() });
+    await redis(['SET', `deposit:meta:${id}`, JSON.stringify(meta)]);
+    return res.status(200).json({ success: true });
+  }
+
+  // ── add-attachment (auth) ──
+  if (action === 'add-attachment' && req.method === 'POST') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const { id, name, type, data } = req.body;
+    const key = `deposit:file:${id}:${Date.now()}`;
+    await redis(['SET', key, data]);
+    const raw = await redis(['GET', `deposit:meta:${id}`]) || '{}';
+    const meta = JSON.parse(raw);
+    if (!meta.attachments) meta.attachments = [];
+    meta.attachments.push({ name, type, key, uploadedAt: new Date().toISOString() });
+    await redis(['SET', `deposit:meta:${id}`, JSON.stringify(meta)]);
+    return res.status(200).json({ success: true });
+  }
+
+  // ── get-attachment (auth) ──
+  if (action === 'get-attachment' && req.method === 'GET') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const data = await redis(['GET', req.query.key]);
+    return res.status(200).json({ data });
+  }
+
   return res.status(400).json({ error: '올바르지 않은 action입니다.' });
 };
