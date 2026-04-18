@@ -2247,6 +2247,14 @@ function renderCleaningGroups() {
     }
     el.innerHTML = items.map(r => {
       const cl = cleaningData[r.id] || {};
+      // D-day 계산 (한국 시간 KST = UTC+9 기준)
+      const kstNow = new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Seoul'}));
+      const kstToday = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+      const checkout = new Date(r.departureDate);
+      const diffDays = Math.round((checkout - kstToday) / 86400000);
+      const dday = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
+      const ddayColor = diffDays <= 3 ? '#dc2626' : diffDays <= 7 ? '#d97706' : '#6b7280';
+
       const dateLabel = r.isStaying
         ? `체크아웃: <strong>${r.departureDate}</strong>`
         : `체크인: <strong>${r.arrivalDate}</strong>`;
@@ -2256,7 +2264,10 @@ function renderCleaningGroups() {
         cl.cleaner     ? `👤 ${cl.cleaner}` : ''
       ].filter(Boolean).join('  ·  ');
       return `<div class="cleaning-card" onclick="openClModal('${r.id}')">
-        <div style="font-size:.88rem;font-weight:700;margin-bottom:4px">${r.listingName || '(이름 없음)'}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div style="font-size:.88rem;font-weight:700">${r.listingName || '(이름 없음)'}</div>
+          <div style="font-size:.78rem;font-weight:800;color:${ddayColor};background:${ddayColor}18;padding:2px 8px;border-radius:12px;flex-shrink:0">${dday}</div>
+        </div>
         <div style="font-size:.78rem;color:var(--gray-400);margin-bottom:6px">${r.bedrooms}BR / ${r.bathrooms}BA · ${r.address || ''}</div>
         <div style="font-size:.8rem;color:var(--gray-600);margin-bottom:${extras?'6':'0'}px">${dateLabel} · ${r.guestName}</div>
         ${extras ? `<div style="font-size:.78rem;color:var(--primary);margin-top:4px">${extras}</div>` : ''}
