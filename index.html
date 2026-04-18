@@ -2226,6 +2226,9 @@ function getClStatus(resId) {
   return cleaningData[resId]?.status || DEFAULT_STATUS;
 }
 
+const PAGE_SIZE = 15;
+const clPages = { staying:1, scheduled:1, check:1, done:1 };
+
 function renderCleaningGroups() {
   const groups = { staying:[], scheduled:[], check:[], done:[] };
   cleaningReservations.forEach(r => {
@@ -2239,43 +2242,67 @@ function renderCleaningGroups() {
       return da.localeCompare(db);
     });
   });
+  Object.entries(groups).forEach(([key, items]) => renderGroup(key, items));
+}
 
-  Object.entries(groups).forEach(([key, items]) => {
-    document.getElementById('cnt-' + key).textContent = items.length;
-    const el = document.getElementById('group-' + key);
-    if (!items.length) {
-      el.innerHTML = '<div style="color:var(--gray-400);font-size:.82rem;text-align:center;padding:16px">없음</div>';
-      return;
-    }
-    el.innerHTML = items.map(r => {
-      const cl = cleaningData[r.id] || {};
-      // D-day 계산 (한국 시간 KST = UTC+9 기준)
-      const kstNow = new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Seoul'}));
-      const kstToday = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
-      const checkout = new Date(r.departureDate);
-      const diffDays = Math.round((checkout - kstToday) / 86400000);
-      const dday = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
-      const ddayColor = diffDays <= 3 ? '#dc2626' : diffDays <= 7 ? '#d97706' : '#6b7280';
+function renderGroup(key, items) {
+  document.getElementById('cnt-' + key).textContent = items.length;
+  const el = document.getElementById('group-' + key);
+  if (!items.length) {
+    el.innerHTML = '<div style="color:var(--gray-400);font-size:.82rem;text-align:center;padding:16px">없음</div>';
+    return;
+  }
 
-      const dateLabel = r.isStaying
-        ? `체크아웃: <strong>${r.departureDate}</strong>`
-        : `체크인: <strong>${r.arrivalDate}</strong>`;
-      const extras = [
-        cl.cleaningDate ? `🗓 청소일: ${cl.cleaningDate}` : '',
-        cl.cost        ? `💰 ${Number(cl.cost).toLocaleString()}원` : '',
-        cl.cleaner     ? `👤 ${cl.cleaner}` : ''
-      ].filter(Boolean).join('  ·  ');
-      return `<div class="cleaning-card${diffDays <= 3 ? ' urgent' : ''}" onclick="openClModal('${r.id}')">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-          <div style="font-size:.88rem;font-weight:700">${r.listingName || '(이름 없음)'}</div>
-          <div style="font-size:.78rem;font-weight:800;color:${ddayColor};background:${ddayColor}18;padding:2px 8px;border-radius:12px;flex-shrink:0">${dday}</div>
-        </div>
-        <div style="font-size:.78rem;color:var(--gray-400);margin-bottom:6px">${r.bedrooms}BR / ${r.bathrooms}BA · ${r.address || ''}</div>
-        <div style="font-size:.8rem;color:var(--gray-600);margin-bottom:${extras?'6':'0'}px">${dateLabel} · ${r.guestName}</div>
-        ${extras ? `<div style="font-size:.78rem;color:var(--primary);margin-top:4px">${extras}</div>` : ''}
-      </div>`;
-    }).join('');
-  });
+  const totalPages = Math.ceil(items.length / PAGE_SIZE);
+  const page = Math.min(clPages[key] || 1, totalPages);
+  clPages[key] = page;
+  const pageItems = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const kstNow = new Date(new Date().toLocaleString('en-US', {timeZone:'Asia/Seoul'}));
+  const kstToday = new Date(kstNow.getFullYear(), kstNow.getMonth(), kstNow.getDate());
+
+  const cards = pageItems.map(r => {
+    const cl = cleaningData[r.id] || {};
+    const checkout = new Date(r.departureDate);
+    const diffDays = Math.round((checkout - kstToday) / 86400000);
+    const dday = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
+    const ddayColor = diffDays <= 3 ? '#dc2626' : diffDays <= 7 ? '#d97706' : '#6b7280';
+    const dateLabel = r.isStaying
+      ? `체크아웃: <strong>${r.departureDate}</strong>`
+      : `체크인: <strong>${r.arrivalDate}</strong>`;
+    const extras = [
+      cl.cleaningDate ? `🗓 청소일: ${cl.cleaningDate}` : '',
+      cl.cost        ? `💰 ${Number(cl.cost).toLocaleString()}원` : '',
+      cl.cleaner     ? `👤 ${cl.cleaner}` : ''
+    ].filter(Boolean).join('  ·  ');
+    return `<div class="cleaning-card${diffDays <= 3 ? ' urgent' : ''}" onclick="openClModal('${r.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:.88rem;font-weight:700">${r.listingName || '(이름 없음)'}</div>
+        <div style="font-size:.78rem;font-weight:800;color:${ddayColor};background:${ddayColor}18;padding:2px 8px;border-radius:12px;flex-shrink:0">${dday}</div>
+      </div>
+      <div style="font-size:.78rem;color:var(--gray-400);margin-bottom:6px">${r.bedrooms}BR / ${r.bathrooms}BA · ${r.address || ''}</div>
+      <div style="font-size:.8rem;color:var(--gray-600);margin-bottom:${extras?'6':'0'}px">${dateLabel} · ${r.guestName}</div>
+      ${extras ? `<div style="font-size:.78rem;color:var(--primary);margin-top:4px">${extras}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const pagination = totalPages > 1 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;flex-wrap:wrap">
+      <button onclick="clGoPage('${key}',-1)" ${page===1?'disabled':''} style="padding:4px 10px;border:1px solid var(--gray-200);background:#fff;border-radius:6px;cursor:pointer;font-size:.8rem;${page===1?'opacity:.4':''}">‹</button>
+      ${Array.from({length:totalPages},(_,i)=>`<button onclick="clGoPage('${key}',${i+1},true)" style="padding:4px 10px;border:1px solid ${page===i+1?'var(--primary)':'var(--gray-200)'};background:${page===i+1?'var(--primary)':'#fff'};color:${page===i+1?'#fff':'var(--gray-600)'};border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:${page===i+1?700:400}">${i+1}</button>`).join('')}
+      <button onclick="clGoPage('${key}',1)" ${page===totalPages?'disabled':''} style="padding:4px 10px;border:1px solid var(--gray-200);background:#fff;border-radius:6px;cursor:pointer;font-size:.8rem;${page===totalPages?'opacity:.4':''}">›</button>
+    </div>` : '';
+
+  el.innerHTML = cards + pagination;
+}
+
+function clGoPage(key, val, absolute) {
+  const groups = { staying:[], scheduled:[], check:[], done:[] };
+  cleaningReservations.forEach(r => { const st=getClStatus(r.id); (groups[st]||groups.staying).push(r); });
+  Object.keys(groups).forEach(k => groups[k].sort((a,b)=>{const da=a.isStaying?a.departureDate:a.arrivalDate,db=b.isStaying?b.departureDate:b.arrivalDate;return da.localeCompare(db);}));
+  const total = Math.ceil(groups[key].length / PAGE_SIZE);
+  clPages[key] = absolute ? Math.min(Math.max(val,1),total) : Math.min(Math.max((clPages[key]||1)+val,1),total);
+  renderGroup(key, groups[key]);
 }
 
 function openClModal(resId) {
