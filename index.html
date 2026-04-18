@@ -2492,7 +2492,11 @@ function renderDepositFields() {
   }
   el.innerHTML = depositFields.map((f, i) => `
     <div class="dep-field-row">
-      <span style="color:var(--gray-400);font-size:.8rem;font-weight:700;width:24px;text-align:center">${i+1}</span>
+      <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+        <button onclick="moveDepositField(${i},-1)" ${i===0?'disabled':''} style="padding:1px 6px;border:1px solid var(--gray-200);background:#fff;border-radius:4px;cursor:pointer;font-size:.7rem;line-height:1.4;${i===0?'opacity:.3':''}">▲</button>
+        <button onclick="moveDepositField(${i},1)" ${i===depositFields.length-1?'disabled':''} style="padding:1px 6px;border:1px solid var(--gray-200);background:#fff;border-radius:4px;cursor:pointer;font-size:.7rem;line-height:1.4;${i===depositFields.length-1?'opacity:.3':''}">▼</button>
+      </div>
+      <span style="color:var(--gray-400);font-size:.8rem;font-weight:700;width:20px;text-align:center">${i+1}</span>
       <input class="dep-field-label" value="${f.label}" placeholder="필드 이름" oninput="depositFields[${i}].label=this.value">
       <select class="dep-field-type" onchange="depositFields[${i}].type=this.value">
         ${['text','email','tel','number','textarea'].map(t => `<option value="${t}" ${f.type===t?'selected':''}>${t}</option>`).join('')}
@@ -2512,6 +2516,13 @@ function addDepositField() {
 
 function removeDepositField(i) {
   depositFields.splice(i, 1);
+  renderDepositFields();
+}
+
+function moveDepositField(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= depositFields.length) return;
+  [depositFields[i], depositFields[j]] = [depositFields[j], depositFields[i]];
   renderDepositFields();
 }
 
