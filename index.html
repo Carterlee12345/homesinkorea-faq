@@ -1037,7 +1037,6 @@
       <div style="overflow-x:auto;margin:0 -24px;padding:0 8px">
         <table class="sales-tbl" id="sales-table">
           <thead><tr>
-            <th style="min-width:100px">아이템</th>
             <th style="min-width:90px">지점</th>
             <th style="min-width:110px">위치</th>
             <th style="min-width:120px">HOLD</th>
@@ -2967,7 +2966,6 @@ function renderSalesRow(r){
   const sL=(salesConfig.statusLabels||[]).find(l=>l.label===r.status);
   const hold=r.hold?`<span style="font-size:.78rem;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:12px;font-weight:600">${r.hold.split('@')[0]}</span>`:'<span style="color:var(--gray-400);font-size:.85rem">—</span>';
   return `<tr data-id="${r.id}">
-    <td><div class="s-cell" contenteditable="true" onblur="sSaveText('${r.id}','item',this)">${sEsc(r.item)}</div></td>
     <td><div class="s-cell" contenteditable="true" onblur="sSaveText('${r.id}','branch',this)">${sEsc(r.branch)}</div></td>
     <td><div class="s-click" onclick="sPickLabel('area','${r.id}',this)">${aL?`<span class="s-lbl" style="background:${aL.color}">${aL.label}</span>`:'<span style="color:var(--gray-400)">—</span>'}</div></td>
     <td><div class="s-click" onclick="sPickUser('${r.id}',this)">${hold}</div></td>
