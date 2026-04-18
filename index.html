@@ -1019,7 +1019,7 @@
 async function checkAuth() {
   const token = localStorage.getItem('hik_token');
   if (!token) { showOverlay(); return; }
-  const res = await fetch('/api/auth/verify', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+  const res = await fetch('/api/auth?action=verify', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
   if (!res.ok) { localStorage.removeItem('hik_token'); showOverlay(); return; }
   const { email } = await res.json();
   document.getElementById('user-email-display').textContent = email;
@@ -1049,7 +1049,7 @@ async function doLogin() {
   if (!email || !pw) { showMsg('error', '이메일과 비밀번호를 입력해주세요.'); return; }
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = '로그인 중...';
-  const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: pw }) });
+  const res = await fetch('/api/auth?action=login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: pw }) });
   const data = await res.json();
   btn.disabled = false; btn.textContent = '로그인';
   if (!res.ok) { showMsg(data.error === 'pending' ? 'pending' : 'error', data.error === 'pending' ? '⏳ 관리자 승인 대기 중입니다.' : (data.error || '로그인 실패')); return; }
@@ -1067,7 +1067,7 @@ async function doSignup() {
   if (pw.length < 6) { showMsg('error', '비밀번호는 6자 이상이어야 합니다.'); return; }
   const btn = document.getElementById('signup-btn');
   btn.disabled = true; btn.textContent = '신청 중...';
-  const res = await fetch('/api/auth/signup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: pw }) });
+  const res = await fetch('/api/auth?action=signup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: pw }) });
   const data = await res.json();
   btn.disabled = false; btn.textContent = '가입 신청';
   if (!res.ok) { showMsg('error', data.error || '오류가 발생했습니다.'); return; }
@@ -2201,8 +2201,8 @@ async function loadCleaning() {
 
   try {
     const [resRes, clRes] = await Promise.all([
-      fetch('/api/hostaway/reservations', { headers: { 'Authorization': `Bearer ${token}` } }),
-      fetch('/api/hostaway/cleaning',      { headers: { 'Authorization': `Bearer ${token}` } })
+      fetch('/api/hostaway?resource=reservations', { headers: { 'Authorization': `Bearer ${token}` } }),
+      fetch('/api/hostaway?resource=cleaning',      { headers: { 'Authorization': `Bearer ${token}` } })
     ]);
     if (!resRes.ok) throw new Error('예약 조회 실패');
     const { reservations } = await resRes.json();
@@ -2296,7 +2296,7 @@ async function saveClModal() {
     cleaner:       document.getElementById('modal-cleaner').value
   };
   try {
-    const res = await fetch('/api/hostaway/cleaning', {
+    const res = await fetch('/api/hostaway?resource=cleaning', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
