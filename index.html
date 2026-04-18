@@ -2499,7 +2499,7 @@ function renderDepositFields() {
       <span style="color:var(--gray-400);font-size:.8rem;font-weight:700;width:20px;text-align:center">${i+1}</span>
       <input class="dep-field-label" value="${f.label}" placeholder="필드 이름" oninput="depositFields[${i}].label=this.value">
       <select class="dep-field-type" onchange="depositFields[${i}].type=this.value">
-        ${['text','email','tel','number','textarea'].map(t => `<option value="${t}" ${f.type===t?'selected':''}>${t}</option>`).join('')}
+        ${['text','email','tel','tel-intl (국제전화)','date','number','textarea'].map(t => { const v=t.split(' ')[0]; return `<option value="${v}" ${f.type===v?'selected':''}>${t}</option>`; }).join('')}
       </select>
       <input class="dep-field-placeholder" value="${f.placeholder||''}" placeholder="placeholder (선택)" oninput="depositFields[${i}].placeholder=this.value">
       <label class="dep-field-req">
