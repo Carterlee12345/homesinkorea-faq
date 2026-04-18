@@ -102,19 +102,19 @@ let answers = [];
 
 async function init() {
   const app = document.getElementById('app');
-  app.innerHTML = '<div class="center-msg">로딩 중...</div>';
+  app.innerHTML = '<div class="center-msg">Loading...</div>';
   try {
     const res = await fetch('/api/deposit?action=get-form');
     const data = await res.json();
     fields = data.fields || [];
     if (!fields.length) {
-      app.innerHTML = '<div class="center-msg question-wrap"><div class="question-text">현재 폼이 준비 중입니다.<br>잠시 후 다시 시도해 주세요.</div></div>';
+      app.innerHTML = '<div class="center-msg question-wrap"><div class="question-text">This form is not ready yet.<br>Please try again later.</div></div>';
       return;
     }
     answers = fields.map(() => '');
     showStep(0);
   } catch(e) {
-    app.innerHTML = '<div class="center-msg">오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</div>';
+    app.innerHTML = '<div class="center-msg">An error occurred. Please try again later.</div>';
   }
 }
 
@@ -137,7 +137,7 @@ function buildInput(f, i) {
     ).join('');
     return `<div class="tel-wrap">
       <select class="q-code" id="q-code">${options}</select>
-      <input class="q-input q-tel" id="q-input" type="tel" placeholder="${f.placeholder || '전화번호'}" value="${savedNum}">
+      <input class="q-input q-tel" id="q-input" type="tel" placeholder="${f.placeholder || 'Phone number'}" value="${savedNum}">
     </div>`;
   }
   return `<input class="q-input" id="q-input" type="${f.type || 'text'}" placeholder="${f.placeholder || ''}" value="${answers[i]}">`;
@@ -153,10 +153,10 @@ function showStep(i) {
   document.getElementById('app').innerHTML = `
     <div class="question-wrap">
       <div class="step-label">${i + 1} / ${fields.length}</div>
-      <div class="question-text">${f.label}${f.required ? '' : ' <span style="font-size:.9rem;opacity:.6;font-weight:400">(선택)</span>'}</div>
+      <div class="question-text">${f.label}${f.required ? '' : ' <span style="font-size:.9rem;opacity:.6;font-weight:400">(optional)</span>'}</div>
       ${buildInput(f, i)}
-      <button class="next-btn" onclick="next()" id="next-btn">${isLast ? '제출하기 ✓' : '다음 →'}</button>
-      ${f.type !== 'date' ? '<div class="hint">Enter 키로 다음 단계</div>' : ''}
+      <button class="next-btn" onclick="next()" id="next-btn">${isLast ? 'Submit ✓' : 'Next →'}</button>
+      ${f.type !== 'date' ? '<div class="hint">Press Enter to continue</div>' : ''}
     </div>`;
 
   const input = document.getElementById('q-input');
@@ -198,8 +198,8 @@ async function showThanks() {
   document.getElementById('app').innerHTML = `
     <div class="thanks">
       <div class="thanks-icon">✅</div>
-      <h2>제출 완료!</h2>
-      <p>보증금 정보가 정상적으로 접수되었습니다.<br>담당자가 확인 후 연락드리겠습니다.</p>
+      <h2>All done!</h2>
+      <p>Your deposit information has been successfully submitted.<br>Our team will be in touch with you shortly.</p>
     </div>`;
   try {
     const payload = fields.map((f, i) => ({ label: f.label, value: answers[i] }));
