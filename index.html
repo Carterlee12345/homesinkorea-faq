@@ -2225,6 +2225,13 @@ function renderCleaningGroups() {
     const st = getClStatus(r.id);
     (groups[st] || groups.staying).push(r);
   });
+  Object.keys(groups).forEach(key => {
+    groups[key].sort((a, b) => {
+      const da = a.isStaying ? a.departureDate : a.arrivalDate;
+      const db = b.isStaying ? b.departureDate : b.arrivalDate;
+      return da.localeCompare(db);
+    });
+  });
 
   Object.entries(groups).forEach(([key, items]) => {
     document.getElementById('cnt-' + key).textContent = items.length;
