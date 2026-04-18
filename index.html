@@ -3032,7 +3032,15 @@ function sPickLabel(type,id,el){
 }
 function sPickUser(id,el){
   const items=[{val:'',html:'<span style="color:var(--gray-400)">— 없음</span>'},...salesUsers.map(u=>({val:u.email,html:`<span style="font-size:.85rem">${u.email}</span>`}))];
-  showSalesDd(items,el,val=>{sSaveVal(id,'hold',val);renderSalesTable();});
+  showSalesDd(items,el,val=>{
+    const prev=salesRows.find(r=>r.id===id)?.hold||'';
+    sSaveVal(id,'hold',val);
+    renderSalesTable();
+    if(val && val!==prev){
+      const r=salesRows.find(r=>r.id===id);
+      if(r) fetch('/api/sales?action=notify-hold',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+sessionToken},body:JSON.stringify({branch:r.branch,deposit:r.deposit,rent:r.rent,contractPeriod:r.contractPeriod,nationality:r.nationality,contractSource:r.contractSource})}).catch(()=>{});
+    }
+  });
 }
 
 /* ── Country picker ── */

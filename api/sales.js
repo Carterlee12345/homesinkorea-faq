@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 
+const SLACK_SALES_WEBHOOK = process.env.SLACK_SALES_WEBHOOK;
+
 async function redis(cmd) {
   const res = await fetch(process.env.UPSTASH_URL, {
     method: 'POST',
@@ -74,6 +76,24 @@ module.exports = async function handler(req, res) {
 
   if (action === 'save-config' && req.method === 'POST') {
     await redis(['SET', 'sales:config', JSON.stringify(req.body.config)]);
+    return res.status(200).json({ success: true });
+  }
+
+  if (action === 'notify-hold' && req.method === 'POST') {
+    const { branch, deposit, rent, contractPeriod, nationality, contractSource } = req.body;
+    if (!SLACK_SALES_WEBHOOK) return res.status(200).json({ skipped: true });
+    const parts = [];
+    if (nationality || contractSource) {
+      const inner = [nationality, contractSource].filter(Boolean).join(', ');
+      parts.push(`(${inner})`);
+    }
+    const line3 = `예약 완료되었습니다! ${parts.join(' ')}`;
+    const text = `*${branch || '(지점 미입력)'}이*\n${deposit||'?'}/${rent||'?'}, ${contractPeriod||'?'}의 조건으로\n${line3}`;
+    await fetch(SLACK_SALES_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    }).catch(() => {});
     return res.status(200).json({ success: true });
   }
 
