@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOMESINKOREA · 보증금 정보 입력</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Apple SD Gothic Neo',-apple-system,sans-serif;background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;padding:24px}
+  .progress-bar{position:fixed;top:0;left:0;height:4px;background:rgba(255,255,255,.3);width:100%;z-index:10}
+  .progress-fill{height:100%;background:#fff;transition:width .4s ease}
+  .logo{font-size:1rem;font-weight:700;opacity:.8;margin-bottom:48px;letter-spacing:.05em}
+  .question-wrap{width:100%;max-width:580px;animation:fadeUp .4s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .step-label{font-size:.8rem;opacity:.6;margin-bottom:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  .question-text{font-size:1.5rem;font-weight:700;line-height:1.45;margin-bottom:32px}
+  .q-input{width:100%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.3);border-radius:12px;padding:16px 20px;font-size:1.1rem;color:#fff;outline:none;font-family:inherit;transition:border-color .2s;backdrop-filter:blur(4px)}
+  .q-input::placeholder{color:rgba(255,255,255,.45)}
+  .q-input:focus{border-color:#fff}
+  .q-textarea{resize:none;min-height:120px}
+  .next-btn{margin-top:20px;display:flex;align-items:center;gap:8px;background:#fff;color:#1e3a8a;border:none;border-radius:12px;padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .15s;font-family:inherit}
+  .next-btn:hover{opacity:.9}
+  .next-btn:disabled{opacity:.5;cursor:not-allowed}
+  .hint{margin-top:12px;font-size:.8rem;opacity:.55}
+  /* thank you screen */
+  .thanks{text-align:center;animation:fadeUp .5s ease}
+  .thanks-icon{font-size:4rem;margin-bottom:20px}
+  .thanks h2{font-size:1.8rem;font-weight:800;margin-bottom:12px}
+  .thanks p{opacity:.8;font-size:1rem;line-height:1.7}
+  /* loading / error */
+  .center-msg{text-align:center;opacity:.8}
+</style>
+</head>
+<body>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+<div class="logo">🏠 HOMESINKOREA</div>
+<div id="app"></div>
+
+<script>
+let fields = [];
+let currentStep = 0;
+let answers = [];
+
+async function init() {
+  const app = document.getElementById('app');
+  app.innerHTML = '<div class="center-msg">로딩 중...</div>';
+  try {
+    const res = await fetch('/api/deposit?action=get-form');
+    const data = await res.json();
+    fields = data.fields || [];
+    if (!fields.length) {
+      app.innerHTML = '<div class="center-msg question-wrap"><div class="question-text">현재 폼이 준비 중입니다.<br>잠시 후 다시 시도해 주세요.</div></div>';
+      return;
+    }
+    answers = fields.map(() => '');
+    showStep(0);
+  } catch(e) {
+    app.innerHTML = '<div class="center-msg">오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</div>';
+  }
+}
+
+function setProgress(step) {
+  const pct = fields.length ? ((step / fields.length) * 100) : 0;
+  document.getElementById('progress').style.width = pct + '%';
+}
+
+function showStep(i) {
+  currentStep = i;
+  if (i >= fields.length) { showThanks(); return; }
+  setProgress(i);
+  const f = fields[i];
+  const isLast = i === fields.length - 1;
+  const inputTag = f.type === 'textarea'
+    ? `<textarea class="q-input q-textarea" id="q-input" placeholder="${f.placeholder || ''}" rows="4">${answers[i]}</textarea>`
+    : `<input class="q-input" id="q-input" type="${f.type || 'text'}" placeholder="${f.placeholder || ''}" value="${answers[i]}">`;
+
+  document.getElementById('app').innerHTML = `
+    <div class="question-wrap">
+      <div class="step-label">${i + 1} / ${fields.length}</div>
+      <div class="question-text">${f.label}${f.required ? '' : ' <span style="font-size:.9rem;opacity:.6;font-weight:400">(선택)</span>'}</div>
+      ${inputTag}
+      <button class="next-btn" onclick="next()" id="next-btn">${isLast ? '제출하기 ✓' : '다음 →'}</button>
+      <div class="hint">Enter 키로 다음 단계</div>
+    </div>`;
+
+  const input = document.getElementById('q-input');
+  input.focus();
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && f.type !== 'textarea') { e.preventDefault(); next(); }
+  });
+}
+
+function next() {
+  const input = document.getElementById('q-input');
+  const f = fields[currentStep];
+  const val = input.value.trim();
+  if (f.required && !val) {
+    input.style.borderColor = '#fca5a5';
+    setTimeout(() => input.style.borderColor = '', 1000);
+    return;
+  }
+  answers[currentStep] = val;
+  showStep(currentStep + 1);
+}
+
+async function showThanks() {
+  setProgress(fields.length);
+  document.getElementById('app').innerHTML = `
+    <div class="thanks">
+      <div class="thanks-icon">✅</div>
+      <h2>제출 완료!</h2>
+      <p>보증금 정보가 정상적으로 접수되었습니다.<br>담당자가 확인 후 연락드리겠습니다.</p>
+    </div>`;
+  try {
+    const payload = fields.map((f, i) => ({ label: f.label, value: answers[i] }));
+    await fetch('/api/deposit?action=submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: payload })
+    });
+  } catch(e) {}
+}
+
+init();
+</script>
+</body>
+</html>

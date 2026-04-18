@@ -142,7 +142,7 @@ async function adminLoginEmail() {
   if (!email || !pw) { showMsg('login-msg', 'error', '이메일과 비밀번호를 입력해주세요.'); return; }
   const btn = document.getElementById('login-email-btn');
   btn.disabled = true; btn.textContent = '확인 중...';
-  const res = await fetch('/api/admin/login', {
+  const res = await fetch('/api/admin?action=login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password: pw })
@@ -156,7 +156,7 @@ async function adminLoginEmail() {
 }
 
 async function setRole(email, isAdmin) {
-  const res = await fetch('/api/admin/set-role', {
+  const res = await fetch('/api/admin?action=set-role', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
     body: JSON.stringify({ email, isAdmin })
@@ -175,7 +175,7 @@ function showAdminTab(tab) {
 
 async function loadLogs() {
   const email = document.getElementById('log-filter').value;
-  const url = email ? `/api/admin/logs?email=${encodeURIComponent(email)}` : '/api/admin/logs';
+  const url = email ? `/api/admin?action=logs&email=${encodeURIComponent(email)}` : '/api/admin?action=logs';
   const res = await fetch(url, { headers: { 'X-Admin-Key': adminKey } });
   if (!res.ok) return;
   const { logs } = await res.json();
@@ -204,7 +204,7 @@ function showMsg(id, type, text) {
 }
 
 async function enterAdminPanel() {
-  const res = await fetch('/api/admin/users', { headers: { 'X-Admin-Key': adminKey } });
+  const res = await fetch('/api/admin?action=users', { headers: { 'X-Admin-Key': adminKey } });
   if (!res.ok) { showMsg('login-msg', 'error', '인증 실패'); return; }
   document.getElementById('login-panel').classList.remove('visible');
   document.getElementById('admin-panel').classList.add('visible');
@@ -217,7 +217,7 @@ async function adminLogin() {
   if (!pw) return;
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = '확인 중...';
-  const res = await fetch('/api/admin/users', { headers: { 'X-Admin-Key': pw } });
+  const res = await fetch('/api/admin?action=users', { headers: { 'X-Admin-Key': pw } });
   btn.disabled = false; btn.textContent = '로그인';
   if (!res.ok) { showMsg('login-msg', 'error', '비밀번호가 올바르지 않습니다.'); return; }
   adminKey = pw;
@@ -238,7 +238,7 @@ function adminLogout() {
 }
 
 async function loadUsers() {
-  const res = await fetch('/api/admin/users', { headers: { 'X-Admin-Key': adminKey } });
+  const res = await fetch('/api/admin?action=users', { headers: { 'X-Admin-Key': adminKey } });
   if (!res.ok) return;
   renderUsers((await res.json()).users);
 }
@@ -292,7 +292,7 @@ function userRow(u, isApproved) {
 }
 
 async function setApproval(email, approved) {
-  const res = await fetch('/api/admin/approve', {
+  const res = await fetch('/api/admin?action=approve', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
     body: JSON.stringify({ email, approved })
@@ -303,7 +303,7 @@ async function setApproval(email, approved) {
 window.addEventListener('DOMContentLoaded', async () => {
   const saved = sessionStorage.getItem('admin_key');
   if (saved) {
-    const res = await fetch('/api/admin/users', { headers: { 'X-Admin-Key': saved } });
+    const res = await fetch('/api/admin?action=users', { headers: { 'X-Admin-Key': saved } });
     if (res.ok) {
       adminKey = saved;
       document.getElementById('admin-panel').classList.add('visible');

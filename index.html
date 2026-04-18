@@ -224,6 +224,7 @@
     <button class="tab" onclick="switchTab('draft',this)">✍️ 초안 생성기</button>
     <button class="tab" onclick="switchTab('broadcast',this)">📢 공지</button>
     <button class="tab" onclick="switchTab('cleaning',this)">🧹 청소 일정</button>
+    <button class="tab" onclick="switchTab('deposit',this)">🔐 보증금</button>
   </div>
 
   <!-- ① FAQ 목록 -->
@@ -974,6 +975,44 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ⑩ 보증금 탭 -->
+  <div id="tab-deposit" class="section">
+    <!-- 링크 공유 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🔗 고객 공유 링크</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:11px 16px;font-size:.9rem;color:var(--gray-600);font-family:monospace;min-width:200px" id="deposit-link-display"></div>
+        <button onclick="copyDepositLink()" id="copy-link-btn" class="copy-btn" style="margin-bottom:0">📋 복사</button>
+      </div>
+      <div style="font-size:.78rem;color:var(--gray-400);margin-top:8px">이 링크를 고객에게 전달하면 보증금 정보를 입력할 수 있습니다.</div>
+    </div>
+
+    <!-- 폼 빌더 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">
+        ✏️ 폼 필드 편집
+        <button onclick="addDepositField()" style="margin-left:auto;padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">+ 필드 추가</button>
+        <button onclick="saveDepositForm()" id="save-form-btn" style="padding:6px 14px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">💾 저장</button>
+      </div>
+      <div id="deposit-fields-list" style="display:flex;flex-direction:column;gap:8px">
+        <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
+      </div>
+    </div>
+
+    <!-- 제출 목록 -->
+    <div class="card">
+      <div class="card-title">
+        📥 제출된 보증금 정보
+        <button onclick="loadDepositSubmissions()" style="margin-left:auto;padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">🔄 새로고침</button>
+      </div>
+      <div id="deposit-submissions-list">
+        <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
     <!-- 편집 모달 -->
     <div id="cleaning-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:16px">
       <div style="background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.2)">
@@ -1019,6 +1058,21 @@
 .cleaning-card:hover{box-shadow:var(--shadow)}
 .cleaning-card.urgent{border-color:#fca5a5;animation:urgentGlow 2s ease-in-out infinite}
 @keyframes urgentGlow{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{box-shadow:0 0 0 4px rgba(220,38,38,0.25),0 0 12px rgba(220,38,38,0.15)}}
+/* ── Deposit Tab ── */
+.dep-field-row{display:flex;align-items:center;gap:8px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:10px 12px}
+.dep-field-row input,.dep-field-row select{border:1px solid var(--gray-200);border-radius:6px;padding:6px 10px;font-size:.83rem;font-family:inherit;outline:none;background:#fff;color:var(--gray-800)}
+.dep-field-row input:focus,.dep-field-row select:focus{border-color:var(--primary)}
+.dep-field-label{flex:1;min-width:0}
+.dep-field-type{width:110px}
+.dep-field-placeholder{flex:1;min-width:0}
+.dep-field-req{display:flex;align-items:center;gap:4px;font-size:.78rem;color:var(--gray-600);white-space:nowrap;cursor:pointer}
+.dep-remove-btn{padding:4px 10px;background:#fee2e2;color:#991b1b;border:none;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap}
+.dep-submission{border:1px solid var(--gray-200);border-radius:10px;padding:16px;margin-bottom:10px}
+.dep-submission-time{font-size:.75rem;color:var(--gray-400);margin-bottom:10px}
+.dep-submission-row{display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:.85rem}
+.dep-submission-row:last-child{border-bottom:none}
+.dep-submission-label{font-weight:600;color:var(--gray-600);width:140px;flex-shrink:0}
+.dep-submission-val{color:var(--gray-800)}
 </style>
 
 <script>
@@ -2120,6 +2174,7 @@ function switchTab(name,el){
   el.classList.add('active');
   if(name==='analysis'&&!chartsReady){chartsReady=true;setTimeout(renderCharts,50);}
   if(name==='cleaning'&&!cleaningReservations.length){loadCleaning();}
+  if(name==='deposit'&&!depositLoaded){loadDepositTab();}
   sendLog('탭 전환', name);
 }
 
@@ -2386,6 +2441,124 @@ function downloadExcel() {
   XLSX.utils.book_append_sheet(wb, ws, '청소일정');
   const today = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `청소일정_${today}.xlsx`);
+}
+
+/* ── Deposit Tab ── */
+let depositFields = [];
+let depositLoaded = false;
+
+function copyDepositLink() {
+  const link = window.location.origin + '/deposit-form';
+  navigator.clipboard.writeText(link).then(() => {
+    const btn = document.getElementById('copy-link-btn');
+    btn.textContent = '✅ 복사됨';
+    setTimeout(() => btn.textContent = '📋 복사', 1500);
+  });
+}
+
+async function loadDepositTab() {
+  depositLoaded = true;
+  document.getElementById('deposit-link-display').textContent = window.location.origin + '/deposit-form';
+  const token = localStorage.getItem('hik_token');
+  try {
+    const [formRes, subRes] = await Promise.all([
+      fetch('/api/deposit?action=get-form'),
+      fetch('/api/deposit?action=get-submissions', { headers: { 'Authorization': `Bearer ${token}` } })
+    ]);
+    depositFields = (await formRes.json()).fields || [];
+    if (!depositFields.length) {
+      depositFields = [
+        { label: '이름', type: 'text', placeholder: '홍길동', required: true },
+        { label: '이메일', type: 'email', placeholder: 'example@email.com', required: true },
+        { label: '전화번호', type: 'tel', placeholder: '010-0000-0000', required: true },
+        { label: '계좌 은행', type: 'text', placeholder: '예: 국민은행', required: true },
+        { label: '계좌 번호', type: 'text', placeholder: '000-000-000000', required: true },
+        { label: '계좌 예금주', type: 'text', placeholder: '홍길동', required: true }
+      ];
+    }
+    renderDepositFields();
+    const subData = subRes.ok ? await subRes.json() : { submissions: [] };
+    renderDepositSubmissions(subData.submissions || []);
+  } catch(e) {
+    document.getElementById('deposit-fields-list').innerHTML = `<div style="color:#dc2626;font-size:.85rem;padding:12px">❌ ${e.message}</div>`;
+  }
+}
+
+function renderDepositFields() {
+  const el = document.getElementById('deposit-fields-list');
+  if (!depositFields.length) {
+    el.innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:16px">필드가 없습니다. 추가 버튼을 눌러주세요.</div>';
+    return;
+  }
+  el.innerHTML = depositFields.map((f, i) => `
+    <div class="dep-field-row">
+      <span style="color:var(--gray-400);font-size:.8rem;font-weight:700;width:24px;text-align:center">${i+1}</span>
+      <input class="dep-field-label" value="${f.label}" placeholder="필드 이름" oninput="depositFields[${i}].label=this.value">
+      <select class="dep-field-type" onchange="depositFields[${i}].type=this.value">
+        ${['text','email','tel','number','textarea'].map(t => `<option value="${t}" ${f.type===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <input class="dep-field-placeholder" value="${f.placeholder||''}" placeholder="placeholder (선택)" oninput="depositFields[${i}].placeholder=this.value">
+      <label class="dep-field-req">
+        <input type="checkbox" ${f.required?'checked':''} onchange="depositFields[${i}].required=this.checked"> 필수
+      </label>
+      <button class="dep-remove-btn" onclick="removeDepositField(${i})">삭제</button>
+    </div>`).join('');
+}
+
+function addDepositField() {
+  depositFields.push({ label: '', type: 'text', placeholder: '', required: false });
+  renderDepositFields();
+}
+
+function removeDepositField(i) {
+  depositFields.splice(i, 1);
+  renderDepositFields();
+}
+
+async function saveDepositForm() {
+  const token = localStorage.getItem('hik_token');
+  const btn = document.getElementById('save-form-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    const res = await fetch('/api/deposit?action=save-form', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: depositFields })
+    });
+    if (!res.ok) throw new Error('저장 실패');
+    btn.textContent = '✅ 저장됨';
+    setTimeout(() => { btn.textContent = '💾 저장'; btn.disabled = false; }, 1500);
+  } catch(e) {
+    alert(e.message);
+    btn.textContent = '💾 저장'; btn.disabled = false;
+  }
+}
+
+async function loadDepositSubmissions() {
+  const token = localStorage.getItem('hik_token');
+  document.getElementById('deposit-submissions-list').innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>';
+  try {
+    const res = await fetch('/api/deposit?action=get-submissions', { headers: { 'Authorization': `Bearer ${token}` } });
+    const { submissions } = await res.json();
+    renderDepositSubmissions(submissions || []);
+  } catch(e) {
+    document.getElementById('deposit-submissions-list').innerHTML = `<div style="color:#dc2626;font-size:.85rem;padding:12px">❌ ${e.message}</div>`;
+  }
+}
+
+function renderDepositSubmissions(submissions) {
+  const el = document.getElementById('deposit-submissions-list');
+  if (!submissions.length) {
+    el.innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">아직 제출된 정보가 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = submissions.map(s => {
+    const time = new Date(s.submittedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+    const rows = (s.answers || []).map(a =>
+      `<div class="dep-submission-row"><div class="dep-submission-label">${a.label}</div><div class="dep-submission-val">${a.value || '(미입력)'}</div></div>`
+    ).join('');
+    return `<div class="dep-submission"><div class="dep-submission-time">📅 제출일시: ${time}</div>${rows}</div>`;
+  }).join('');
 }
 
 function downloadNotion() {
