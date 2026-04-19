@@ -64,7 +64,7 @@ module.exports = async function handler(req, res) {
       const raw = await redis(['GET', `user:${e}`]);
       if (!raw) return null;
       const u = JSON.parse(raw);
-      return u.approved ? { email: u.email } : null;
+      return u.approved ? { email: u.email, nickname: u.nickname || '' } : null;
     }));
     return res.status(200).json({ rows, config, users: userDetails.filter(Boolean) });
   }

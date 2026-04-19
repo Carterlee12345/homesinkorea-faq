@@ -3123,7 +3123,9 @@ function renderSalesTable(){
 function renderSalesRow(r){
   const aL=(salesConfig.areaLabels||[]).find(l=>l.label===r.area);
   const sL=(salesConfig.statusLabels||[]).find(l=>l.label===r.status);
-  const hold=r.hold?`<span style="font-size:.78rem;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:12px;font-weight:600">${r.hold.split('@')[0]}</span>`:'<span style="color:var(--gray-400);font-size:.85rem">—</span>';
+  const holdUser=salesUsers.find(u=>u.email===r.hold);
+  const holdLabel=holdUser?(holdUser.nickname||holdUser.email.split('@')[0]):null;
+  const hold=holdLabel?`<span style="font-size:.78rem;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:12px;font-weight:600">${holdLabel}</span>`:'<span style="color:var(--gray-400);font-size:.85rem">—</span>';
   return `<tr data-id="${r.id}">
     <td><div class="s-cell" contenteditable="true" onblur="sSaveText('${r.id}','branch',this)">${sEsc(r.branch)}</div></td>
     <td><div class="s-click" onclick="sPickLabel('area','${r.id}',this)">${aL?`<span class="s-lbl" style="background:${aL.color}">${aL.label}</span>`:'<span style="color:var(--gray-400)">—</span>'}</div></td>
@@ -3190,7 +3192,7 @@ function sPickLabel(type,id,el){
   showSalesDd(items,el,val=>{sSaveVal(id,field,val);renderSalesTable();});
 }
 function sPickUser(id,el){
-  const items=[{val:'',html:'<span style="color:var(--gray-400)">— 없음</span>'},...salesUsers.map(u=>({val:u.email,html:`<span style="font-size:.85rem">${u.email}</span>`}))];
+  const items=[{val:'',html:'<span style="color:var(--gray-400)">— 없음</span>'},...salesUsers.map(u=>({val:u.email,html:`<span style="font-size:.85rem">${u.nickname||u.email.split('@')[0]}</span>`}))];
   showSalesDd(items,el,val=>{
     const prev=salesRows.find(r=>r.id===id)?.hold||'';
     sSaveVal(id,'hold',val);
