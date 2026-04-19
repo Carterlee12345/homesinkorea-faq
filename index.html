@@ -168,6 +168,12 @@
   .logout-btn{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.8rem;cursor:pointer;font-weight:600;transition:background .15s}
   .logout-btn:hover{background:rgba(255,255,255,.25)}
 </style>
+<script type="module">
+  try {
+    const { upload } = await import('https://esm.sh/@vercel/blob/client');
+    window.__blobUpload = upload;
+  } catch(e) { console.warn('Vercel Blob 클라이언트 로드 실패:', e); }
+</script>
 </head>
 <body>
 
@@ -2846,16 +2852,17 @@ function renderClFileList() {
   }
   listEl.innerHTML = clModalFiles.map(f => {
     const isImg = f.type?.startsWith('image/');
-    const sizeMB = (f.size / 1024 / 1024).toFixed(1);
-    const icon = isImg ? '🖼' : f.type?.includes('pdf') ? '📄' : '📎';
+    const sizeMB = f.size >= 1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : (f.size/1024).toFixed(0)+'KB';
+    const icon = isImg ? '🖼' : f.type?.includes('pdf') ? '📄' : f.type?.startsWith('video/') ? '🎥' : '📎';
+    const fileUrl = f.url;
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px">
       <span style="font-size:1.1rem">${icon}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:.8rem;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.name}</div>
-        <div style="font-size:.72rem;color:#9ca3af">${sizeMB}MB</div>
+        <div style="font-size:.72rem;color:#9ca3af">${sizeMB}</div>
       </div>
-      <a href="${f.data}" download="${f.name}" style="padding:4px 8px;background:#eff6ff;color:#2563eb;border-radius:6px;font-size:.73rem;font-weight:600;text-decoration:none;white-space:nowrap">⬇ 다운</a>
-      ${isImg ? `<a href="${f.data}" target="_blank" style="padding:4px 8px;background:#f0fdf4;color:#16a34a;border-radius:6px;font-size:.73rem;font-weight:600;text-decoration:none">👁 보기</a>` : ''}
+      <a href="${fileUrl}" download="${f.name}" style="padding:4px 8px;background:#eff6ff;color:#2563eb;border-radius:6px;font-size:.73rem;font-weight:600;text-decoration:none;white-space:nowrap">⬇ 다운</a>
+      <a href="${fileUrl}" target="_blank" style="padding:4px 8px;background:#f0fdf4;color:#16a34a;border-radius:6px;font-size:.73rem;font-weight:600;text-decoration:none">👁 보기</a>
       <button onclick="deleteClFile('${f.id}')" style="padding:4px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:.73rem;font-weight:600;cursor:pointer">삭제</button>
     </div>`;
   }).join('');
@@ -2869,25 +2876,30 @@ async function uploadClFiles(fileList) {
   label.style.pointerEvents = 'none';
   progress.style.display = 'block';
 
+  if (!window.__blobUpload) {
+    progress.style.display = 'none';
+    label.style.pointerEvents = '';
+    alert('파일 업로드 모듈이 아직 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
   for (let i = 0; i < fileList.length; i++) {
     const file = fileList[i];
     progress.textContent = `업로드 중... (${i + 1}/${fileList.length}) ${file.name}`;
-    if (file.size > 4 * 1024 * 1024) { alert(`${file.name}: 파일 크기가 4MB를 초과합니다.`); continue; }
     try {
-      const data = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+      const blob = await window.__blobUpload(`cleaning/${currentModalId}/${file.name}`, file, {
+        access: 'public',
+        handleUploadUrl: '/api/hostaway?resource=blob-token',
+        clientPayload: token,
       });
       const res = await fetch('/api/hostaway?resource=cleaning-files', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reservationId: currentModalId, file: { name: file.name, type: file.type, size: file.size, data } })
+        body: JSON.stringify({ reservationId: currentModalId, file: { name: file.name, type: file.type, size: file.size, url: blob.url } })
       });
-      if (!res.ok) throw new Error('업로드 실패');
+      if (!res.ok) throw new Error('메타데이터 저장 실패');
       const { id } = await res.json();
-      clModalFiles.push({ id, name: file.name, type: file.type, size: file.size, data });
+      clModalFiles.push({ id, name: file.name, type: file.type, size: file.size, url: blob.url });
     } catch(e) { alert(`${file.name} 업로드 실패: ${e.message}`); }
   }
 

@@ -50,10 +50,29 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const resource = req.query.resource;
+
+  // ── blob-token (auth via clientPayload, must be before main auth check) ──
+  if (resource === 'blob-token' && req.method === 'POST') {
+    try {
+      const { handleUpload } = require('@vercel/blob/client');
+      const jsonResponse = await handleUpload({
+        body: req.body,
+        request: req,
+        onBeforeGenerateToken: async (pathname, clientPayload) => {
+          if (!verifyToken(clientPayload)) throw new Error('인증이 필요합니다.');
+          return { allowedContentTypes: ['*/*'], maximumSizeInBytes: 200 * 1024 * 1024 };
+        },
+        onUploadCompleted: async () => {},
+      });
+      return res.json(jsonResponse);
+    } catch(e) {
+      return res.status(400).json({ error: e.message });
+    }
+  }
+
   const userToken = req.headers['authorization']?.replace('Bearer ', '');
   if (!verifyToken(userToken)) return res.status(401).json({ error: '인증이 필요합니다.' });
-
-  const resource = req.query.resource;
 
   // ── reservations ──
   if (resource === 'reservations' && req.method === 'GET') {
@@ -122,13 +141,13 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ files: JSON.parse(raw) });
   }
 
-  // ── cleaning-files POST (single file upload) ──
+  // ── cleaning-files POST (save Vercel Blob URL to Redis) ──
   if (resource === 'cleaning-files' && req.method === 'POST') {
     const { reservationId, file } = req.body;
-    if (!reservationId || !file?.data) return res.status(400).json({ error: '필수 항목 없음' });
+    if (!reservationId || !file?.url) return res.status(400).json({ error: '필수 항목 없음' });
     const raw = await redis(['GET', `cleaning:files:${reservationId}`]) || '[]';
     const files = JSON.parse(raw);
-    const newFile = { id: Date.now().toString(), name: file.name, type: file.type, size: file.size, data: file.data, uploadedAt: new Date().toISOString() };
+    const newFile = { id: Date.now().toString(), name: file.name, type: file.type, size: file.size, url: file.url, uploadedAt: new Date().toISOString() };
     files.push(newFile);
     await redis(['SET', `cleaning:files:${reservationId}`, JSON.stringify(files)]);
     return res.status(200).json({ success: true, id: newFile.id });
@@ -139,8 +158,12 @@ module.exports = async function handler(req, res) {
     const { reservationId, fileId } = req.body;
     if (!reservationId || !fileId) return res.status(400).json({ error: '필수 항목 없음' });
     const raw = await redis(['GET', `cleaning:files:${reservationId}`]) || '[]';
-    const files = JSON.parse(raw).filter(f => f.id !== fileId);
-    await redis(['SET', `cleaning:files:${reservationId}`, JSON.stringify(files)]);
+    const files = JSON.parse(raw);
+    const file = files.find(f => f.id === fileId);
+    if (file?.url && file.url.startsWith('https://')) {
+      try { const { del } = require('@vercel/blob'); await del(file.url); } catch(e) {}
+    }
+    await redis(['SET', `cleaning:files:${reservationId}`, JSON.stringify(files.filter(f => f.id !== fileId))]);
     return res.status(200).json({ success: true });
   }
 
