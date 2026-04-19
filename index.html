@@ -203,6 +203,9 @@
   .rv-desc-input:focus{border-color:#6366f1}
   .rv-options-ta{width:100%;padding:8px 10px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;resize:vertical;min-height:72px;transition:border-color .15s}
   .rv-options-ta:focus{border-color:#6366f1}
+  .rv-sort-btn{padding:5px 12px;border:1.5px solid var(--gray-200);background:#fff;border-radius:7px;font-size:.78rem;font-weight:600;color:var(--gray-500);cursor:pointer;transition:all .15s}
+  .rv-sort-btn:hover{border-color:#6366f1;color:#6366f1}
+  .rv-sort-btn.active{border-color:#6366f1;background:#eef2ff;color:#6366f1}
 </style>
 <script type="module">
   try {
@@ -1086,9 +1089,21 @@
     <div class="card" style="margin-bottom:16px">
       <div class="card-title" style="flex-wrap:wrap;gap:10px">
         ⭐ 리뷰 현황
-        <button onclick="loadReview(true)" style="margin-left:auto;padding:5px 12px;background:var(--gray-100);color:var(--gray-600);border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer">🔄 새로고침</button>
+        <div style="display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap">
+          <button onclick="downloadReviewExcel()" class="copy-btn" style="margin-bottom:0;background:#16a34a">📊 엑셀 다운로드</button>
+          <button onclick="copyReviewNotion()" id="rv-notion-btn" class="copy-btn" style="margin-bottom:0;background:#1f2937">📋 Notion 복사</button>
+          <button onclick="loadReview(true)" style="padding:5px 12px;background:var(--gray-100);color:var(--gray-600);border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer">🔄</button>
+        </div>
       </div>
       <div id="review-stats" style="margin-bottom:20px"></div>
+      <!-- 정렬 필터 -->
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+        <span style="font-size:.78rem;font-weight:600;color:var(--gray-500);align-self:center;padding-right:4px">정렬</span>
+        <button class="rv-sort-btn active" id="rv-sort-newest" onclick="setReviewSort('newest',this)">최신순</button>
+        <button class="rv-sort-btn" id="rv-sort-oldest" onclick="setReviewSort('oldest',this)">오래된순</button>
+        <button class="rv-sort-btn" id="rv-sort-high" onclick="setReviewSort('high',this)">평점 높은순</button>
+        <button class="rv-sort-btn" id="rv-sort-low" onclick="setReviewSort('low',this)">평점 낮은순</button>
+      </div>
       <div id="review-list"><div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:24px">로딩 중...</div></div>
     </div>
 
@@ -4320,7 +4335,7 @@ async function saveUpsellItems(){
    REVIEW TAB
 ══════════════════════════════════════ */
 let reviewFields = [], reviewConfig = { alertFieldId: null, alertThreshold: 3 };
-let reviewSubmissions = [], reviewLoaded = false;
+let reviewSubmissions = [], reviewLoaded = false, reviewSort = 'newest';
 
 const RV_NATIONALITIES = [
   'South Korea 🇰🇷','United States 🇺🇸','Canada 🇨🇦','United Kingdom 🇬🇧',
@@ -4437,13 +4452,87 @@ function renderFieldValue(ans) {
   return `<span>${escAttr(String(ans.value||''))}</span>`;
 }
 
+function setReviewSort(sort, el) {
+  reviewSort = sort;
+  document.querySelectorAll('.rv-sort-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderReviewList();
+}
+
+function getSortedReviews() {
+  const list = [...reviewSubmissions];
+  const alertFieldId = reviewConfig.alertFieldId;
+  const getStarVal = (sub) => {
+    if (!alertFieldId) {
+      const sf = (sub.answers||[]).find(a => a.type === 'star');
+      return sf ? Number(sf.value) : 0;
+    }
+    const a = (sub.answers||[]).find(a => a.id === alertFieldId);
+    return a ? Number(a.value) : 0;
+  };
+  if (reviewSort === 'newest') return list.sort((a,b) => b.id - a.id);
+  if (reviewSort === 'oldest') return list.sort((a,b) => a.id - b.id);
+  if (reviewSort === 'high')   return list.sort((a,b) => getStarVal(b) - getStarVal(a));
+  if (reviewSort === 'low')    return list.sort((a,b) => getStarVal(a) - getStarVal(b));
+  return list;
+}
+
+function downloadReviewExcel() {
+  if (!reviewSubmissions.length) { alert('리뷰 데이터가 없습니다.'); return; }
+  const allLabels = [];
+  reviewFields.forEach(f => { if (!allLabels.includes(f.label)) allLabels.push(f.label); });
+  const headers = ['제출일시', ...allLabels, '경고여부'];
+  const rows = getSortedReviews().map(sub => {
+    const date = new Date(sub.submittedAt).toLocaleString('ko-KR');
+    const vals = allLabels.map(label => {
+      const a = (sub.answers||[]).find(a => a.label === label);
+      if (!a || a.value === '' || a.value === null || a.value === undefined) return '';
+      if (a.type === 'star') return a.value + '/5';
+      if (a.type === 'yesno') return a.value === 'yes' ? 'Yes' : 'No';
+      return String(a.value);
+    });
+    return [date, ...vals, isAlertReview(sub) ? '⚠️ 점검 필요' : ''];
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '리뷰');
+  const today = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `리뷰_${today}.xlsx`);
+}
+
+function copyReviewNotion() {
+  if (!reviewSubmissions.length) { alert('리뷰 데이터가 없습니다.'); return; }
+  const allLabels = [];
+  reviewFields.forEach(f => { if (!allLabels.includes(f.label)) allLabels.push(f.label); });
+  const headers = ['제출일시', ...allLabels, '경고'];
+  const sep = '|' + headers.map(() => '---').join('|') + '|';
+  const headerRow = '|' + headers.join('|') + '|';
+  const dataRows = getSortedReviews().map(sub => {
+    const date = new Date(sub.submittedAt).toLocaleString('ko-KR');
+    const vals = allLabels.map(label => {
+      const a = (sub.answers||[]).find(a => a.label === label);
+      if (!a || a.value === '' || a.value === null || a.value === undefined) return ' ';
+      if (a.type === 'star') return '★'.repeat(Number(a.value)) + '☆'.repeat(5-Number(a.value)) + ` (${a.value})`;
+      if (a.type === 'yesno') return a.value === 'yes' ? 'Yes ✅' : 'No ❌';
+      return String(a.value).replace(/\|/g, '\\|');
+    });
+    return '|' + [date, ...vals, isAlertReview(sub) ? '⚠️' : ''].join('|') + '|';
+  });
+  const md = [headerRow, sep, ...dataRows].join('\n');
+  navigator.clipboard.writeText(md).then(() => {
+    const btn = document.getElementById('rv-notion-btn');
+    btn.textContent = '✅ 복사됨'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '📋 Notion 복사'; btn.classList.remove('copied'); }, 2000);
+  }).catch(() => alert('클립보드 복사 실패'));
+}
+
 function renderReviewList() {
   const el = document.getElementById('review-list');
   if (!reviewSubmissions.length) {
     el.innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:32px">아직 리뷰가 없습니다.</div>';
     return;
   }
-  el.innerHTML = reviewSubmissions.map(sub => {
+  el.innerHTML = getSortedReviews().map(sub => {
     const alert = isAlertReview(sub);
     const date = new Date(sub.submittedAt).toLocaleString('ko-KR');
     const alertBadge = alert ? '<span style="background:#fee2e2;color:#dc2626;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:12px;flex-shrink:0">⚠️ 점검 필요</span>' : '';
