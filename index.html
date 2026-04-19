@@ -1512,7 +1512,32 @@ function doLogout() {
   showOverlay();
 }
 
-window.addEventListener('DOMContentLoaded', checkAuth);
+async function applyTabOrder() {
+  try {
+    const res = await fetch('/api/admin?action=get-tab-order');
+    if (!res.ok) return;
+    const { order } = await res.json();
+    if (!order) return;
+    document.querySelectorAll('.tab-group').forEach(group => {
+      const labelEl = group.querySelector('.tab-group-label');
+      if (!labelEl) return;
+      const groupName = labelEl.textContent.trim();
+      const ids = order[groupName];
+      if (!ids || !ids.length) return;
+      const buttons = Array.from(group.querySelectorAll('button.tab'));
+      const btnMap = {};
+      buttons.forEach(btn => {
+        const m = btn.getAttribute('onclick')?.match(/switchTab\('([^']+)'/);
+        if (m) btnMap[m[1]] = btn;
+      });
+      buttons.forEach(btn => btn.remove());
+      ids.forEach(id => { if (btnMap[id]) { group.appendChild(btnMap[id]); delete btnMap[id]; } });
+      Object.values(btnMap).forEach(btn => group.appendChild(btn));
+    });
+  } catch(e) {}
+}
+
+window.addEventListener('DOMContentLoaded', () => { applyTabOrder(); checkAuth(); });
 
 /* ── Dashboard Data ── */
 async function loadDashboardData() {

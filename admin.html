@@ -83,7 +83,8 @@
 
     <div style="display:flex;gap:8px;margin-bottom:16px">
       <button class="btn" id="tab-users-btn" onclick="showAdminTab('users')" style="flex:1">👥 회원 관리</button>
-      <button class="btn" id="tab-logs-btn" onclick="showAdminTab('logs')" style="flex:1;background:#6366f1">📋 활동 로그</button>
+      <button class="btn" id="tab-logs-btn" onclick="showAdminTab('logs')" style="flex:1;background:#6b7280">📋 활동 로그</button>
+      <button class="btn" id="tab-tabs-btn" onclick="showAdminTab('tabs')" style="flex:1;background:#6b7280">🗂 탭 순서</button>
     </div>
 
     <div id="admin-users-section">
@@ -105,6 +106,20 @@
       <div id="approved-list"><div class="empty">승인된 사용자가 없습니다.</div></div>
     </div>
   </div>
+
+    <!-- Tab Order Section -->
+    <div id="admin-tabs-section" style="display:none">
+      <div class="card">
+        <div class="card-title">🗂 탭 순서 관리</div>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:16px">드래그해서 탭 순서를 변경하거나 다른 그룹으로 이동할 수 있습니다.</p>
+        <div id="tab-order-container" style="display:flex;flex-direction:column;gap:12px"></div>
+        <div style="margin-top:20px;display:flex;gap:8px">
+          <button class="btn btn-success" onclick="saveTabOrder()">💾 저장</button>
+          <button class="btn" style="background:#6b7280" onclick="resetTabOrder()">↩ 기본값 복원</button>
+        </div>
+        <div class="msg" id="tab-order-msg"></div>
+      </div>
+    </div>
 
     <!-- Logs Section -->
     <div id="admin-logs-section" style="display:none">
@@ -168,9 +183,140 @@ function showAdminTab(tab) {
   currentAdminTab = tab;
   document.getElementById('admin-users-section').style.display = tab === 'users' ? 'block' : 'none';
   document.getElementById('admin-logs-section').style.display = tab === 'logs' ? 'block' : 'none';
+  document.getElementById('admin-tabs-section').style.display = tab === 'tabs' ? 'block' : 'none';
   document.getElementById('tab-users-btn').style.background = tab === 'users' ? '#2563eb' : '#6b7280';
   document.getElementById('tab-logs-btn').style.background = tab === 'logs' ? '#6366f1' : '#6b7280';
+  document.getElementById('tab-tabs-btn').style.background = tab === 'tabs' ? '#0891b2' : '#6b7280';
   if (tab === 'logs') loadLogs();
+  if (tab === 'tabs') loadTabOrder();
+}
+
+const TAB_DEFAULTS = {
+  '분석': [
+    { id: 'faq', label: 'FAQ 목록' },
+    { id: 'analysis', label: '데이터 분석' },
+    { id: 'website-faq', label: '웹사이트 FAQ (EN)' },
+    { id: 'feedback', label: '개선 피드백' },
+    { id: 'notion', label: 'Notion 내보내기' }
+  ],
+  '상담 AI': [
+    { id: 'sim', label: '🌶️ 상담 체험' },
+    { id: 'draft', label: '✍️ 초안 생성기' },
+    { id: 'translate', label: '🌐 번역기' }
+  ],
+  '관리': [
+    { id: 'meetings', label: '📝 회의록' },
+    { id: 'broadcast', label: '📢 공지' },
+    { id: 'cleaning', label: '🧹 청소 일정' },
+    { id: 'deposit', label: '🔐 보증금' },
+    { id: 'sales', label: '📊 세일즈 현황' },
+    { id: 'upsell', label: '🛍 업셀링' }
+  ]
+};
+
+let tabOrderState = null;
+let dragSrc = null;
+
+async function loadTabOrder() {
+  const res = await fetch('/api/admin?action=get-tab-order');
+  const { order } = await res.json();
+  const allTabsById = {};
+  for (const tabs of Object.values(TAB_DEFAULTS)) tabs.forEach(t => { allTabsById[t.id] = t; });
+  if (order) {
+    tabOrderState = {};
+    for (const [group, defaults] of Object.entries(TAB_DEFAULTS)) {
+      const saved = order[group] || [];
+      const savedItems = saved.map(id => allTabsById[id]).filter(Boolean);
+      const newItems = defaults.filter(d => !saved.includes(d.id));
+      tabOrderState[group] = [...savedItems, ...newItems];
+    }
+  } else {
+    tabOrderState = JSON.parse(JSON.stringify(TAB_DEFAULTS));
+  }
+  renderTabOrder();
+}
+
+function renderTabOrder() {
+  const container = document.getElementById('tab-order-container');
+  container.innerHTML = '';
+  for (const [group, tabs] of Object.entries(tabOrderState)) {
+    const groupEl = document.createElement('div');
+    groupEl.style.cssText = 'border:1px solid #e5e7eb;border-radius:10px;overflow:hidden';
+    groupEl.innerHTML = `<div style="background:#f8fafc;padding:10px 14px;font-size:.82rem;font-weight:700;color:#374151;border-bottom:1px solid #e5e7eb">${group}</div>`;
+    const list = document.createElement('div');
+    list.dataset.group = group;
+    list.style.cssText = 'padding:8px;display:flex;flex-direction:column;gap:6px;min-height:52px';
+    list.addEventListener('dragover', e => e.preventDefault());
+    list.addEventListener('drop', e => handleDrop(e, group, list));
+    tabs.forEach(tab => list.appendChild(createTabItem(tab, group)));
+    groupEl.appendChild(list);
+    container.appendChild(groupEl);
+  }
+}
+
+function createTabItem(tab, group) {
+  const item = document.createElement('div');
+  item.draggable = true;
+  item.dataset.id = tab.id;
+  item.dataset.group = group;
+  item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;cursor:grab;user-select:none;font-size:.88rem;color:#1f2937;transition:box-shadow .1s';
+  item.innerHTML = `<span style="color:#9ca3af;font-size:1.1rem;line-height:1">⠿</span><span style="flex:1">${tab.label}</span>`;
+  item.addEventListener('dragstart', e => {
+    dragSrc = item;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => { item.style.opacity = '0.4'; item.style.boxShadow = '0 4px 12px rgba(0,0,0,.15)'; }, 0);
+  });
+  item.addEventListener('dragend', () => { item.style.opacity = '1'; item.style.boxShadow = ''; dragSrc = null; });
+  item.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (!dragSrc || dragSrc === item) return;
+    const rect = item.getBoundingClientRect();
+    const after = e.clientY > rect.top + rect.height / 2;
+    item.parentNode.insertBefore(dragSrc, after ? item.nextSibling : item);
+  });
+  return item;
+}
+
+function handleDrop(e, group, list) {
+  e.preventDefault();
+  if (!dragSrc) return;
+  if (!list.contains(dragSrc)) {
+    list.appendChild(dragSrc);
+    dragSrc.dataset.group = group;
+  }
+}
+
+function syncTabOrderState() {
+  const allTabsById = {};
+  for (const tabs of Object.values(TAB_DEFAULTS)) tabs.forEach(t => { allTabsById[t.id] = t; });
+  const newState = {};
+  document.querySelectorAll('#tab-order-container [data-group]').forEach(list => {
+    if (!list.dataset.group) return;
+    const g = list.dataset.group;
+    if (!newState[g]) newState[g] = [];
+    list.querySelectorAll('[data-id]').forEach(item => {
+      const tab = allTabsById[item.dataset.id];
+      if (tab) newState[g].push(tab);
+    });
+  });
+  tabOrderState = newState;
+}
+
+async function saveTabOrder() {
+  syncTabOrderState();
+  const order = {};
+  for (const [group, tabs] of Object.entries(tabOrderState)) order[group] = tabs.map(t => t.id);
+  const res = await fetch('/api/admin?action=save-tab-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+    body: JSON.stringify({ order })
+  });
+  showMsg('tab-order-msg', res.ok ? 'success' : 'error', res.ok ? '저장되었습니다. CX 대시보드에 바로 반영됩니다.' : '저장 실패');
+}
+
+function resetTabOrder() {
+  tabOrderState = JSON.parse(JSON.stringify(TAB_DEFAULTS));
+  renderTabOrder();
 }
 
 async function loadLogs() {

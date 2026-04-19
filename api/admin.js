@@ -103,6 +103,20 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ success: true });
   }
 
+  // ── get-tab-order (no auth — index.html reads this publicly) ──
+  if (action === 'get-tab-order' && req.method === 'GET') {
+    const raw = await redis(['GET', 'tabs:order']);
+    return res.status(200).json({ order: raw ? JSON.parse(raw) : null });
+  }
+
+  // ── save-tab-order ──
+  if (action === 'save-tab-order' && req.method === 'POST') {
+    if (!await checkAdminAuth(req.headers['x-admin-key'])) return res.status(401).json({ error: '관리자 권한이 없습니다.' });
+    const { order } = req.body;
+    await redis(['SET', 'tabs:order', JSON.stringify(order)]);
+    return res.status(200).json({ success: true });
+  }
+
   // ── logs ──
   if (action === 'logs' && req.method === 'GET') {
     if (!await checkAdminAuth(req.headers['x-admin-key'])) return res.status(401).json({ error: '관리자 권한이 없습니다.' });
