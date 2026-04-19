@@ -1149,12 +1149,18 @@
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <div style="font-size:.78rem;font-weight:600;color:var(--gray-500);letter-spacing:.04em">번역 결과</div>
-            <button onclick="trCopy()" id="tr-copy-btn" style="display:none;padding:4px 10px;background:var(--gray-100);border:none;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;color:var(--gray-600)">복사</button>
+          <div style="font-size:.78rem;font-weight:600;color:var(--gray-500);letter-spacing:.04em">번역 결과</div>
+          <!-- 톤 탭 -->
+          <div id="tr-tone-tabs" style="display:none;gap:6px;display:flex">
+            <button class="tr-tone-btn active" onclick="trSelectTone('friendly',this)" style="flex:1;padding:7px 4px;border:2px solid #e2e8f0;background:#fff;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;color:#64748b;transition:all .15s">😊 친근</button>
+            <button class="tr-tone-btn" onclick="trSelectTone('firm',this)" style="flex:1;padding:7px 4px;border:2px solid #e2e8f0;background:#fff;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;color:#64748b;transition:all .15s">💪 단호</button>
+            <button class="tr-tone-btn" onclick="trSelectTone('professional',this)" style="flex:1;padding:7px 4px;border:2px solid #e2e8f0;background:#fff;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;color:#64748b;transition:all .15s">💼 프로</button>
           </div>
-          <div id="tr-output" style="flex:1;min-height:170px;padding:12px 14px;border:1px solid var(--gray-200);border-radius:10px;font-size:.9rem;line-height:1.6;background:var(--gray-50);white-space:pre-wrap;color:var(--gray-800)">
-            <span style="color:var(--gray-400)">번역 결과가 여기에 표시됩니다.</span>
+          <div style="position:relative;flex:1">
+            <div id="tr-output" style="min-height:152px;padding:12px 14px;border:1px solid var(--gray-200);border-radius:10px;font-size:.9rem;line-height:1.6;background:var(--gray-50);white-space:pre-wrap;color:var(--gray-800)">
+              <span style="color:var(--gray-400)">번역 결과가 여기에 표시됩니다.</span>
+            </div>
+            <button onclick="trCopy()" id="tr-copy-btn" style="display:none;position:absolute;top:8px;right:8px;padding:4px 10px;background:rgba(255,255,255,.9);border:1px solid var(--gray-200);border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;color:var(--gray-600)">복사</button>
           </div>
         </div>
       </div>
@@ -3438,6 +3444,21 @@ function trClearOutput() {
   document.getElementById('tr-no-suggestions').style.display = 'none';
 }
 
+let _trResults = {};
+let _trActiveTone = 'friendly';
+
+function trSelectTone(tone, btnEl) {
+  _trActiveTone = tone;
+  document.querySelectorAll('.tr-tone-btn').forEach(b => {
+    b.style.borderColor = '#e2e8f0'; b.style.background = '#fff'; b.style.color = '#64748b';
+  });
+  btnEl.style.borderColor = 'var(--primary)'; btnEl.style.background = '#eff6ff'; btnEl.style.color = 'var(--primary)';
+  const out = document.getElementById('tr-output');
+  const text = _trResults[tone] || '';
+  out.textContent = text;
+  out.dataset.text = text;
+}
+
 async function doTranslate() {
   const text = document.getElementById('tr-input').value.trim();
   if (!text) return;
@@ -3448,6 +3469,8 @@ async function doTranslate() {
 
   btn.disabled = true; btn.textContent = '번역 중...';
   out.innerHTML = '<span style="color:var(--gray-400)">번역 중...</span>';
+  document.getElementById('tr-tone-tabs').style.display = 'none';
+  document.getElementById('tr-copy-btn').style.display = 'none';
   document.getElementById('tr-suggestions').style.display = 'none';
   document.getElementById('tr-no-suggestions').style.display = 'none';
 
@@ -3460,31 +3483,38 @@ async function doTranslate() {
     const d = await res.json();
     if (d.error) throw new Error(d.error);
 
-    out.textContent = d.translation || '';
-    out.dataset.text = d.translation || '';
+    _trResults = { friendly: d.friendly || '', firm: d.firm || '', professional: d.professional || '' };
+    _trActiveTone = 'friendly';
+
+    // 톤 탭 표시 & 첫 번째 선택
+    document.getElementById('tr-tone-tabs').style.display = 'flex';
+    document.querySelectorAll('.tr-tone-btn').forEach((b, i) => {
+      const t = ['friendly','firm','professional'][i];
+      b.style.borderColor = t === 'friendly' ? 'var(--primary)' : '#e2e8f0';
+      b.style.background  = t === 'friendly' ? '#eff6ff' : '#fff';
+      b.style.color       = t === 'friendly' ? 'var(--primary)' : '#64748b';
+    });
+    out.textContent = _trResults.friendly;
+    out.dataset.text = _trResults.friendly;
     document.getElementById('tr-copy-btn').style.display = '';
 
+    // 제안 섹션
     const improved = d.improved_source && d.improved_source.trim() !== text.trim();
     const hasSuggestions = (d.suggestions || []).length > 0;
-
     if (hasSuggestions || improved) {
       document.getElementById('tr-suggestions').style.display = '';
       const badge = document.getElementById('tr-improved-badge');
       const improvedEl = document.getElementById('tr-improved');
-      if (improved) {
-        badge.style.display = ''; improvedEl.style.display = '';
-        improvedEl.textContent = d.improved_source;
-      } else {
-        badge.style.display = 'none'; improvedEl.style.display = 'none';
-      }
+      if (improved) { badge.style.display=''; improvedEl.style.display=''; improvedEl.textContent=d.improved_source; }
+      else { badge.style.display='none'; improvedEl.style.display='none'; }
       document.getElementById('tr-suggestion-list').innerHTML = (d.suggestions || []).map(s => {
         const [bg, fg] = (TR_SUGGESTION_COLORS[s.type] || '#f1f5f9|#475569').split('|');
-        const typeLabel = s.type === 'grammar' ? '문법' : s.type === 'word' ? '단어' : '표현';
+        const typeLabel = s.type==='grammar'?'문법':s.type==='word'?'단어':'표현';
         return `<div style="background:${bg};border-radius:8px;padding:10px 14px;font-size:.84rem;line-height:1.55">
           <span style="background:${fg};color:#fff;border-radius:4px;padding:2px 7px;font-size:.72rem;font-weight:700;margin-right:8px">${typeLabel}</span>
-          <span style="text-decoration:line-through;color:#9ca3af;margin-right:6px">${s.original || ''}</span>
-          <span style="font-weight:600;color:${fg}">→ ${s.suggestion || ''}</span>
-          <div style="margin-top:4px;color:#6b7280;font-size:.8rem">${s.reason || ''}</div>
+          <span style="text-decoration:line-through;color:#9ca3af;margin-right:6px">${s.original||''}</span>
+          <span style="font-weight:600;color:${fg}">→ ${s.suggestion||''}</span>
+          <div style="margin-top:4px;color:#6b7280;font-size:.8rem">${s.reason||''}</div>
         </div>`;
       }).join('');
     } else {
