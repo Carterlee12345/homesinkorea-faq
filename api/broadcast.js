@@ -1,3 +1,32 @@
+const crypto = require('crypto');
+
+async function redis(cmd) {
+  const res = await fetch(process.env.UPSTASH_URL, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${process.env.UPSTASH_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(cmd)
+  });
+  return (await res.json()).result;
+}
+
+function verifyToken(token) {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [payload, ts, sig] = parts;
+  const expected = crypto.createHmac('sha256', process.env.SESSION_SECRET).update(`${payload}.${ts}`).digest('hex');
+  if (sig !== expected || Date.now() - parseInt(ts) > 7 * 24 * 60 * 60 * 1000) return null;
+  return Buffer.from(payload, 'base64').toString();
+}
+
+async function checkIsAdmin(token) {
+  const email = verifyToken(token);
+  if (!email) return false;
+  const raw = await redis(['GET', `user:${email}`]);
+  if (!raw) return false;
+  return JSON.parse(raw).isAdmin === true;
+}
+
 const BROADCAST_SYSTEM = `You are a broadcast message writer for HOMESINKOREA, a short/mid-term furnished rental service for international residents in Seoul, Korea.
 
 Write concise, warm, professional broadcast messages to send via Channel Talk.
@@ -41,7 +70,7 @@ async function fetchAllUserChats(key, secret) {
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -76,8 +105,10 @@ module.exports = async function handler(req, res) {
     } catch (e) { return res.status(500).json({ error: e.message }); }
   }
 
-  // ── send ──
+  // ── send (admin only) ──
   if (action === 'send') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!await checkIsAdmin(token)) return res.status(403).json({ error: '공지 발송은 관리자만 가능합니다.' });
     const { message, tags } = req.body;
     if (!message?.trim()) return res.status(400).json({ error: '메시지가 없습니다.' });
     if (!tags?.length) return res.status(400).json({ error: '태그가 없습니다.' });

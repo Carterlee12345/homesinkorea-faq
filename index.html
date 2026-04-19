@@ -1578,12 +1578,15 @@
 
 <script>
 /* ── Auth ── */
+let currentUserIsAdmin = false;
+
 async function checkAuth() {
   const token = localStorage.getItem('hik_token');
   if (!token) { showOverlay(); return; }
   const res = await fetch('/api/auth?action=verify', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
   if (!res.ok) { localStorage.removeItem('hik_token'); showOverlay(); return; }
-  const { email } = await res.json();
+  const { email, isAdmin } = await res.json();
+  currentUserIsAdmin = !!isAdmin;
   document.getElementById('user-email-display').textContent = email;
   document.getElementById('auth-overlay').style.display = 'none';
   loadDashboardData();
@@ -1616,6 +1619,7 @@ async function doLogin() {
   btn.disabled = false; btn.textContent = '로그인';
   if (!res.ok) { showMsg(data.error === 'pending' ? 'pending' : 'error', data.error === 'pending' ? '⏳ 관리자 승인 대기 중입니다.' : (data.error || '로그인 실패')); return; }
   localStorage.setItem('hik_token', data.token);
+  currentUserIsAdmin = !!data.isAdmin;
   document.getElementById('user-email-display').textContent = data.email;
   document.getElementById('auth-overlay').style.display = 'none';
   sendLog('로그인', data.email);
@@ -2678,6 +2682,12 @@ function selectSendLang(lang, btn) {
 }
 
 async function handleSend() {
+  if (!currentUserIsAdmin) {
+    const resultEl = document.getElementById('send-result');
+    resultEl.style.cssText = 'display:block;margin-top:10px;padding:14px;border-radius:10px;font-size:.88rem;line-height:1.7;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5';
+    resultEl.innerHTML = '🔒 공지 발송은 관리자 권한이 필요합니다. 관리자에게 문의하세요.';
+    return;
+  }
   const message = sendLang === 'ko'
     ? document.getElementById('broadcast-ko').textContent
     : document.getElementById('broadcast-en').textContent;
@@ -2690,10 +2700,11 @@ async function handleSend() {
   btn.innerHTML = '⏳ 발송 중... (상담 목록 조회 중)';
   resultEl.style.display = 'none';
 
+  const token = localStorage.getItem('hik_token');
   try {
     const res = await fetch('/api/broadcast?action=send', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ message, tags: broadcastTags })
     });
     const data = await res.json();

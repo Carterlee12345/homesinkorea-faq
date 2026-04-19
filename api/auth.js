@@ -60,7 +60,7 @@ module.exports = async function handler(req, res) {
     const hash = crypto.createHmac('sha256', user.passwordSalt).update(password).digest('hex');
     if (hash !== user.passwordHash) return res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다.' });
     if (!user.approved) return res.status(403).json({ error: 'pending', message: '관리자 승인 대기 중입니다.' });
-    return res.status(200).json({ token: createToken(email), email });
+    return res.status(200).json({ token: createToken(email), email, isAdmin: user.isAdmin === true });
   }
 
   // ── verify ──
@@ -68,7 +68,9 @@ module.exports = async function handler(req, res) {
     const token = req.headers['authorization']?.replace('Bearer ', '');
     const email = verifyTokenSync(token);
     if (!email) return res.status(401).json({ error: '유효하지 않은 토큰입니다.' });
-    return res.status(200).json({ email });
+    const raw = await redis(['GET', `user:${email}`]);
+    const user = raw ? JSON.parse(raw) : {};
+    return res.status(200).json({ email, isAdmin: user.isAdmin === true });
   }
 
   return res.status(400).json({ error: '올바르지 않은 action입니다.' });
