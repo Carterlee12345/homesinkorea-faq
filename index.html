@@ -1376,15 +1376,15 @@
         </div>
 
         <div style="margin-bottom:20px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:.82rem;font-weight:600">첨부파일</span>
-            <label id="cl-upload-label" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:#eff6ff;color:#2563eb;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer">
-              + 파일 추가
-              <input type="file" id="modal-file-input" multiple style="display:none" onchange="uploadClFiles(this.files)">
-            </label>
-          </div>
+          <div style="font-size:.82rem;font-weight:600;margin-bottom:8px">첨부파일</div>
+          <label id="cl-drop-zone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:18px;border:2px dashed #c7d2fe;border-radius:10px;background:#f8faff;cursor:pointer;transition:all .15s;margin-bottom:8px">
+            <span style="font-size:1.6rem">📎</span>
+            <span style="font-size:.82rem;font-weight:600;color:#4338ca">파일을 끌어다 놓거나 클릭해서 선택</span>
+            <span style="font-size:.74rem;color:#9ca3af">이미지, PDF, 동영상 등 모든 형식 · 파일당 최대 200MB</span>
+            <input type="file" id="modal-file-input" multiple style="display:none" onchange="uploadClFiles(this.files)">
+          </label>
           <div id="modal-file-list" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto"></div>
-          <div id="cl-upload-progress" style="display:none;font-size:.78rem;color:#2563eb;margin-top:6px;text-align:center">업로드 중...</div>
+          <div id="cl-upload-progress" style="display:none;font-size:.78rem;color:#2563eb;margin-top:6px;text-align:center;padding:8px;background:#eff6ff;border-radius:6px">업로드 중...</div>
         </div>
 
         <div style="display:flex;gap:10px">
@@ -2787,6 +2787,7 @@ function openClModal(resId) {
 
   const modal = document.getElementById('cleaning-modal');
   modal.style.display = 'flex';
+  initClDropZone();
   loadClFiles(resId);
 }
 
@@ -2826,6 +2827,29 @@ async function saveClModal() {
 }
 
 let clModalFiles = [];
+
+function initClDropZone() {
+  const zone = document.getElementById('cl-drop-zone');
+  if (!zone || zone._dropInited) return;
+  zone._dropInited = true;
+  zone.addEventListener('dragover', e => {
+    e.preventDefault();
+    zone.style.borderColor = '#4338ca';
+    zone.style.background = '#eef2ff';
+  });
+  zone.addEventListener('dragleave', e => {
+    if (!zone.contains(e.relatedTarget)) {
+      zone.style.borderColor = '#c7d2fe';
+      zone.style.background = '#f8faff';
+    }
+  });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.style.borderColor = '#c7d2fe';
+    zone.style.background = '#f8faff';
+    if (e.dataTransfer.files.length) uploadClFiles(e.dataTransfer.files);
+  });
+}
 
 async function loadClFiles(resId) {
   const token = localStorage.getItem('hik_token');
