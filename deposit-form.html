@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,6 +25,16 @@
   .q-code option{color:#1e3a8a;background:#fff;font-size:.95rem}
   .q-code:focus{border-color:#fff}
   .q-tel{flex:1}
+  /* nationality searchable dropdown */
+  .nat-wrap{position:relative;width:100%}
+  .nat-dd{position:absolute;top:calc(100% + 8px);left:0;right:0;background:rgba(15,35,100,.97);backdrop-filter:blur(16px);border:2px solid rgba(255,255,255,.35);border-radius:12px;max-height:230px;overflow-y:auto;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+  .nat-dd::-webkit-scrollbar{width:4px}
+  .nat-dd::-webkit-scrollbar-track{background:transparent}
+  .nat-dd::-webkit-scrollbar-thumb{background:rgba(255,255,255,.25);border-radius:2px}
+  .nat-opt{padding:12px 18px;cursor:pointer;font-size:1rem;color:#fff;border-bottom:1px solid rgba(255,255,255,.07);transition:background .1s}
+  .nat-opt:last-child{border-bottom:none}
+  .nat-opt:hover,.nat-opt.sel{background:rgba(255,255,255,.18);font-weight:600}
+  .nat-empty{padding:16px 18px;color:rgba(255,255,255,.45);font-size:.9rem;text-align:center}
   /* buttons */
   .next-btn{margin-top:20px;display:flex;align-items:center;gap:8px;background:#fff;color:#1e3a8a;border:none;border-radius:12px;padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .15s;font-family:inherit}
   .next-btn:hover{opacity:.9}
@@ -46,59 +56,70 @@
 
 <script>
 const COUNTRY_CODES = [
-  {code:'+82',name:'🇰🇷 KR +82'},
-  {code:'+1',name:'🇺🇸 US +1'},
-  {code:'+1',name:'🇨🇦 CA +1'},
-  {code:'+44',name:'🇬🇧 GB +44'},
-  {code:'+61',name:'🇦🇺 AU +61'},
-  {code:'+64',name:'🇳🇿 NZ +64'},
-  {code:'+81',name:'🇯🇵 JP +81'},
-  {code:'+86',name:'🇨🇳 CN +86'},
-  {code:'+852',name:'🇭🇰 HK +852'},
-  {code:'+886',name:'🇹🇼 TW +886'},
-  {code:'+65',name:'🇸🇬 SG +65'},
-  {code:'+60',name:'🇲🇾 MY +60'},
-  {code:'+66',name:'🇹🇭 TH +66'},
-  {code:'+84',name:'🇻🇳 VN +84'},
-  {code:'+62',name:'🇮🇩 ID +62'},
-  {code:'+63',name:'🇵🇭 PH +63'},
-  {code:'+91',name:'🇮🇳 IN +91'},
-  {code:'+92',name:'🇵🇰 PK +92'},
-  {code:'+880',name:'🇧🇩 BD +880'},
-  {code:'+971',name:'🇦🇪 AE +971'},
-  {code:'+966',name:'🇸🇦 SA +966'},
-  {code:'+90',name:'🇹🇷 TR +90'},
-  {code:'+7',name:'🇷🇺 RU +7'},
-  {code:'+49',name:'🇩🇪 DE +49'},
-  {code:'+33',name:'🇫🇷 FR +33'},
-  {code:'+34',name:'🇪🇸 ES +34'},
-  {code:'+39',name:'🇮🇹 IT +39'},
-  {code:'+31',name:'🇳🇱 NL +31'},
-  {code:'+32',name:'🇧🇪 BE +32'},
-  {code:'+41',name:'🇨🇭 CH +41'},
-  {code:'+43',name:'🇦🇹 AT +43'},
-  {code:'+46',name:'🇸🇪 SE +46'},
-  {code:'+47',name:'🇳🇴 NO +47'},
-  {code:'+45',name:'🇩🇰 DK +45'},
-  {code:'+358',name:'🇫🇮 FI +358'},
-  {code:'+48',name:'🇵🇱 PL +48'},
-  {code:'+420',name:'🇨🇿 CZ +420'},
-  {code:'+36',name:'🇭🇺 HU +36'},
-  {code:'+40',name:'🇷🇴 RO +40'},
-  {code:'+380',name:'🇺🇦 UA +380'},
-  {code:'+55',name:'🇧🇷 BR +55'},
-  {code:'+52',name:'🇲🇽 MX +52'},
-  {code:'+54',name:'🇦🇷 AR +54'},
-  {code:'+56',name:'🇨🇱 CL +56'},
-  {code:'+57',name:'🇨🇴 CO +57'},
-  {code:'+27',name:'🇿🇦 ZA +27'},
-  {code:'+20',name:'🇪🇬 EG +20'},
-  {code:'+234',name:'🇳🇬 NG +234'},
+  {code:'+82',name:'🇰🇷 KR +82'},{code:'+1',name:'🇺🇸 US +1'},{code:'+1',name:'🇨🇦 CA +1'},
+  {code:'+44',name:'🇬🇧 GB +44'},{code:'+61',name:'🇦🇺 AU +61'},{code:'+64',name:'🇳🇿 NZ +64'},
+  {code:'+81',name:'🇯🇵 JP +81'},{code:'+86',name:'🇨🇳 CN +86'},{code:'+852',name:'🇭🇰 HK +852'},
+  {code:'+886',name:'🇹🇼 TW +886'},{code:'+65',name:'🇸🇬 SG +65'},{code:'+60',name:'🇲🇾 MY +60'},
+  {code:'+66',name:'🇹🇭 TH +66'},{code:'+84',name:'🇻🇳 VN +84'},{code:'+62',name:'🇮🇩 ID +62'},
+  {code:'+63',name:'🇵🇭 PH +63'},{code:'+91',name:'🇮🇳 IN +91'},{code:'+92',name:'🇵🇰 PK +92'},
+  {code:'+880',name:'🇧🇩 BD +880'},{code:'+971',name:'🇦🇪 AE +971'},{code:'+966',name:'🇸🇦 SA +966'},
+  {code:'+90',name:'🇹🇷 TR +90'},{code:'+7',name:'🇷🇺 RU +7'},{code:'+49',name:'🇩🇪 DE +49'},
+  {code:'+33',name:'🇫🇷 FR +33'},{code:'+34',name:'🇪🇸 ES +34'},{code:'+39',name:'🇮🇹 IT +39'},
+  {code:'+31',name:'🇳🇱 NL +31'},{code:'+32',name:'🇧🇪 BE +32'},{code:'+41',name:'🇨🇭 CH +41'},
+  {code:'+43',name:'🇦🇹 AT +43'},{code:'+46',name:'🇸🇪 SE +46'},{code:'+47',name:'🇳🇴 NO +47'},
+  {code:'+45',name:'🇩🇰 DK +45'},{code:'+358',name:'🇫🇮 FI +358'},{code:'+48',name:'🇵🇱 PL +48'},
+  {code:'+420',name:'🇨🇿 CZ +420'},{code:'+36',name:'🇭🇺 HU +36'},{code:'+40',name:'🇷🇴 RO +40'},
+  {code:'+380',name:'🇺🇦 UA +380'},{code:'+55',name:'🇧🇷 BR +55'},{code:'+52',name:'🇲🇽 MX +52'},
+  {code:'+54',name:'🇦🇷 AR +54'},{code:'+56',name:'🇨🇱 CL +56'},{code:'+57',name:'🇨🇴 CO +57'},
+  {code:'+27',name:'🇿🇦 ZA +27'},{code:'+20',name:'🇪🇬 EG +20'},{code:'+234',name:'🇳🇬 NG +234'},
+  {code:'+98',name:'🇮🇷 IR +98'},{code:'+964',name:'🇮🇶 IQ +964'},{code:'+972',name:'🇮🇱 IL +972'},
+  {code:'+30',name:'🇬🇷 GR +30'},{code:'+351',name:'🇵🇹 PT +351'},{code:'+353',name:'🇮🇪 IE +353'},
+  {code:'+370',name:'🇱🇹 LT +370'},{code:'+371',name:'🇱🇻 LV +371'},{code:'+372',name:'🇪🇪 EE +372'},
+  {code:'+375',name:'🇧🇾 BY +375'},{code:'+421',name:'🇸🇰 SK +421'},{code:'+386',name:'🇸🇮 SI +386'},
+  {code:'+385',name:'🇭🇷 HR +385'},{code:'+381',name:'🇷🇸 RS +381'},{code:'+994',name:'🇦🇿 AZ +994'},
+  {code:'+995',name:'🇬🇪 GE +995'},{code:'+374',name:'🇦🇲 AM +374'},{code:'+7',name:'🇰🇿 KZ +7'},
+  {code:'+998',name:'🇺🇿 UZ +998'},{code:'+993',name:'🇹🇲 TM +993'},{code:'+992',name:'🇹🇯 TJ +992'},
+  {code:'+996',name:'🇰🇬 KG +996'},{code:'+976',name:'🇲🇳 MN +976'},{code:'+855',name:'🇰🇭 KH +855'},
+  {code:'+856',name:'🇱🇦 LA +856'},{code:'+95',name:'🇲🇲 MM +95'},{code:'+977',name:'🇳🇵 NP +977'},
+  {code:'+94',name:'🇱🇰 LK +94'},{code:'+880',name:'🇧🇩 BD +880'},{code:'+960',name:'🇲🇻 MV +960'},
+  {code:'+973',name:'🇧🇭 BH +973'},{code:'+974',name:'🇶🇦 QA +974'},{code:'+968',name:'🇴🇲 OM +968'},
+  {code:'+962',name:'🇯🇴 JO +962'},{code:'+961',name:'🇱🇧 LB +961'},{code:'+963',name:'🇸🇾 SY +963'},
+  {code:'+212',name:'🇲🇦 MA +212'},{code:'+213',name:'🇩🇿 DZ +213'},{code:'+216',name:'🇹🇳 TN +216'},
+  {code:'+218',name:'🇱🇾 LY +218'},{code:'+251',name:'🇪🇹 ET +251'},{code:'+254',name:'🇰🇪 KE +254'},
+  {code:'+255',name:'🇹🇿 TZ +255'},{code:'+256',name:'🇺🇬 UG +256'},{code:'+233',name:'🇬🇭 GH +233'},
+  {code:'+51',name:'🇵🇪 PE +51'},{code:'+58',name:'🇻🇪 VE +58'},{code:'+593',name:'🇪🇨 EC +593'},
+  {code:'+595',name:'🇵🇾 PY +595'},{code:'+598',name:'🇺🇾 UY +598'},{code:'+591',name:'🇧🇴 BO +591'},
+  {code:'+507',name:'🇵🇦 PA +507'},{code:'+506',name:'🇨🇷 CR +506'},{code:'+502',name:'🇬🇹 GT +502'},
 ];
 
-let fields = [];
-let currentStep = 0;
-let answers = [];
+const NATIONALITIES = [
+  'Afghanistan 🇦🇫','Albania 🇦🇱','Algeria 🇩🇿','Andorra 🇦🇩','Angola 🇦🇴',
+  'Argentina 🇦🇷','Armenia 🇦🇲','Australia 🇦🇺','Austria 🇦🇹','Azerbaijan 🇦🇿',
+  'Bahrain 🇧🇭','Bangladesh 🇧🇩','Belarus 🇧🇾','Belgium 🇧🇪','Bolivia 🇧🇴',
+  'Bosnia & Herzegovina 🇧🇦','Brazil 🇧🇷','Bulgaria 🇧🇬','Cambodia 🇰🇭','Canada 🇨🇦',
+  'Chile 🇨🇱','China 🇨🇳','Colombia 🇨🇴','Costa Rica 🇨🇷','Croatia 🇭🇷',
+  'Cuba 🇨🇺','Czech Republic 🇨🇿','Denmark 🇩🇰','Ecuador 🇪🇨','Egypt 🇪🇬',
+  'Estonia 🇪🇪','Ethiopia 🇪🇹','Finland 🇫🇮','France 🇫🇷','Georgia 🇬🇪',
+  'Germany 🇩🇪','Ghana 🇬🇭','Greece 🇬🇷','Guatemala 🇬🇹','Hong Kong 🇭🇰',
+  'Hungary 🇭🇺','Iceland 🇮🇸','India 🇮🇳','Indonesia 🇮🇩','Iran 🇮🇷',
+  'Iraq 🇮🇶','Ireland 🇮🇪','Israel 🇮🇱','Italy 🇮🇹','Jamaica 🇯🇲',
+  'Japan 🇯🇵','Jordan 🇯🇴','Kazakhstan 🇰🇿','Kenya 🇰🇪','Kuwait 🇰🇼',
+  'Kyrgyzstan 🇰🇬','Laos 🇱🇦','Latvia 🇱🇻','Lebanon 🇱🇧','Libya 🇱🇾',
+  'Lithuania 🇱🇹','Luxembourg 🇱🇺','Macau 🇲🇴','Malaysia 🇲🇾','Maldives 🇲🇻',
+  'Malta 🇲🇹','Mexico 🇲🇽','Moldova 🇲🇩','Mongolia 🇲🇳','Morocco 🇲🇦',
+  'Myanmar 🇲🇲','Nepal 🇳🇵','Netherlands 🇳🇱','New Zealand 🇳🇿','Nigeria 🇳🇬',
+  'Norway 🇳🇴','Oman 🇴🇲','Pakistan 🇵🇰','Palestine 🇵🇸','Panama 🇵🇦',
+  'Paraguay 🇵🇾','Peru 🇵🇪','Philippines 🇵🇭','Poland 🇵🇱','Portugal 🇵🇹',
+  'Qatar 🇶🇦','Romania 🇷🇴','Russia 🇷🇺','Saudi Arabia 🇸🇦','Serbia 🇷🇸',
+  'Singapore 🇸🇬','Slovakia 🇸🇰','Slovenia 🇸🇮','South Africa 🇿🇦','South Korea 🇰🇷',
+  'Spain 🇪🇸','Sri Lanka 🇱🇰','Sweden 🇸🇪','Switzerland 🇨🇭','Syria 🇸🇾',
+  'Taiwan 🇹🇼','Tajikistan 🇹🇯','Tanzania 🇹🇿','Thailand 🇹🇭','Tunisia 🇹🇳',
+  'Turkey 🇹🇷','Turkmenistan 🇹🇲','Uganda 🇺🇬','Ukraine 🇺🇦','UAE 🇦🇪',
+  'United Kingdom 🇬🇧','United States 🇺🇸','Uruguay 🇺🇾','Uzbekistan 🇺🇿',
+  'Venezuela 🇻🇪','Vietnam 🇻🇳','Yemen 🇾🇪','Zimbabwe 🇿🇼','Other 🌍'
+];
+
+let fields = [], currentStep = 0, answers = [], natValue = '';
 
 async function init() {
   const app = document.getElementById('app');
@@ -119,8 +140,56 @@ async function init() {
 }
 
 function setProgress(step) {
-  const pct = fields.length ? (step / fields.length * 100) : 0;
-  document.getElementById('progress').style.width = pct + '%';
+  document.getElementById('progress').style.width = (fields.length ? step / fields.length * 100 : 0) + '%';
+}
+
+function buildNatSearch(currentVal, onChange) {
+  let selected = currentVal || '';
+  const wrap = document.createElement('div');
+  wrap.className = 'nat-wrap';
+
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.className = 'q-input';
+  inp.placeholder = 'Type to search nationality…';
+  inp.autocomplete = 'off';
+  inp.spellcheck = false;
+  inp.value = selected;
+
+  const dd = document.createElement('div');
+  dd.className = 'nat-dd';
+  dd.style.display = 'none';
+
+  function renderList(q) {
+    const lower = q.toLowerCase();
+    const matches = q.trim() ? NATIONALITIES.filter(n => n.toLowerCase().includes(lower)) : NATIONALITIES;
+    if (!matches.length) {
+      dd.innerHTML = '<div class="nat-empty">No results found</div>';
+    } else {
+      dd.innerHTML = matches.map(n =>
+        `<div class="nat-opt${n === selected ? ' sel' : ''}">${n}</div>`
+      ).join('');
+      dd.querySelectorAll('.nat-opt').forEach((opt, i) => {
+        opt.addEventListener('mousedown', e => {
+          e.preventDefault();
+          selected = matches[i];
+          inp.value = selected;
+          onChange(selected);
+          dd.style.display = 'none';
+        });
+      });
+    }
+    dd.style.display = 'block';
+  }
+
+  inp.addEventListener('focus', () => renderList(inp.value));
+  inp.addEventListener('input', () => { selected = ''; onChange(''); renderList(inp.value); });
+  inp.addEventListener('blur', () => setTimeout(() => { dd.style.display = 'none'; }, 160));
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); next(); } });
+
+  wrap.appendChild(inp);
+  wrap.appendChild(dd);
+  return wrap;
 }
 
 function buildInput(f, i) {
@@ -145,34 +214,46 @@ function buildInput(f, i) {
 
 function showStep(i) {
   currentStep = i;
+  natValue = answers[i] || '';
   if (i >= fields.length) { showThanks(); return; }
   setProgress(i);
   const f = fields[i];
   const isLast = i === fields.length - 1;
+  const isNat = f.type === 'nationality';
+  const inputHTML = isNat ? '<div id="nat-container"></div>' : buildInput(f, i);
+  const showHint = !isNat && f.type !== 'date';
 
   document.getElementById('app').innerHTML = `
     <div class="question-wrap">
       <div class="step-label">${i + 1} / ${fields.length}</div>
       <div class="question-text">${f.label}${f.required ? '' : ' <span style="font-size:.9rem;opacity:.6;font-weight:400">(optional)</span>'}</div>
-      ${buildInput(f, i)}
+      ${inputHTML}
       <button class="next-btn" onclick="next()" id="next-btn">${isLast ? 'Submit ✓' : 'Next →'}</button>
-      ${f.type !== 'date' ? '<div class="hint">Press Enter to continue</div>' : ''}
+      ${showHint ? '<div class="hint">Press Enter to continue</div>' : ''}
     </div>`;
 
-  const input = document.getElementById('q-input');
-  if (input) {
-    if (f.type !== 'date') input.focus();
-    if (f.type !== 'textarea' && f.type !== 'tel-intl' && f.type !== 'date') {
-      input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); next(); } });
-    }
-    if (f.type === 'tel-intl') {
-      input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); next(); } });
+  if (isNat) {
+    const container = document.getElementById('nat-container');
+    const widget = buildNatSearch(natValue, val => { natValue = val; });
+    container.replaceWith(widget);
+    widget.querySelector('input').focus();
+  } else {
+    const input = document.getElementById('q-input');
+    if (input) {
+      if (f.type !== 'date') input.focus();
+      if (f.type !== 'textarea' && f.type !== 'tel-intl' && f.type !== 'date') {
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); next(); } });
+      }
+      if (f.type === 'tel-intl') {
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); next(); } });
+      }
     }
   }
 }
 
 function getValue() {
   const f = fields[currentStep];
+  if (f.type === 'nationality') return natValue;
   if (f.type === 'tel-intl') {
     const code = document.getElementById('q-code')?.value || '';
     const num  = (document.getElementById('q-input')?.value || '').trim();
@@ -185,7 +266,9 @@ function next() {
   const f = fields[currentStep];
   const val = getValue();
   if (f.required && !val) {
-    const el = document.getElementById('q-input');
+    const el = f.type === 'nationality'
+      ? document.querySelector('.nat-wrap input')
+      : document.getElementById('q-input');
     if (el) { el.style.borderColor = '#fca5a5'; el.classList.add('error-shake'); setTimeout(() => { el.style.borderColor = ''; el.classList.remove('error-shake'); }, 500); }
     return;
   }
