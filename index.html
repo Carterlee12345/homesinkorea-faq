@@ -1016,12 +1016,18 @@
 
     <!-- 폼 빌더 -->
     <div class="card">
-      <div class="card-title">
+      <div class="card-title" style="flex-wrap:wrap;gap:10px">
         ✏️ 폼 필드 편집
-        <button onclick="addDepositField()" style="margin-left:auto;padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">+ 필드 추가</button>
-        <button onclick="saveDepositForm()" id="save-form-btn" style="padding:6px 14px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer">💾 저장</button>
+        <div style="display:flex;gap:8px;margin-left:auto">
+          <button onclick="addDepositField()" style="display:flex;align-items:center;gap:5px;padding:8px 16px;background:var(--primary-light);color:var(--primary);border:1.5px solid #c7d2fe;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='var(--primary-light)'">
+            <span style="font-size:1rem;line-height:1">＋</span> 필드 추가
+          </button>
+          <button onclick="saveDepositForm()" id="save-form-btn" style="display:flex;align-items:center;gap:5px;padding:8px 16px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(22,163,74,.25);transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+            💾 저장
+          </button>
+        </div>
       </div>
-      <div id="deposit-fields-list" style="display:flex;flex-direction:column;gap:8px">
+      <div id="deposit-fields-list" style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
         <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
       </div>
     </div>
@@ -1388,14 +1394,27 @@
 .cleaning-card.urgent{border-color:#fca5a5;animation:urgentGlow 2s ease-in-out infinite}
 @keyframes urgentGlow{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}50%{box-shadow:0 0 0 4px rgba(220,38,38,0.25),0 0 12px rgba(220,38,38,0.15)}}
 /* ── Deposit Tab ── */
-.dep-field-row{display:flex;align-items:center;gap:8px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:10px 12px}
-.dep-field-row input,.dep-field-row select{border:1px solid var(--gray-200);border-radius:6px;padding:6px 10px;font-size:.83rem;font-family:inherit;outline:none;background:#fff;color:var(--gray-800)}
-.dep-field-row input:focus,.dep-field-row select:focus{border-color:var(--primary)}
-.dep-field-label{flex:1;min-width:0}
-.dep-field-type{width:110px}
-.dep-field-placeholder{flex:1;min-width:0}
-.dep-field-req{display:flex;align-items:center;gap:4px;font-size:.78rem;color:var(--gray-600);white-space:nowrap;cursor:pointer}
-.dep-remove-btn{padding:4px 10px;background:#fee2e2;color:#991b1b;border:none;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap}
+.dep-field-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:14px;overflow:hidden;transition:box-shadow .15s,border-color .15s}
+.dep-field-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.07);border-color:#c7d2fe}
+.dep-field-top{display:flex;align-items:center;gap:10px;padding:13px 14px}
+.dep-move-btn{background:#fff;border:1.5px solid var(--gray-200);border-radius:7px;width:26px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.75rem;color:var(--gray-400);transition:all .12s;line-height:1;padding:0}
+.dep-move-btn:hover:not(:disabled){background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
+.dep-num-badge{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#eff6ff,#dbeafe);color:var(--primary);font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:.01em}
+.dep-field-label{flex:1;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:.85rem;font-family:inherit;outline:none;color:var(--gray-800);background:#fff;transition:border-color .15s;min-width:0}
+.dep-field-label:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.dep-field-type{padding:8px 10px;border:1.5px solid var(--gray-200);border-radius:9px;font-size:.81rem;font-family:inherit;outline:none;background:#fff;color:var(--gray-700);cursor:pointer;transition:border-color .15s;min-width:115px}
+.dep-field-type:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.dep-req-toggle{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.78rem;color:var(--gray-500);font-weight:600;white-space:nowrap;padding:6px 11px;border:1.5px solid var(--gray-200);border-radius:9px;background:#fff;transition:all .15s;user-select:none}
+.dep-req-toggle:has(input:checked){border-color:var(--primary);background:var(--primary-light);color:var(--primary)}
+.dep-req-toggle input{accent-color:var(--primary);width:13px;height:13px}
+.dep-delete-btn{width:34px;height:34px;border-radius:9px;border:1.5px solid #fecaca;background:#fff;color:#f87171;font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;line-height:1;padding:0}
+.dep-delete-btn:hover{background:#fee2e2;border-color:#f87171;color:#dc2626}
+.dep-field-desc-row{display:flex;align-items:center;gap:10px;padding:9px 14px 12px;border-top:1px solid var(--gray-100);background:linear-gradient(to bottom,var(--gray-50),#fafbff)}
+.dep-desc-icon{font-size:.9rem;flex-shrink:0;color:var(--gray-400)}
+.dep-desc-label{font-size:.74rem;font-weight:600;color:var(--gray-400);white-space:nowrap;flex-shrink:0}
+.dep-field-desc{flex:1;padding:7px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;background:#fff;color:var(--gray-700);transition:border-color .15s;min-width:0}
+.dep-field-desc:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.dep-field-desc::placeholder{color:var(--gray-300)}
 .dep-submission{border:1px solid var(--gray-200);border-radius:10px;padding:16px;margin-bottom:10px}
 .dep-submission-time{font-size:.75rem;color:var(--gray-400);margin-bottom:10px}
 .dep-submission-row{display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:.85rem}
@@ -3270,28 +3289,40 @@ async function downloadDepAttachment(key, name) {
   const a = document.createElement('a'); a.href = data; a.download = name; a.click();
 }
 
+function escAttr(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
 function renderDepositFields() {
   const el = document.getElementById('deposit-fields-list');
   if (!depositFields.length) {
-    el.innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:16px">필드가 없습니다. 추가 버튼을 눌러주세요.</div>';
+    el.innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:24px 16px">필드가 없습니다. ＋ 필드 추가를 눌러주세요.</div>';
     return;
   }
+  const types = [
+    ['text','텍스트'],['email','이메일'],['tel','전화 (국내)'],['tel-intl','전화 (국제)'],
+    ['date','날짜'],['number','숫자'],['textarea','장문']
+  ];
   el.innerHTML = depositFields.map((f, i) => `
-    <div class="dep-field-row">
-      <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
-        <button onclick="moveDepositField(${i},-1)" ${i===0?'disabled':''} style="padding:1px 6px;border:1px solid var(--gray-200);background:#fff;border-radius:4px;cursor:pointer;font-size:.7rem;line-height:1.4;${i===0?'opacity:.3':''}">▲</button>
-        <button onclick="moveDepositField(${i},1)" ${i===depositFields.length-1?'disabled':''} style="padding:1px 6px;border:1px solid var(--gray-200);background:#fff;border-radius:4px;cursor:pointer;font-size:.7rem;line-height:1.4;${i===depositFields.length-1?'opacity:.3':''}">▼</button>
+    <div class="dep-field-card">
+      <div class="dep-field-top">
+        <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
+          <button class="dep-move-btn" onclick="moveDepositField(${i},-1)" ${i===0?'disabled style="opacity:.2"':''}>↑</button>
+          <button class="dep-move-btn" onclick="moveDepositField(${i},1)" ${i===depositFields.length-1?'disabled style="opacity:.2"':''}>↓</button>
+        </div>
+        <span class="dep-num-badge">${String(i+1).padStart(2,'0')}</span>
+        <input class="dep-field-label" value="${escAttr(f.label)}" placeholder="필드 이름 (예: Full name)" oninput="depositFields[${i}].label=this.value">
+        <select class="dep-field-type" onchange="depositFields[${i}].type=this.value">
+          ${types.map(([v,t]) => `<option value="${v}" ${f.type===v?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <label class="dep-req-toggle">
+          <input type="checkbox" ${f.required?'checked':''} onchange="depositFields[${i}].required=this.checked"> 필수
+        </label>
+        <button class="dep-delete-btn" onclick="removeDepositField(${i})" title="삭제">×</button>
       </div>
-      <span style="color:var(--gray-400);font-size:.8rem;font-weight:700;width:20px;text-align:center">${i+1}</span>
-      <input class="dep-field-label" value="${f.label}" placeholder="필드 이름" oninput="depositFields[${i}].label=this.value">
-      <select class="dep-field-type" onchange="depositFields[${i}].type=this.value">
-        ${['text','email','tel','tel-intl (국제전화)','date','number','textarea'].map(t => { const v=t.split(' ')[0]; return `<option value="${v}" ${f.type===v?'selected':''}>${t}</option>`; }).join('')}
-      </select>
-      <input class="dep-field-placeholder" value="${f.placeholder||''}" placeholder="placeholder (선택)" oninput="depositFields[${i}].placeholder=this.value">
-      <label class="dep-field-req">
-        <input type="checkbox" ${f.required?'checked':''} onchange="depositFields[${i}].required=this.checked"> 필수
-      </label>
-      <button class="dep-remove-btn" onclick="removeDepositField(${i})">삭제</button>
+      <div class="dep-field-desc-row">
+        <span class="dep-desc-icon">💬</span>
+        <span class="dep-desc-label">고객 안내 문구</span>
+        <input class="dep-field-desc" value="${escAttr(f.placeholder)}" placeholder="이 필드에 대한 설명을 입력하세요 (선택)" oninput="depositFields[${i}].placeholder=this.value">
+      </div>
     </div>`).join('');
 }
 
