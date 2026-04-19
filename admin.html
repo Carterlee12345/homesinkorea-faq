@@ -301,10 +301,46 @@ function userRow(u, isApproved) {
           <button onclick="cancelEditNickname('${safeEmail}')" style="padding:3px 8px;background:#f1f5f9;color:#64748b;border:none;border-radius:6px;font-size:.78rem;cursor:pointer;margin-left:2px">취소</button>
         </span>
       </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap">
+        <span style="font-size:.75rem;color:#6b7280">Slack ID:</span>
+        <span id="sl-view-${u.email}" style="display:flex;align-items:center;gap:5px">
+          ${u.slackUserId ? `<span style="font-size:.78rem;font-family:monospace;color:#4338ca">${u.slackUserId}</span>` : `<span style="font-size:.78rem;color:#9ca3af;font-style:italic">미등록</span>`}
+          <button onclick="startEditSlackId('${safeEmail}','${(u.slackUserId||'').replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:.8rem;padding:0 2px">✏️</button>
+        </span>
+        <span id="sl-edit-${u.email}" style="display:none;align-items:center">
+          <input id="sl-input-${u.email}" type="text" placeholder="U01AB2CD3EF" maxlength="20" style="padding:3px 8px;border:1px solid #c7d2fe;border-radius:6px;font-size:.78rem;width:120px;font-family:monospace;outline:none">
+          <button onclick="saveSlackId('${safeEmail}')" style="padding:3px 10px;background:#4338ca;color:#fff;border:none;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;margin-left:4px">저장</button>
+          <button onclick="cancelEditSlackId('${safeEmail}')" style="padding:3px 8px;background:#f1f5f9;color:#64748b;border:none;border-radius:6px;font-size:.78rem;cursor:pointer;margin-left:2px">취소</button>
+        </span>
+      </div>
       <div class="user-date">가입일: ${date}</div>
     </div>
     <div class="user-actions">${actions}</div>
   </div>`;
+}
+
+function startEditSlackId(email, current) {
+  document.getElementById(`sl-view-${email}`).style.display = 'none';
+  const editEl = document.getElementById(`sl-edit-${email}`);
+  editEl.style.display = 'flex';
+  const inp = document.getElementById(`sl-input-${email}`);
+  inp.value = current; inp.focus();
+  inp.onkeydown = e => { if (e.key === 'Enter') saveSlackId(email); if (e.key === 'Escape') cancelEditSlackId(email); };
+}
+
+function cancelEditSlackId(email) {
+  document.getElementById(`sl-edit-${email}`).style.display = 'none';
+  document.getElementById(`sl-view-${email}`).style.display = 'flex';
+}
+
+async function saveSlackId(email) {
+  const slackUserId = document.getElementById(`sl-input-${email}`).value.trim();
+  const res = await fetch('/api/admin?action=set-slack-id', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+    body: JSON.stringify({ email, slackUserId })
+  });
+  if (res.ok) loadUsers();
 }
 
 function startEditNickname(email, current) {

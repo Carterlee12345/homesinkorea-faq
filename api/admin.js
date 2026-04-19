@@ -92,6 +92,17 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ success: true });
   }
 
+  // ── set-slack-id ──
+  if (action === 'set-slack-id' && req.method === 'POST') {
+    if (!await checkAdminAuth(req.headers['x-admin-key'])) return res.status(401).json({ error: '관리자 권한이 없습니다.' });
+    const { email, slackUserId } = req.body;
+    if (!email) return res.status(400).json({ error: '이메일이 없습니다.' });
+    const raw = await redis(['GET', `user:${email}`]);
+    if (!raw) return res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
+    await redis(['SET', `user:${email}`, JSON.stringify({ ...JSON.parse(raw), slackUserId: (slackUserId || '').trim() })]);
+    return res.status(200).json({ success: true });
+  }
+
   // ── logs ──
   if (action === 'logs' && req.method === 'GET') {
     if (!await checkAdminAuth(req.headers['x-admin-key'])) return res.status(401).json({ error: '관리자 권한이 없습니다.' });
