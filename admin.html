@@ -85,6 +85,7 @@
       <button class="btn" id="tab-users-btn" onclick="showAdminTab('users')" style="flex:1">👥 회원 관리</button>
       <button class="btn" id="tab-logs-btn" onclick="showAdminTab('logs')" style="flex:1;background:#6b7280">📋 활동 로그</button>
       <button class="btn" id="tab-tabs-btn" onclick="showAdminTab('tabs')" style="flex:1;background:#6b7280">🗂 탭 순서</button>
+      <button class="btn" id="tab-rules-btn" onclick="showAdminTab('rules')" style="flex:1;background:#6b7280">📋 초안 규칙</button>
     </div>
 
     <div id="admin-users-section">
@@ -106,6 +107,25 @@
       <div id="approved-list"><div class="empty">승인된 사용자가 없습니다.</div></div>
     </div>
   </div>
+
+    <!-- Draft Rules Section -->
+    <div id="admin-rules-section" style="display:none">
+      <div class="card">
+        <div class="card-title">📋 초안 생성기 적용 규칙</div>
+        <p style="font-size:.82rem;color:#6b7280;margin-bottom:16px">메시지/이메일 유형별로 AI가 초안 생성 시 따르는 규칙을 편집합니다. 저장 즉시 반영됩니다.</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button id="rule-tab-msg" onclick="selectRuleTab('message')" style="padding:8px 18px;border:2px solid #2563eb;background:#eff6ff;color:#2563eb;border-radius:8px;font-size:.84rem;font-weight:700;cursor:pointer">💬 메시지</button>
+          <button id="rule-tab-email" onclick="selectRuleTab('email')" style="padding:8px 18px;border:2px solid #e5e7eb;background:#fff;color:#6b7280;border-radius:8px;font-size:.84rem;font-weight:600;cursor:pointer">📧 이메일</button>
+        </div>
+        <textarea id="rule-editor-message" rows="16" style="width:100%;padding:12px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:.84rem;font-family:inherit;line-height:1.75;outline:none;resize:vertical;box-sizing:border-box" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+        <textarea id="rule-editor-email" rows="16" style="display:none;width:100%;padding:12px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:.84rem;font-family:inherit;line-height:1.75;outline:none;resize:vertical;box-sizing:border-box" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-success" onclick="saveDraftRules()">💾 저장</button>
+          <button class="btn" style="background:#6b7280" onclick="resetDraftRules()">↩ 기본값 복원</button>
+        </div>
+        <div class="msg" id="rules-msg"></div>
+      </div>
+    </div>
 
     <!-- Tab Order Section -->
     <div id="admin-tabs-section" style="display:none">
@@ -184,11 +204,60 @@ function showAdminTab(tab) {
   document.getElementById('admin-users-section').style.display = tab === 'users' ? 'block' : 'none';
   document.getElementById('admin-logs-section').style.display = tab === 'logs' ? 'block' : 'none';
   document.getElementById('admin-tabs-section').style.display = tab === 'tabs' ? 'block' : 'none';
+  document.getElementById('admin-rules-section').style.display = tab === 'rules' ? 'block' : 'none';
   document.getElementById('tab-users-btn').style.background = tab === 'users' ? '#2563eb' : '#6b7280';
   document.getElementById('tab-logs-btn').style.background = tab === 'logs' ? '#6366f1' : '#6b7280';
   document.getElementById('tab-tabs-btn').style.background = tab === 'tabs' ? '#0891b2' : '#6b7280';
+  document.getElementById('tab-rules-btn').style.background = tab === 'rules' ? '#16a34a' : '#6b7280';
   if (tab === 'logs') loadLogs();
   if (tab === 'tabs') loadTabOrder();
+  if (tab === 'rules') loadDraftRulesAdmin();
+}
+
+let currentRuleTab = 'message';
+let draftRulesAdminCache = null;
+
+const DRAFT_RULE_DEFAULTS = {
+  message: `톤앤매너\n• 친근하지만 전문적 어조 · '고객님' 호칭 필수\n• 한국어: ~합니다/드립니다체 (해요체 금지)\n• 공감 표현으로 시작 · 구체적 다음 단계로 마무리\n• 영어: "Hi there" 또는 고객명 사용 · 따뜻하고 대화적 어조\n\n금지 표현\n• "어쩔 수 없습니다" / "There's nothing we can do"\n• "저희 정책상" (이유 없이 단독 사용)\n• "기다려 주세요" (시간 명시 없이)\n• 고객 탓으로 돌리는 표현 일체\n\n환불/취소\n• 처리 기간 영업일 기준 명시 필수\n• 불가 케이스는 계약서 조항 근거 제시\n\n비자/서류\n• 입주 확정 후 1-2 영업일 내 제공\n• 비자 전 상담 가능 · 예약은 확정 후 권장\n\n서울 외 지역\n• "현재 서울 지역만 운영합니다"로 안내 후 종료`,
+  email: `형식\n• 이메일 형식 준수: 인사말 → 본문 → 마무리\n• 한국어/영어 모두 제목 제안 포함 ([제목: ...] / [Subject: ...])\n• 메시지보다 격식체 · 문단 구분 명확히\n\n톤앤매너\n• 친근하지만 전문적 어조 · '고객님' 호칭 필수\n• 한국어: ~합니다/드립니다체 (해요체 금지)\n• 공감 표현으로 시작 · 구체적 다음 단계로 마무리\n\n금지 표현\n• "어쩔 수 없습니다" / "There's nothing we can do"\n• "저희 정책상" (이유 없이 단독 사용)\n• "기다려 주세요" (시간 명시 없이)\n• 고객 탓으로 돌리는 표현 일체\n\n환불/취소\n• 처리 기간 영업일 기준 명시 필수\n• 불가 케이스는 계약서 조항 근거 제시\n\n비자/서류\n• 입주 확정 후 1-2 영업일 내 제공\n• 비자 전 상담 가능 · 예약은 확정 후 권장`
+};
+
+function selectRuleTab(type) {
+  currentRuleTab = type;
+  const isEmail = type === 'email';
+  document.getElementById('rule-tab-msg').style.cssText = `padding:8px 18px;border:2px solid ${!isEmail?'#2563eb':'#e5e7eb'};background:${!isEmail?'#eff6ff':'#fff'};color:${!isEmail?'#2563eb':'#6b7280'};border-radius:8px;font-size:.84rem;font-weight:${!isEmail?'700':'600'};cursor:pointer`;
+  document.getElementById('rule-tab-email').style.cssText = `padding:8px 18px;border:2px solid ${isEmail?'#2563eb':'#e5e7eb'};background:${isEmail?'#eff6ff':'#fff'};color:${isEmail?'#2563eb':'#6b7280'};border-radius:8px;font-size:.84rem;font-weight:${isEmail?'700':'600'};cursor:pointer`;
+  document.getElementById('rule-editor-message').style.display = isEmail ? 'none' : 'block';
+  document.getElementById('rule-editor-email').style.display = isEmail ? 'block' : 'none';
+}
+
+async function loadDraftRulesAdmin() {
+  if (draftRulesAdminCache) return;
+  const res = await fetch('/api/admin?action=get-draft-rules');
+  const { rules } = await res.json();
+  draftRulesAdminCache = rules;
+  document.getElementById('rule-editor-message').value = rules.message || DRAFT_RULE_DEFAULTS.message;
+  document.getElementById('rule-editor-email').value = rules.email || DRAFT_RULE_DEFAULTS.email;
+}
+
+async function saveDraftRules() {
+  const rules = {
+    message: document.getElementById('rule-editor-message').value,
+    email: document.getElementById('rule-editor-email').value
+  };
+  const res = await fetch('/api/admin?action=save-draft-rules', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+    body: JSON.stringify({ rules })
+  });
+  draftRulesAdminCache = rules;
+  showMsg('rules-msg', res.ok ? 'success' : 'error', res.ok ? '저장되었습니다. 초안 생성기에 즉시 반영됩니다.' : '저장 실패');
+}
+
+function resetDraftRules() {
+  document.getElementById('rule-editor-message').value = DRAFT_RULE_DEFAULTS.message;
+  document.getElementById('rule-editor-email').value = DRAFT_RULE_DEFAULTS.email;
+  draftRulesAdminCache = null;
 }
 
 const TAB_DEFAULTS = {

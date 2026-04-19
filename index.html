@@ -616,47 +616,31 @@
   <div id="tab-draft" class="section">
     <!-- Header -->
     <div class="card" style="margin-bottom:16px">
-      <div class="card-title" style="margin-bottom:6px">✍️ 답변 초안 생성기 <span class="badge">Claude AI</span></div>
-      <p style="font-size:.86rem;color:var(--gray-600);line-height:1.6">고객 문의를 넣으면 한국어·영어 답변 초안, 내부 메모, 누락 확인 질문을 자동 생성합니다. 톤앤매너·금지표현·응대 규칙이 고정 적용되며, 생성 후 자동 품질 검증(hooks)이 실행됩니다.</p>
+      <div class="card-title" style="margin-bottom:6px">✍️ 답변 초안 생성기 <span class="badge">AI</span></div>
+      <p style="font-size:.86rem;color:var(--gray-600);line-height:1.6">메시지나 이메일을 붙여넣으면 한국어·영어 답변 초안, 내부 메모, 확인 질문을 자동 생성합니다. 적용 규칙은 관리자 페이지에서 편집할 수 있습니다.</p>
     </div>
 
     <div class="grid-2" style="align-items:start">
       <!-- Left: Input + Rules -->
       <div>
         <div class="card" style="margin-bottom:16px">
-          <div class="card-title" style="margin-bottom:12px">📥 고객 문의 입력</div>
-          <textarea id="customerInquiry" placeholder="고객이 보낸 메시지를 그대로 붙여넣으세요..." rows="8" style="width:100%;padding:12px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:.88rem;resize:vertical;outline:none;font-family:inherit;line-height:1.65;transition:border-color .15s;box-sizing:border-box" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'"></textarea>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
-            <select id="categoryHint" style="padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:.84rem;color:var(--gray-700);outline:none;background:#fff;flex:1;min-width:150px">
-              <option value="">카테고리 자동 감지</option>
-              <option value="price">가격/비용 문의</option>
-              <option value="booking">예약/입주 방법</option>
-              <option value="refund">환불/취소</option>
-              <option value="visa">비자/서류</option>
-              <option value="complaint">불만/컴플레인</option>
-              <option value="location">위치/지역</option>
-              <option value="amenity">시설/편의</option>
-            </select>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button id="draft-type-msg" onclick="selectDraftType('message')" style="flex:1;padding:9px;border:2px solid var(--primary);background:var(--primary-light);color:var(--primary);border-radius:8px;font-size:.85rem;font-weight:700;cursor:pointer">💬 메시지</button>
+            <button id="draft-type-email" onclick="selectDraftType('email')" style="flex:1;padding:9px;border:2px solid var(--gray-200);background:#fff;color:var(--gray-500);border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer">📧 이메일</button>
+          </div>
+          <textarea id="customerInquiry" placeholder="답변이 필요한 메시지나 이메일을 붙여넣으세요..." rows="8" style="width:100%;padding:12px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:.88rem;resize:vertical;outline:none;font-family:inherit;line-height:1.65;transition:border-color .15s;box-sizing:border-box" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--gray-200)'"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:12px">
             <button onclick="generateDraft()" id="generateBtn" style="padding:10px 22px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:.9rem;white-space:nowrap;transition:opacity .15s" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">✨ 초안 생성</button>
           </div>
         </div>
 
         <div class="card">
           <div class="card-title" style="cursor:pointer;user-select:none" onclick="toggleRules()">
-            📋 고정 적용 규칙
+            📋 적용 규칙 <span id="draft-rules-type-label" style="font-size:.75rem;font-weight:500;color:var(--gray-400)">(메시지)</span>
             <span id="rules-chevron" style="font-size:.78rem;color:var(--gray-400);margin-left:auto;font-weight:400">▼ 펼치기</span>
           </div>
-          <div id="rules-content" style="display:none;font-size:.82rem;color:var(--gray-700);line-height:1.7;margin-top:4px">
-            <div style="margin-bottom:12px"><strong style="color:var(--gray-800)">🗣️ 톤앤매너</strong>
-              <div style="padding-left:10px;margin-top:3px">• 친근하지만 전문적 어조 · '고객님' 호칭 필수<br>• 한국어: ~합니다/드립니다체 (해요체 금지)<br>• 공감 표현 필수 · 구체적 다음 단계로 마무리</div></div>
-            <div style="margin-bottom:12px"><strong style="color:#dc2626">🚫 금지 표현</strong>
-              <div style="padding-left:10px;margin-top:3px">• "어쩔 수 없습니다" / "There's nothing we can do"<br>• "저희 정책상" (이유 없이 단독 사용)<br>• "기다려 주세요" (시간 명시 없이)<br>• 고객 탓으로 돌리는 표현 일체</div></div>
-            <div style="margin-bottom:12px"><strong style="color:var(--gray-800)">💰 환불/취소</strong>
-              <div style="padding-left:10px;margin-top:3px">• 처리 기간 영업일 기준 명시 필수<br>• 불가 케이스는 계약서 조항 근거 제시</div></div>
-            <div style="margin-bottom:12px"><strong style="color:var(--gray-800)">📄 비자/서류</strong>
-              <div style="padding-left:10px;margin-top:3px">• 입주 확정 후 1-2 영업일 내 제공<br>• 비자 전 상담 가능 · 예약은 확정 후 권장</div></div>
-            <div><strong style="color:var(--gray-800)">🏙️ 서울 외 지역</strong>
-              <div style="padding-left:10px;margin-top:3px">• "현재 서울 지역만 운영합니다"로 안내 후 종료</div></div>
+          <div id="rules-content" style="display:none;margin-top:8px">
+            <pre id="draft-rules-display" style="font-size:.82rem;color:var(--gray-700);line-height:1.75;white-space:pre-wrap;font-family:inherit;margin:0;background:var(--gray-50);padding:12px;border-radius:8px;border:1px solid var(--gray-200)">불러오는 중...</pre>
           </div>
         </div>
       </div>
@@ -2397,11 +2381,33 @@ function copyDraft(type) {
   });
 }
 
+let draftType = 'message';
+let draftRulesCache = null;
+
+function selectDraftType(type) {
+  draftType = type;
+  const isEmail = type === 'email';
+  document.getElementById('draft-type-msg').style.cssText = `flex:1;padding:9px;border:2px solid ${!isEmail?'var(--primary)':'var(--gray-200)'};background:${!isEmail?'var(--primary-light)':'#fff'};color:${!isEmail?'var(--primary)':'var(--gray-500)'};border-radius:8px;font-size:.85rem;font-weight:${!isEmail?'700':'600'};cursor:pointer`;
+  document.getElementById('draft-type-email').style.cssText = `flex:1;padding:9px;border:2px solid ${isEmail?'var(--primary)':'var(--gray-200)'};background:${isEmail?'var(--primary-light)':'#fff'};color:${isEmail?'var(--primary)':'var(--gray-500)'};border-radius:8px;font-size:.85rem;font-weight:${isEmail?'700':'600'};cursor:pointer`;
+  document.getElementById('draft-rules-type-label').textContent = isEmail ? '(이메일)' : '(메시지)';
+  if (draftRulesCache) {
+    document.getElementById('draft-rules-display').textContent = draftRulesCache[type] || '';
+  }
+}
+
+async function loadDraftRules() {
+  if (draftRulesCache) return;
+  try {
+    const r = await fetch('/api/admin?action=get-draft-rules');
+    const { rules } = await r.json();
+    draftRulesCache = rules;
+    document.getElementById('draft-rules-display').textContent = rules[draftType] || '';
+  } catch(e) {}
+}
+
 async function generateDraft() {
   const inquiry = document.getElementById('customerInquiry').value.trim();
-  if (!inquiry) { alert('고객 문의 내용을 입력해주세요.'); return; }
-  const sel = document.getElementById('categoryHint');
-  const categoryLabel = sel.value ? sel.options[sel.selectedIndex].text : '';
+  if (!inquiry) { alert('내용을 입력해주세요.'); return; }
 
   document.getElementById('draft-placeholder').style.display = 'none';
   document.getElementById('draft-results').style.display = 'none';
@@ -2412,7 +2418,7 @@ async function generateDraft() {
     const res = await fetch('/api/draft', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ inquiry, categoryLabel })
+      body: JSON.stringify({ inquiry, type: draftType })
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || '서버 오류가 발생했습니다.');
@@ -2424,7 +2430,7 @@ async function generateDraft() {
     document.getElementById('draft-memo').textContent = result.internal_memo;
     document.getElementById('draft-q').textContent = result.clarifying_question;
 
-    sendLog('초안 생성', categoryLabel || '자동 감지');
+    sendLog('초안 생성', draftType === 'email' ? '이메일' : '메시지');
     document.getElementById('draft-generating').style.display = 'none';
     document.getElementById('draft-results').style.display = 'block';
   } catch(e) {
@@ -2587,6 +2593,7 @@ function switchTab(name,el){
   if(name==='sales'&&!salesLoaded){loadSales();}
   if(name==='upsell'&&!upsellLoaded){loadUpsell();}
   if(name==='meetings'&&!mtgLoaded){loadMeetings();}
+  if(name==='draft'){loadDraftRules();}
   sendLog('탭 전환', name);
 }
 
