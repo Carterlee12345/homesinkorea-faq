@@ -188,6 +188,7 @@
       <button class="auth-btn" id="login-btn" onclick="doLogin()">로그인</button>
     </div>
     <div id="auth-signup" style="display:none">
+      <input class="auth-input" id="signup-nickname" type="text" placeholder="닉네임" maxlength="20" onkeydown="if(event.key==='Enter')doSignup()">
       <input class="auth-input" id="signup-email" type="email" placeholder="이메일">
       <input class="auth-input" id="signup-pw" type="password" placeholder="비밀번호 (6자 이상)" onkeydown="if(event.key==='Enter')doSignup()">
       <button class="auth-btn" id="signup-btn" onclick="doSignup()">가입 신청</button>
@@ -1392,13 +1393,15 @@ async function doLogin() {
 }
 
 async function doSignup() {
+  const nickname = document.getElementById('signup-nickname').value.trim();
   const email = document.getElementById('signup-email').value.trim();
   const pw = document.getElementById('signup-pw').value;
+  if (!nickname) { showMsg('error', '닉네임을 입력해주세요.'); return; }
   if (!email || !pw) { showMsg('error', '이메일과 비밀번호를 입력해주세요.'); return; }
   if (pw.length < 6) { showMsg('error', '비밀번호는 6자 이상이어야 합니다.'); return; }
   const btn = document.getElementById('signup-btn');
   btn.disabled = true; btn.textContent = '신청 중...';
-  const res = await fetch('/api/auth?action=signup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: pw }) });
+  const res = await fetch('/api/auth?action=signup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password: pw, nickname }) });
   const data = await res.json();
   btn.disabled = false; btn.textContent = '가입 신청';
   if (!res.ok) { showMsg('error', data.error || '오류가 발생했습니다.'); return; }

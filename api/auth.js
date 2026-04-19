@@ -37,14 +37,15 @@ module.exports = async function handler(req, res) {
 
   // ── signup ──
   if (action === 'signup') {
-    const { email, password } = req.body;
+    const { email, password, nickname } = req.body;
     if (!email || !password) return res.status(400).json({ error: '이메일과 비밀번호를 입력해주세요.' });
     if (password.length < 6) return res.status(400).json({ error: '비밀번호는 6자 이상이어야 합니다.' });
+    if (!nickname || !nickname.trim()) return res.status(400).json({ error: '닉네임을 입력해주세요.' });
     const existing = await redis(['GET', `user:${email}`]);
     if (existing) return res.status(409).json({ error: '이미 가입된 이메일입니다.' });
     const salt = crypto.randomBytes(16).toString('hex');
     const hash = crypto.createHmac('sha256', salt).update(password).digest('hex');
-    await redis(['SET', `user:${email}`, JSON.stringify({ email, passwordHash: hash, passwordSalt: salt, approved: false, createdAt: new Date().toISOString() })]);
+    await redis(['SET', `user:${email}`, JSON.stringify({ email, nickname: nickname.trim(), passwordHash: hash, passwordSalt: salt, approved: false, createdAt: new Date().toISOString() })]);
     await redis(['SADD', 'users', email]);
     return res.status(200).json({ message: '가입 신청 완료. 관리자 승인 후 로그인 가능합니다.' });
   }
