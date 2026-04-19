@@ -150,5 +150,77 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ data });
   }
 
+  // ── review-get-form (public) ──
+  if (action === 'review-get-form' && req.method === 'GET') {
+    const [rawFields, rawConfig] = await Promise.all([
+      redis(['GET', 'review:fields']),
+      redis(['GET', 'review:config'])
+    ]);
+    const fields = rawFields ? JSON.parse(rawFields) : getDefaultReviewFields();
+    const config = rawConfig ? JSON.parse(rawConfig) : { alertFieldId: null, alertThreshold: 3 };
+    return res.status(200).json({ fields, config });
+  }
+
+  // ── review-submit (public) ──
+  if (action === 'review-submit' && req.method === 'POST') {
+    const { answers } = req.body;
+    if (!answers || !Array.isArray(answers)) return res.status(400).json({ error: '답변이 없습니다.' });
+    const submission = { id: Date.now(), answers, submittedAt: new Date().toISOString() };
+    await redis(['LPUSH', 'review:submissions', JSON.stringify(submission)]);
+    return res.status(200).json({ success: true });
+  }
+
+  // ── review-save-fields (auth) ──
+  if (action === 'review-save-fields' && req.method === 'POST') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const { fields } = req.body;
+    await redis(['SET', 'review:fields', JSON.stringify(fields)]);
+    return res.status(200).json({ success: true });
+  }
+
+  // ── review-save-config (auth) ──
+  if (action === 'review-save-config' && req.method === 'POST') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const { config } = req.body;
+    await redis(['SET', 'review:config', JSON.stringify(config)]);
+    return res.status(200).json({ success: true });
+  }
+
+  // ── review-get-submissions (auth) ──
+  if (action === 'review-get-submissions' && req.method === 'GET') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const raw = await redis(['LRANGE', 'review:submissions', 0, 499]) || [];
+    const submissions = raw.map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+    return res.status(200).json({ submissions });
+  }
+
+  // ── review-delete (auth) ──
+  if (action === 'review-delete' && req.method === 'POST') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    if (!verifyToken(token)) return res.status(401).json({ error: '인증이 필요합니다.' });
+    const { id } = req.body;
+    const raw = await redis(['LRANGE', 'review:submissions', 0, 499]) || [];
+    const filtered = raw.filter(r => { try { return JSON.parse(r).id !== id; } catch { return true; } });
+    await redis(['DEL', 'review:submissions']);
+    if (filtered.length) {
+      for (const item of filtered.reverse()) await redis(['RPUSH', 'review:submissions', item]);
+    }
+    return res.status(200).json({ success: true });
+  }
+
   return res.status(400).json({ error: '올바르지 않은 action입니다.' });
 };
+
+function getDefaultReviewFields() {
+  return [
+    { id: 'f1', label: '전체 만족도', type: 'star', placeholder: '전반적인 경험을 별점으로 평가해주세요', required: true },
+    { id: 'f2', label: '국적', type: 'nationality', placeholder: '고객님의 국적을 선택해주세요', required: false },
+    { id: 'f3', label: '서비스 만족도', type: 'star', placeholder: '직원 응대 및 서비스 품질을 평가해주세요', required: false },
+    { id: 'f4', label: '시설 만족도', type: 'star', placeholder: '숙소 시설 및 청결도를 평가해주세요', required: false },
+    { id: 'f5', label: '재방문 의향', type: 'yesno', placeholder: '다시 방문할 의향이 있으신가요?', required: false },
+    { id: 'f6', label: '추가 의견', type: 'textarea', placeholder: '자유롭게 의견을 남겨주세요 (선택)', required: false }
+  ];
+}

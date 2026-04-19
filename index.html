@@ -167,6 +167,42 @@
   .auth-msg.success{background:#d1fae5;color:#065f46;display:block}
   .logout-btn{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.8rem;cursor:pointer;font-weight:600;transition:background .15s}
   .logout-btn:hover{background:rgba(255,255,255,.25)}
+  /* ── Review Tab ── */
+  @keyframes reviewGlow{0%,100%{box-shadow:0 0 8px 3px rgba(220,38,38,.35)}50%{box-shadow:0 0 22px 8px rgba(220,38,38,.65)}}
+  .rv-card{border:2px solid var(--gray-200);border-radius:var(--radius);padding:18px;margin-bottom:12px;background:#fff;transition:border-color .2s}
+  .rv-card.rv-alert{animation:reviewGlow 2s infinite;border-color:#dc2626}
+  .rv-stars{color:#f59e0b;letter-spacing:3px;font-size:1.1rem}
+  .rv-stars .empty{color:#d1d5db}
+  .rv-field-row{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:.86rem}
+  .rv-field-row:last-child{border-bottom:none}
+  .rv-field-label{font-weight:600;color:var(--gray-600);min-width:110px;flex-shrink:0}
+  .rv-field-val{color:var(--gray-800);flex:1;line-height:1.5}
+  .rv-stat-bar{display:flex;align-items:center;gap:8px;margin:4px 0}
+  .rv-stat-bar .bar{height:8px;border-radius:4px;background:var(--primary)}
+  .rv-stat-bar .bar-bg,.rv-stat-bar-bg{flex:1;height:8px;border-radius:4px;background:var(--gray-100);overflow:hidden}
+  .rv-avg-big{font-size:2.8rem;font-weight:800;color:var(--gray-800);line-height:1}
+  /* Review field card (builder) */
+  .rv-field-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:12px;overflow:hidden;transition:box-shadow .15s}
+  .rv-field-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+  .rv-field-top{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#fafbff}
+  .rv-field-bottom{padding:10px 14px;border-top:1px solid var(--gray-100);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .rv-field-bottom2{padding:8px 14px;border-top:1px solid var(--gray-100);display:flex;align-items:center;gap:8px}
+  .rv-move-btn{background:var(--gray-100);border:none;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:.85rem;color:var(--gray-600);display:flex;align-items:center;justify-content:center;transition:background .12s}
+  .rv-move-btn:hover:not(:disabled){background:var(--gray-200)}
+  .rv-move-btn:disabled{opacity:.25;cursor:not-allowed}
+  .rv-num-badge{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0}
+  .rv-field-label-input{flex:1;padding:7px 10px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:.86rem;font-family:inherit;outline:none;transition:border-color .15s;min-width:100px}
+  .rv-field-label-input:focus{border-color:#6366f1}
+  .rv-field-type-sel{padding:7px 10px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;cursor:pointer;background:#fff;color:var(--gray-700)}
+  .rv-req-toggle{display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;color:var(--gray-500);cursor:pointer;padding:5px 10px;border:1.5px solid var(--gray-200);border-radius:20px;transition:all .15s;user-select:none}
+  .rv-req-toggle input{display:none}
+  .rv-req-toggle.on{border-color:#6366f1;background:#eef2ff;color:#6366f1}
+  .rv-delete-btn{background:#fee2e2;color:#dc2626;border:none;border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:1rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-left:auto;transition:background .12s;flex-shrink:0}
+  .rv-delete-btn:hover{background:#fca5a5}
+  .rv-desc-input{flex:1;padding:7px 10px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;transition:border-color .15s}
+  .rv-desc-input:focus{border-color:#6366f1}
+  .rv-options-ta{width:100%;padding:8px 10px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:.82rem;font-family:inherit;outline:none;resize:vertical;min-height:72px;transition:border-color .15s}
+  .rv-options-ta:focus{border-color:#6366f1}
 </style>
 <script type="module">
   try {
@@ -246,6 +282,7 @@
       <button class="tab" onclick="switchTab('deposit',this)">🔐 보증금</button>
       <button class="tab" onclick="switchTab('sales',this)">📊 세일즈 현황</button>
       <button class="tab" onclick="switchTab('upsell',this)">🛍 업셀링</button>
+      <button class="tab" onclick="switchTab('review',this)">⭐ 리뷰</button>
     </div>
   </div>
 
@@ -1030,6 +1067,70 @@
       <div id="deposit-fields-list" style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
         <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
       </div>
+    </div>
+  </div>
+
+  <!-- ⑫ 리뷰 탭 -->
+  <div id="tab-review" class="section">
+    <!-- 공유 링크 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">🔗 고객 리뷰 링크</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:11px 16px;font-size:.9rem;color:var(--gray-600);font-family:monospace;min-width:200px" id="review-link-display"></div>
+        <button onclick="copyReviewLink()" id="copy-review-link-btn" class="copy-btn" style="margin-bottom:0">📋 복사</button>
+      </div>
+      <div style="font-size:.78rem;color:var(--gray-400);margin-top:8px">이 링크를 고객에게 공유하면 리뷰를 남길 수 있습니다.</div>
+    </div>
+
+    <!-- 통계 + 리뷰 목록 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title" style="flex-wrap:wrap;gap:10px">
+        ⭐ 리뷰 현황
+        <button onclick="loadReview(true)" style="margin-left:auto;padding:5px 12px;background:var(--gray-100);color:var(--gray-600);border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer">🔄 새로고침</button>
+      </div>
+      <div id="review-stats" style="margin-bottom:20px"></div>
+      <div id="review-list"><div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:24px">로딩 중...</div></div>
+    </div>
+
+    <!-- 폼 필드 편집 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title" style="flex-wrap:wrap;gap:10px">
+        ✏️ 리뷰 폼 필드 편집
+        <div style="display:flex;gap:8px;margin-left:auto">
+          <button onclick="addReviewField()" style="display:flex;align-items:center;gap:5px;padding:8px 16px;background:#eef2ff;color:#6366f1;border:1.5px solid #c7d2fe;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer">＋ 필드 추가</button>
+          <button onclick="saveReviewFields()" id="save-rv-fields-btn" style="display:flex;align-items:center;gap:5px;padding:8px 16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,.25)">💾 저장</button>
+        </div>
+      </div>
+      <div id="review-fields-list" style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+        <div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">로딩 중...</div>
+      </div>
+    </div>
+
+    <!-- 알림 임계값 설정 -->
+    <div class="card">
+      <div class="card-title">🚨 경고 임계값 설정</div>
+      <p style="font-size:.83rem;color:var(--gray-600);margin-bottom:16px;line-height:1.6">별점 필드를 선택하고 임계값을 설정하면, 해당 점수 이하의 리뷰는 빨간색 빛나는 테두리로 강조 표시됩니다.</p>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <label style="font-size:.8rem;font-weight:600;color:var(--gray-600);display:block;margin-bottom:6px">기준 별점 필드</label>
+          <select id="rv-alert-field" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:.86rem;font-family:inherit;outline:none;cursor:pointer">
+            <option value="">-- 선택 안 함 --</option>
+          </select>
+        </div>
+        <div style="min-width:140px">
+          <label style="font-size:.8rem;font-weight:600;color:var(--gray-600);display:block;margin-bottom:6px">임계값 (이하 시 경고)</label>
+          <select id="rv-alert-threshold" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:.86rem;font-family:inherit;outline:none;cursor:pointer">
+            <option value="1">★ 1점 이하</option>
+            <option value="2">★★ 2점 이하</option>
+            <option value="3" selected>★★★ 3점 이하</option>
+            <option value="4">★★★★ 4점 이하</option>
+          </select>
+        </div>
+        <div style="padding-top:22px">
+          <button onclick="saveReviewConfig()" id="save-rv-cfg-btn" style="padding:10px 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:.84rem;font-weight:700;cursor:pointer">💾 저장</button>
+        </div>
+      </div>
+      <div id="rv-cfg-msg" style="margin-top:10px;font-size:.82rem;display:none"></div>
     </div>
   </div>
 
@@ -2613,6 +2714,7 @@ function switchTab(name,el){
   if(name==='upsell'&&!upsellLoaded){loadUpsell();}
   if(name==='meetings'&&!mtgLoaded){loadMeetings();}
   if(name==='draft'){loadDraftRules();}
+  if(name==='review'&&!reviewLoaded){loadReview();}
   sendLog('탭 전환', name);
 }
 
@@ -4212,6 +4314,271 @@ async function saveUpsellItems(){
   if(btn)btn.textContent='저장 중...';
   await fetch('/api/upsell?action=save-items',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({items:upsellItems})});
   if(btn){btn.textContent='✓ 저장됨';setTimeout(()=>{btn.textContent='💾 저장';},2000);}
+}
+
+/* ══════════════════════════════════════
+   REVIEW TAB
+══════════════════════════════════════ */
+let reviewFields = [], reviewConfig = { alertFieldId: null, alertThreshold: 3 };
+let reviewSubmissions = [], reviewLoaded = false;
+
+const RV_NATIONALITIES = [
+  'South Korea 🇰🇷','United States 🇺🇸','Canada 🇨🇦','United Kingdom 🇬🇧',
+  'Australia 🇦🇺','New Zealand 🇳🇿','China 🇨🇳','Japan 🇯🇵','Taiwan 🇹🇼',
+  'Hong Kong 🇭🇰','Singapore 🇸🇬','Malaysia 🇲🇾','Thailand 🇹🇭','Vietnam 🇻🇳',
+  'Indonesia 🇮🇩','Philippines 🇵🇭','India 🇮🇳','Germany 🇩🇪','France 🇫🇷',
+  'Spain 🇪🇸','Italy 🇮🇹','Netherlands 🇳🇱','Sweden 🇸🇪','Switzerland 🇨🇭',
+  'Russia 🇷🇺','Brazil 🇧🇷','Turkey 🇹🇷','UAE 🇦🇪','Other 🌍'
+];
+
+function copyReviewLink() {
+  const url = window.location.origin + '/review';
+  document.getElementById('review-link-display').textContent = url;
+  navigator.clipboard.writeText(url).catch(()=>{});
+  const btn = document.getElementById('copy-review-link-btn');
+  btn.textContent = '✅ 복사됨'; btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = '📋 복사'; btn.classList.remove('copied'); }, 2000);
+}
+
+async function loadReview(force = false) {
+  if (!force) reviewLoaded = true;
+  const token = localStorage.getItem('hik_token');
+  const origin = window.location.origin;
+  document.getElementById('review-link-display').textContent = origin + '/review';
+
+  try {
+    const [formRes, subRes] = await Promise.all([
+      fetch('/api/deposit?action=review-get-form'),
+      fetch('/api/deposit?action=review-get-submissions', { headers: { 'Authorization': `Bearer ${token}` } })
+    ]);
+    const { fields, config } = await formRes.json();
+    const { submissions } = await subRes.json();
+    reviewFields = fields || [];
+    reviewConfig = config || { alertFieldId: null, alertThreshold: 3 };
+    reviewSubmissions = submissions || [];
+  } catch(e) {
+    document.getElementById('review-list').innerHTML = `<div style="color:#dc2626;font-size:.85rem;padding:12px">❌ 로드 실패: ${e.message}</div>`;
+    return;
+  }
+  renderReviewFields();
+  renderReviewStats();
+  renderReviewList();
+  renderReviewConfigUI();
+}
+
+function getStarFields() {
+  return reviewFields.filter(f => f.type === 'star');
+}
+
+function renderReviewStats() {
+  const el = document.getElementById('review-stats');
+  if (!reviewSubmissions.length) { el.innerHTML = ''; return; }
+  const starFields = getStarFields();
+  if (!starFields.length) {
+    el.innerHTML = `<div style="font-size:.88rem;color:var(--gray-400)">총 ${reviewSubmissions.length}개 리뷰</div>`;
+    return;
+  }
+  const stats = starFields.map(sf => {
+    const vals = reviewSubmissions.map(s => {
+      const a = s.answers?.find(a => a.id === sf.id);
+      return a && typeof a.value === 'number' ? a.value : null;
+    }).filter(v => v !== null);
+    const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+    const dist = [1,2,3,4,5].map(n => vals.filter(v=>v===n).length);
+    return { label: sf.label, avg, dist, total: vals.length };
+  });
+  el.innerHTML = `
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+      <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;padding:16px 24px;text-align:center;min-width:120px">
+        <div class="rv-avg-big">${stats[0]?.avg.toFixed(1)||'-'}</div>
+        <div style="color:#f59e0b;font-size:1.1rem;margin:4px 0">${'★'.repeat(Math.round(stats[0]?.avg||0))}${'☆'.repeat(5-Math.round(stats[0]?.avg||0))}</div>
+        <div style="font-size:.75rem;color:#92400e;font-weight:600">${stats[0]?.label||''} 평균</div>
+      </div>
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:12px;padding:16px 20px;flex:1;min-width:180px">
+        <div style="font-size:.78rem;font-weight:700;color:var(--gray-500);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em">별점 분포 (${stats[0]?.label})</div>
+        ${[5,4,3,2,1].map(n => {
+          const cnt = stats[0]?.dist[n-1]||0;
+          const pct = stats[0]?.total ? Math.round(cnt/stats[0].total*100) : 0;
+          return `<div class="rv-stat-bar"><span style="font-size:.78rem;color:var(--gray-500);width:14px">${n}</span><span style="color:#f59e0b;font-size:.78rem">★</span><div class="rv-stat-bar-bg"><div class="bar" style="width:${pct}%;min-height:8px"></div></div><span style="font-size:.74rem;color:var(--gray-500);width:28px;text-align:right">${cnt}</span></div>`;
+        }).join('')}
+      </div>
+      ${stats.slice(1).map(s => `
+        <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:12px;padding:16px 20px;text-align:center;min-width:100px">
+          <div style="font-size:1.8rem;font-weight:800;color:var(--gray-800)">${s.avg.toFixed(1)}</div>
+          <div style="color:#f59e0b;font-size:.9rem">${'★'.repeat(Math.round(s.avg))}${'☆'.repeat(5-Math.round(s.avg))}</div>
+          <div style="font-size:.73rem;color:var(--gray-500);margin-top:4px;font-weight:600">${s.label}</div>
+        </div>`).join('')}
+      <div style="background:var(--primary-light);border-radius:12px;padding:16px 20px;text-align:center;min-width:90px">
+        <div style="font-size:2.2rem;font-weight:800;color:var(--primary)">${reviewSubmissions.length}</div>
+        <div style="font-size:.75rem;color:var(--primary);font-weight:600;margin-top:2px">총 리뷰</div>
+      </div>
+    </div>`;
+}
+
+function isAlertReview(sub) {
+  if (!reviewConfig.alertFieldId || !reviewConfig.alertThreshold) return false;
+  const ans = sub.answers?.find(a => a.id === reviewConfig.alertFieldId);
+  if (!ans || typeof ans.value !== 'number') return false;
+  return ans.value <= Number(reviewConfig.alertThreshold);
+}
+
+function renderStars(val) {
+  if (typeof val !== 'number') return '';
+  const full = Math.round(val);
+  return '<span class="rv-stars">' + '★'.repeat(full) + '<span class="empty">' + '★'.repeat(5-full) + '</span></span> ' + `<span style="font-size:.82rem;color:var(--gray-500)">${val}/5</span>`;
+}
+
+function renderFieldValue(ans) {
+  if (ans.type === 'star') return renderStars(ans.value);
+  if (ans.type === 'yesno') {
+    const v = ans.value;
+    return v === 'yes' ? '<span style="color:#16a34a;font-weight:700">✅ Yes</span>' : '<span style="color:#dc2626;font-weight:700">❌ No</span>';
+  }
+  return `<span>${escAttr(String(ans.value||''))}</span>`;
+}
+
+function renderReviewList() {
+  const el = document.getElementById('review-list');
+  if (!reviewSubmissions.length) {
+    el.innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:32px">아직 리뷰가 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = reviewSubmissions.map(sub => {
+    const alert = isAlertReview(sub);
+    const date = new Date(sub.submittedAt).toLocaleString('ko-KR');
+    const alertBadge = alert ? '<span style="background:#fee2e2;color:#dc2626;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:12px;flex-shrink:0">⚠️ 점검 필요</span>' : '';
+    const fields = (sub.answers||[]).filter(a => a.value !== '' && a.value !== null && a.value !== undefined && a.value !== 0);
+    return `<div class="rv-card${alert?' rv-alert':''}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <span style="font-size:.78rem;color:var(--gray-400)">${date}</span>
+        ${alertBadge}
+        <button onclick="deleteReview(${sub.id})" style="margin-left:auto;padding:3px 10px;background:#f1f5f9;color:var(--gray-500);border:none;border-radius:6px;font-size:.75rem;cursor:pointer;font-weight:600">삭제</button>
+      </div>
+      ${fields.map(a => `<div class="rv-field-row"><span class="rv-field-label">${escAttr(a.label)}</span><span class="rv-field-val">${renderFieldValue(a)}</span></div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+async function deleteReview(id) {
+  if (!confirm('이 리뷰를 삭제하시겠습니까?')) return;
+  const token = localStorage.getItem('hik_token');
+  await fetch('/api/deposit?action=review-delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ id })
+  });
+  loadReview(true);
+}
+
+function renderReviewFields() {
+  const el = document.getElementById('review-fields-list');
+  const types = [
+    ['star','⭐ 별점'],['text','텍스트'],['textarea','장문'],
+    ['number','숫자'],['nationality','🌍 국적 선택'],['dropdown','드롭다운'],['yesno','Yes / No']
+  ];
+  if (!reviewFields.length) {
+    el.innerHTML = '<div style="color:var(--gray-400);font-size:.85rem;text-align:center;padding:20px">필드가 없습니다. 추가해주세요.</div>';
+    return;
+  }
+  el.innerHTML = reviewFields.map((f, i) => {
+    const isReq = f.required;
+    const optionsHtml = f.type === 'dropdown' ? `
+      <div class="rv-field-bottom2">
+        <span style="font-size:.78rem;font-weight:600;color:var(--gray-500);flex-shrink:0">옵션 (한 줄에 하나)</span>
+        <textarea class="rv-options-ta" oninput="reviewFields[${i}].options=this.value.split('\\n').map(s=>s.trim()).filter(Boolean)" placeholder="옵션1&#10;옵션2&#10;옵션3">${(f.options||[]).join('\n')}</textarea>
+      </div>` : '';
+    return `<div class="rv-field-card">
+      <div class="rv-field-top">
+        <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
+          <button class="rv-move-btn" onclick="moveReviewField(${i},-1)" ${i===0?'disabled':''}>↑</button>
+          <button class="rv-move-btn" onclick="moveReviewField(${i},1)" ${i===reviewFields.length-1?'disabled':''}>↓</button>
+        </div>
+        <span class="rv-num-badge">${String(i+1).padStart(2,'0')}</span>
+        <input class="rv-field-label-input" value="${escAttr(f.label)}" placeholder="필드 이름" oninput="reviewFields[${i}].label=this.value;renderReviewConfigUI()">
+        <select class="rv-field-type-sel" onchange="reviewFields[${i}].type=this.value;renderReviewFields();renderReviewConfigUI()">
+          ${types.map(([v,t]) => `<option value="${v}"${f.type===v?' selected':''}>${t}</option>`).join('')}
+        </select>
+        <label class="rv-req-toggle${isReq?' on':''}"><input type="checkbox" ${isReq?'checked':''} onchange="reviewFields[${i}].required=this.checked;this.closest('label').className='rv-req-toggle'+(this.checked?' on':'')"> 필수</label>
+        <button class="rv-delete-btn" onclick="removeReviewField(${i})" title="삭제">×</button>
+      </div>
+      <div class="rv-field-bottom">
+        <span style="font-size:.8rem">💬</span>
+        <span style="font-size:.78rem;font-weight:600;color:var(--gray-500)">고객 안내 문구</span>
+        <input class="rv-desc-input" value="${escAttr(f.placeholder||'')}" placeholder="이 필드에 대한 설명 (선택)" oninput="reviewFields[${i}].placeholder=this.value">
+      </div>
+      ${optionsHtml}
+    </div>`;
+  }).join('');
+}
+
+function addReviewField() {
+  reviewFields.push({ id: 'f' + Date.now(), label: '', type: 'text', placeholder: '', required: false });
+  renderReviewFields();
+}
+
+function removeReviewField(i) {
+  reviewFields.splice(i, 1);
+  renderReviewFields();
+  renderReviewConfigUI();
+}
+
+function moveReviewField(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= reviewFields.length) return;
+  [reviewFields[i], reviewFields[j]] = [reviewFields[j], reviewFields[i]];
+  renderReviewFields();
+}
+
+async function saveReviewFields() {
+  const token = localStorage.getItem('hik_token');
+  const btn = document.getElementById('save-rv-fields-btn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    const res = await fetch('/api/deposit?action=review-save-fields', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ fields: reviewFields })
+    });
+    if (!res.ok) throw new Error('저장 실패');
+    btn.textContent = '✅ 저장됨';
+    setTimeout(() => { btn.textContent = '💾 저장'; btn.disabled = false; }, 1500);
+  } catch(e) {
+    alert(e.message); btn.textContent = '💾 저장'; btn.disabled = false;
+  }
+}
+
+function renderReviewConfigUI() {
+  const sel = document.getElementById('rv-alert-field');
+  if (!sel) return;
+  const starFields = getStarFields();
+  sel.innerHTML = '<option value="">-- 선택 안 함 --</option>' +
+    starFields.map(f => `<option value="${f.id}"${reviewConfig.alertFieldId===f.id?' selected':''}>${escAttr(f.label)}</option>`).join('');
+  const thr = document.getElementById('rv-alert-threshold');
+  if (thr) thr.value = String(reviewConfig.alertThreshold || 3);
+}
+
+async function saveReviewConfig() {
+  const token = localStorage.getItem('hik_token');
+  const btn = document.getElementById('save-rv-cfg-btn');
+  const msg = document.getElementById('rv-cfg-msg');
+  reviewConfig.alertFieldId = document.getElementById('rv-alert-field').value || null;
+  reviewConfig.alertThreshold = Number(document.getElementById('rv-alert-threshold').value);
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    await fetch('/api/deposit?action=review-save-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ config: reviewConfig })
+    });
+    msg.style.cssText = 'display:block;color:#16a34a;background:#d1fae5;padding:8px 12px;border-radius:7px';
+    msg.textContent = '✅ 저장되었습니다. 임계값 이하 리뷰에 빨간 경고 테두리가 표시됩니다.';
+    renderReviewList();
+  } catch(e) {
+    msg.style.cssText = 'display:block;color:#dc2626;background:#fee2e2;padding:8px 12px;border-radius:7px';
+    msg.textContent = '저장 실패: ' + e.message;
+  }
+  btn.disabled = false; btn.textContent = '💾 저장';
+  setTimeout(() => { msg.style.display = 'none'; }, 4000);
 }
 
 /* ── Close on outside click ── */

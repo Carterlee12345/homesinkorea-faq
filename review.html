@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HOMESINKOREA · Review</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Apple SD Gothic Neo',-apple-system,sans-serif;background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#7c3aed 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;padding:24px}
+  .progress-bar{position:fixed;top:0;left:0;height:4px;background:rgba(255,255,255,.25);width:100%;z-index:10}
+  .progress-fill{height:100%;background:#fff;transition:width .4s ease}
+  .logo{font-size:1rem;font-weight:700;opacity:.75;margin-bottom:48px;letter-spacing:.06em}
+  .question-wrap{width:100%;max-width:560px;animation:fadeUp .4s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  .step-label{font-size:.75rem;opacity:.55;margin-bottom:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+  .question-text{font-size:1.45rem;font-weight:700;line-height:1.45;margin-bottom:8px}
+  .question-hint{font-size:.88rem;opacity:.6;margin-bottom:28px;line-height:1.5}
+  /* star */
+  .star-row{display:flex;gap:10px;margin-bottom:8px}
+  .star{font-size:2.6rem;cursor:pointer;transition:transform .12s,opacity .12s;opacity:.35;user-select:none;-webkit-user-select:none}
+  .star.active{opacity:1}
+  .star:hover{transform:scale(1.15)}
+  .star-label{font-size:.82rem;opacity:.6;margin-top:4px}
+  /* text/textarea */
+  .q-input{width:100%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.3);border-radius:12px;padding:16px 20px;font-size:1.05rem;color:#fff;outline:none;font-family:inherit;transition:border-color .2s;backdrop-filter:blur(4px)}
+  .q-input::placeholder{color:rgba(255,255,255,.4)}
+  .q-input:focus{border-color:rgba(255,255,255,.85)}
+  .q-textarea{resize:none;min-height:110px}
+  /* select / nationality */
+  .q-select{width:100%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.3);border-radius:12px;padding:14px 20px;font-size:1.05rem;color:#fff;outline:none;font-family:inherit;transition:border-color .2s;backdrop-filter:blur(4px);cursor:pointer;appearance:none;-webkit-appearance:none}
+  .q-select option{color:#1e3a8a;background:#fff}
+  .q-select:focus{border-color:rgba(255,255,255,.85)}
+  /* yesno */
+  .yesno-row{display:flex;gap:12px}
+  .yn-btn{flex:1;padding:18px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.3);border-radius:14px;font-size:1.1rem;font-weight:700;color:#fff;cursor:pointer;transition:all .18s;font-family:inherit}
+  .yn-btn:hover{background:rgba(255,255,255,.22)}
+  .yn-btn.selected{background:rgba(255,255,255,.28);border-color:#fff}
+  /* buttons */
+  .next-btn{margin-top:22px;display:inline-flex;align-items:center;gap:8px;background:#fff;color:#1e3a8a;border:none;border-radius:12px;padding:14px 28px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .15s;font-family:inherit}
+  .next-btn:hover{opacity:.9}
+  .next-btn:disabled{opacity:.5;cursor:not-allowed}
+  .skip-btn{margin-top:10px;display:block;font-size:.82rem;opacity:.5;cursor:pointer;background:none;border:none;color:#fff;font-family:inherit;padding:4px 0}
+  .skip-btn:hover{opacity:.75}
+  .hint{margin-top:10px;font-size:.78rem;opacity:.45}
+  /* error */
+  .err-shake{animation:shake .35s ease}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  /* thanks */
+  .thanks{text-align:center;animation:fadeUp .5s ease}
+  .thanks-icon{font-size:4rem;margin-bottom:20px}
+  .thanks h2{font-size:1.9rem;font-weight:800;margin-bottom:12px}
+  .thanks p{opacity:.8;font-size:1rem;line-height:1.7}
+  .loading{text-align:center;opacity:.65;font-size:.95rem}
+</style>
+</head>
+<body>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+<div class="logo">🏠 HOMESINKOREA</div>
+<div id="app"><div class="loading">Loading...</div></div>
+
+<script>
+const NATIONALITIES = [
+  'South Korea 🇰🇷','United States 🇺🇸','Canada 🇨🇦','United Kingdom 🇬🇧',
+  'Australia 🇦🇺','New Zealand 🇳🇿','China 🇨🇳','Japan 🇯🇵','Taiwan 🇹🇼',
+  'Hong Kong 🇭🇰','Singapore 🇸🇬','Malaysia 🇲🇾','Thailand 🇹🇭','Vietnam 🇻🇳',
+  'Indonesia 🇮🇩','Philippines 🇵🇭','India 🇮🇳','Pakistan 🇵🇰','Bangladesh 🇧🇩',
+  'UAE 🇦🇪','Saudi Arabia 🇸🇦','Turkey 🇹🇷','Germany 🇩🇪','France 🇫🇷',
+  'Spain 🇪🇸','Italy 🇮🇹','Netherlands 🇳🇱','Sweden 🇸🇪','Norway 🇳🇴',
+  'Denmark 🇩🇰','Switzerland 🇨🇭','Poland 🇵🇱','Russia 🇷🇺','Brazil 🇧🇷',
+  'Mexico 🇲🇽','Argentina 🇦🇷','South Africa 🇿🇦','Nigeria 🇳🇬','Other 🌍'
+];
+
+let fields = [], answers = {}, step = 0;
+
+async function init() {
+  try {
+    const res = await fetch('/api/deposit?action=review-get-form');
+    const data = await res.json();
+    fields = (data.fields || []).filter(f => f.label);
+    if (!fields.length) { showError('리뷰 폼이 아직 설정되지 않았습니다.'); return; }
+    renderStep();
+  } catch(e) { showError('로드 실패. 잠시 후 다시 시도해주세요.'); }
+}
+
+function showError(msg) {
+  document.getElementById('app').innerHTML = `<div class="loading">${msg}</div>`;
+}
+
+function setProgress(n, total) {
+  document.getElementById('progress').style.width = ((n / total) * 100) + '%';
+}
+
+function renderStep() {
+  if (step >= fields.length) { showSubmit(); return; }
+  const f = fields[step];
+  setProgress(step, fields.length);
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'question-wrap';
+  wrap.innerHTML = `
+    <div class="step-label">질문 ${step + 1} / ${fields.length}</div>
+    <div class="question-text">${esc(f.label)}${f.required ? '' : ''}</div>
+    ${f.placeholder ? `<div class="question-hint">${esc(f.placeholder)}</div>` : ''}
+    <div id="input-area"></div>
+    <div id="btn-area"></div>
+  `;
+  app.appendChild(wrap);
+  renderInput(f);
+}
+
+function renderInput(f) {
+  const ia = document.getElementById('input-area');
+  const ba = document.getElementById('btn-area');
+  const cur = answers[f.id];
+
+  if (f.type === 'star') {
+    const labels = ['','매우 나빠요','나빠요','보통','좋아요','매우 좋아요'];
+    let sel = cur || 0;
+    const row = document.createElement('div'); row.className = 'star-row';
+    const lbl = document.createElement('div'); lbl.className = 'star-label';
+    lbl.textContent = sel ? labels[sel] : '별을 선택해주세요';
+    for (let i = 1; i <= 5; i++) {
+      const s = document.createElement('span');
+      s.textContent = '★'; s.className = 'star' + (i <= sel ? ' active' : '');
+      s.addEventListener('mouseenter', () => { row.querySelectorAll('.star').forEach((x,j)=>x.classList.toggle('active', j<i)); lbl.textContent = labels[i]; });
+      s.addEventListener('mouseleave', () => { row.querySelectorAll('.star').forEach((x,j)=>x.classList.toggle('active', j<sel)); lbl.textContent = sel ? labels[sel] : '별을 선택해주세요'; });
+      s.addEventListener('click', () => { sel = i; answers[f.id] = i; row.querySelectorAll('.star').forEach((x,j)=>x.classList.toggle('active', j<i)); lbl.textContent = labels[i]; });
+      row.appendChild(s);
+    }
+    ia.appendChild(row); ia.appendChild(lbl);
+    ba.innerHTML = `<button class="next-btn" onclick="nextStep()">다음 →</button>`;
+    if (!f.required) ba.innerHTML += `<button class="skip-btn" onclick="skipStep()">건너뛰기</button>`;
+
+  } else if (f.type === 'yesno') {
+    ia.innerHTML = `<div class="yesno-row">
+      <button class="yn-btn${cur==='yes'?' selected':''}" onclick="selectYN('yes',this)">✅ Yes</button>
+      <button class="yn-btn${cur==='no'?' selected':''}" onclick="selectYN('no',this)">❌ No</button>
+    </div>`;
+    ba.innerHTML = `<button class="next-btn" onclick="nextStep()">다음 →</button>`;
+    if (!f.required) ba.innerHTML += `<button class="skip-btn" onclick="skipStep()">건너뛰기</button>`;
+
+  } else if (f.type === 'nationality') {
+    ia.innerHTML = `<select class="q-select" id="q-sel" onchange="answers['${f.id}']=this.value">
+      <option value="">-- 국적을 선택해주세요 --</option>
+      ${NATIONALITIES.map(n => `<option value="${esc(n)}"${cur===n?' selected':''}>${esc(n)}</option>`).join('')}
+    </select>`;
+    ba.innerHTML = `<button class="next-btn" onclick="nextStep()">다음 →</button>`;
+    if (!f.required) ba.innerHTML += `<button class="skip-btn" onclick="skipStep()">건너뛰기</button>`;
+
+  } else if (f.type === 'dropdown') {
+    const opts = f.options || [];
+    ia.innerHTML = `<select class="q-select" id="q-sel" onchange="answers['${f.id}']=this.value">
+      <option value="">-- 선택해주세요 --</option>
+      ${opts.map(o => `<option value="${esc(o)}"${cur===o?' selected':''}>${esc(o)}</option>`).join('')}
+    </select>`;
+    ba.innerHTML = `<button class="next-btn" onclick="nextStep()">다음 →</button>`;
+    if (!f.required) ba.innerHTML += `<button class="skip-btn" onclick="skipStep()">건너뛰기</button>`;
+
+  } else if (f.type === 'textarea') {
+    ia.innerHTML = `<textarea class="q-input q-textarea" id="q-ta" placeholder="${esc(f.placeholder||'')}" onkeyup="answers['${f.id}']=this.value">${esc(cur||'')}</textarea>`;
+    ba.innerHTML = `<button class="next-btn" onclick="nextStep()">다음 →</button>`;
+    if (!f.required) ba.innerHTML += `<button class="skip-btn" onclick="skipStep()">건너뛰기</button>`;
+
+  } else {
+    const inputType = f.type === 'number' ? 'number' : 'text';
+    ia.innerHTML = `<input type="${inputType}" class="q-input" id="q-inp" placeholder="${esc(f.placeholder||'')}" value="${esc(cur||'')}" oninput="answers['${f.id}']=this.value" onkeydown="if(event.key==='Enter')nextStep()">`;
+    ba.innerHTML = `<button class="next-btn" onclick="nextStep()">다음 →</button>`;
+    if (!f.required) ba.innerHTML += `<button class="skip-btn" onclick="skipStep()">건너뛰기</button>`;
+    setTimeout(() => document.getElementById('q-inp')?.focus(), 50);
+  }
+}
+
+function selectYN(val, el) {
+  const f = fields[step];
+  answers[f.id] = val;
+  el.parentElement.querySelectorAll('.yn-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function nextStep() {
+  const f = fields[step];
+  const val = answers[f.id];
+  if (f.required && (val === undefined || val === null || val === '' || val === 0)) {
+    const wrap = document.querySelector('.question-wrap');
+    wrap.classList.remove('err-shake');
+    void wrap.offsetWidth;
+    wrap.classList.add('err-shake');
+    return;
+  }
+  step++;
+  renderStep();
+}
+
+function skipStep() {
+  step++;
+  renderStep();
+}
+
+function showSubmit() {
+  setProgress(fields.length, fields.length);
+  document.getElementById('app').innerHTML = `
+    <div class="question-wrap">
+      <div class="step-label">완료</div>
+      <div class="question-text">리뷰를 제출할 준비가 되었습니다 🎉</div>
+      <div class="question-hint">소중한 의견 감사합니다. 서비스 개선에 적극 반영하겠습니다.</div>
+      <button class="next-btn" id="submit-btn" onclick="submitReview()">제출하기 ✓</button>
+    </div>`;
+}
+
+async function submitReview() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '제출 중...';
+  const answersArr = fields.map(f => ({
+    id: f.id, label: f.label, type: f.type,
+    value: answers[f.id] !== undefined ? answers[f.id] : ''
+  })).filter(a => a.value !== '' && a.value !== undefined && a.value !== null && a.value !== 0 || fields.find(f=>f.id===a.id)?.required);
+
+  try {
+    const res = await fetch('/api/deposit?action=review-submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: answersArr })
+    });
+    if (!res.ok) throw new Error('제출 실패');
+    document.getElementById('app').innerHTML = `
+      <div class="thanks">
+        <div class="thanks-icon">⭐</div>
+        <h2>리뷰가 접수되었습니다!</h2>
+        <p>소중한 의견 감사합니다.<br>더 나은 서비스로 보답하겠습니다.</p>
+      </div>`;
+    document.getElementById('progress').style.width = '100%';
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '다시 시도';
+    alert('제출 중 오류가 발생했습니다. 다시 시도해주세요.');
+  }
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+init();
+</script>
+</body>
+</html>
