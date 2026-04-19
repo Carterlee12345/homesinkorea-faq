@@ -114,6 +114,36 @@ module.exports = async function handler(req, res) {
     } catch(e) { return res.status(500).json({ error: e.message }); }
   }
 
+  // ── cleaning-files GET ──
+  if (resource === 'cleaning-files' && req.method === 'GET') {
+    const { resId } = req.query;
+    if (!resId) return res.status(400).json({ error: 'resId 필요' });
+    const raw = await redis(['GET', `cleaning:files:${resId}`]) || '[]';
+    return res.status(200).json({ files: JSON.parse(raw) });
+  }
+
+  // ── cleaning-files POST (single file upload) ──
+  if (resource === 'cleaning-files' && req.method === 'POST') {
+    const { reservationId, file } = req.body;
+    if (!reservationId || !file?.data) return res.status(400).json({ error: '필수 항목 없음' });
+    const raw = await redis(['GET', `cleaning:files:${reservationId}`]) || '[]';
+    const files = JSON.parse(raw);
+    const newFile = { id: Date.now().toString(), name: file.name, type: file.type, size: file.size, data: file.data, uploadedAt: new Date().toISOString() };
+    files.push(newFile);
+    await redis(['SET', `cleaning:files:${reservationId}`, JSON.stringify(files)]);
+    return res.status(200).json({ success: true, id: newFile.id });
+  }
+
+  // ── cleaning-file-delete POST ──
+  if (resource === 'cleaning-file-delete' && req.method === 'POST') {
+    const { reservationId, fileId } = req.body;
+    if (!reservationId || !fileId) return res.status(400).json({ error: '필수 항목 없음' });
+    const raw = await redis(['GET', `cleaning:files:${reservationId}`]) || '[]';
+    const files = JSON.parse(raw).filter(f => f.id !== fileId);
+    await redis(['SET', `cleaning:files:${reservationId}`, JSON.stringify(files)]);
+    return res.status(200).json({ success: true });
+  }
+
   // ── cleaning GET ──
   if (resource === 'cleaning' && req.method === 'GET') {
     const raw = await redis(['GET', 'cleaning:data']) || '{}';
