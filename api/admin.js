@@ -169,8 +169,14 @@ module.exports = async function handler(req, res) {
 
   // ── get-tab-order (no auth — index.html reads this publicly) ──
   if (action === 'get-tab-order' && req.method === 'GET') {
-    const raw = await redis(['GET', 'tabs:order']);
-    return res.status(200).json({ order: raw ? JSON.parse(raw) : null });
+    const [orderRaw, labelsRaw] = await Promise.all([
+      redis(['GET', 'tabs:order']),
+      redis(['GET', 'tabs:labels'])
+    ]);
+    return res.status(200).json({
+      order: orderRaw ? JSON.parse(orderRaw) : null,
+      labels: labelsRaw ? JSON.parse(labelsRaw) : {}
+    });
   }
 
   // ── save-tab-order ──
@@ -178,6 +184,14 @@ module.exports = async function handler(req, res) {
     if (!await checkAdminAuth(req.headers['x-admin-key'])) return res.status(401).json({ error: '관리자 권한이 없습니다.' });
     const { order } = req.body;
     await redis(['SET', 'tabs:order', JSON.stringify(order)]);
+    return res.status(200).json({ success: true });
+  }
+
+  // ── save-tab-labels ──
+  if (action === 'save-tab-labels' && req.method === 'POST') {
+    if (!await checkAdminAuth(req.headers['x-admin-key'])) return res.status(401).json({ error: '관리자 권한이 없습니다.' });
+    const { labels } = req.body;
+    await redis(['SET', 'tabs:labels', JSON.stringify(labels || {})]);
     return res.status(200).json({ success: true });
   }
 

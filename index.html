@@ -761,6 +761,13 @@
             <button onclick="addTag()" style="padding:9px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.84rem;font-weight:600;white-space:nowrap">추가</button>
           </div>
           <div id="tagList" class="tag-grid" style="margin-top:10px;min-height:0"></div>
+          <div style="margin-top:12px">
+            <div style="font-size:.76rem;font-weight:600;color:var(--gray-500);margin-bottom:6px">태그 매칭 방식</div>
+            <div style="display:flex;gap:6px">
+              <button id="tagModeOr" onclick="setTagMode('or',this)" style="flex:1;padding:8px 10px;border:2px solid var(--primary);background:var(--primary-light);color:var(--primary);border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;text-align:center">🔀 하나라도 태그가 일치</button>
+              <button id="tagModeAnd" onclick="setTagMode('and',this)" style="flex:1;padding:8px 10px;border:2px solid var(--gray-200);background:#fff;color:var(--gray-500);border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .15s;text-align:center">✅ 선택한 다수의 태그 값과 일치</button>
+            </div>
+          </div>
         </div>
 
         <!-- Purpose -->
@@ -1880,28 +1887,39 @@ async function applyTabOrder() {
   try {
     const res = await fetch('/api/admin?action=get-tab-order');
     if (!res.ok) return;
-    const { order } = await res.json();
-    if (!order) return;
-    document.querySelectorAll('.tab-group').forEach(group => {
-      const labelEl = group.querySelector('.tab-group-label');
-      if (!labelEl) return;
-      const groupName = labelEl.textContent.trim();
-      const ids = order[groupName];
-      if (!ids || !ids.length) return;
-      const buttons = Array.from(group.querySelectorAll('button.tab'));
-      const btnMap = {};
-      buttons.forEach(btn => {
-        const m = btn.getAttribute('onclick')?.match(/switchTab\('([^']+)'/);
-        if (m) btnMap[m[1]] = btn;
+    const { order, labels } = await res.json();
+    if (order) {
+      document.querySelectorAll('.tab-group').forEach(group => {
+        const labelEl = group.querySelector('.tab-group-label');
+        if (!labelEl) return;
+        const groupName = labelEl.textContent.trim();
+        const ids = order[groupName];
+        if (!ids || !ids.length) return;
+        const buttons = Array.from(group.querySelectorAll('button.tab'));
+        const btnMap = {};
+        buttons.forEach(btn => {
+          const m = btn.getAttribute('onclick')?.match(/switchTab\('([^']+)'/);
+          if (m) btnMap[m[1]] = btn;
+        });
+        buttons.forEach(btn => btn.remove());
+        ids.forEach(id => { if (btnMap[id]) { group.appendChild(btnMap[id]); delete btnMap[id]; } });
+        Object.values(btnMap).forEach(btn => group.appendChild(btn));
       });
-      buttons.forEach(btn => btn.remove());
-      ids.forEach(id => { if (btnMap[id]) { group.appendChild(btnMap[id]); delete btnMap[id]; } });
-      Object.values(btnMap).forEach(btn => group.appendChild(btn));
-    });
+    }
+    if (labels && Object.keys(labels).length) {
+      document.querySelectorAll('button.tab').forEach(btn => {
+        const m = btn.getAttribute('onclick')?.match(/switchTab\('([^']+)'/);
+        if (m && labels[m[1]]) btn.textContent = labels[m[1]];
+      });
+    }
   } catch(e) {}
 }
 
-window.addEventListener('DOMContentLoaded', () => { applyTabOrder(); checkAuth(); });
+window.addEventListener('DOMContentLoaded', () => {
+  applyTabOrder();
+  checkAuth();
+  setInterval(applyTabOrder, 30000);
+});
 
 /* ── Dashboard Data ── */
 async function loadDashboardData() {
@@ -2807,6 +2825,15 @@ async function generateDraft() {
 /* ── Broadcast ── */
 let selectedPurpose = '';
 let broadcastTags = [];
+let tagMode = 'or';
+
+function setTagMode(mode, btn) {
+  tagMode = mode;
+  const orBtn = document.getElementById('tagModeOr');
+  const andBtn = document.getElementById('tagModeAnd');
+  orBtn.style.cssText = `flex:1;padding:8px 10px;border:2px solid ${mode==='or'?'var(--primary)':'var(--gray-200)'};background:${mode==='or'?'var(--primary-light)':'#fff'};color:${mode==='or'?'var(--primary)':'var(--gray-500)'};border-radius:8px;font-size:.8rem;font-weight:${mode==='or'?'700':'600'};cursor:pointer;transition:all .15s;text-align:center`;
+  andBtn.style.cssText = `flex:1;padding:8px 10px;border:2px solid ${mode==='and'?'var(--primary)':'var(--gray-200)'};background:${mode==='and'?'var(--primary-light)':'#fff'};color:${mode==='and'?'var(--primary)':'var(--gray-500)'};border-radius:8px;font-size:.8rem;font-weight:${mode==='and'?'700':'600'};cursor:pointer;transition:all .15s;text-align:center`;
+}
 
 function addTag() {
   const input = document.getElementById('tagInput');
@@ -2871,8 +2898,9 @@ async function generateBroadcast() {
     document.getElementById('broadcast-en').textContent = enMsg;
 
     const tagStr = tags.map(t => `<span class="recipient-badge">${t}</span>`).join(' ');
+    const modeLabel = tagMode === 'and' ? '모두 일치' : '하나라도 일치';
     document.getElementById('broadcast-audience-summary').innerHTML =
-      `📣 수신 대상: ${tagStr} · 목적: <strong>${selectedPurpose === 'raw' ? '내용 그대로 발송' : selectedPurpose}</strong>`;
+      `📣 수신 대상: ${tagStr} <span style="font-size:.75rem;background:${tagMode==='and'?'#d1fae5':'#e0e7ff'};color:${tagMode==='and'?'#065f46':'#3730a3'};padding:2px 8px;border-radius:10px;font-weight:700">${modeLabel}</span> · 목적: <strong>${selectedPurpose === 'raw' ? '내용 그대로 발송' : selectedPurpose}</strong>`;
 
     sendLog('공지 메시지 생성', `목적:${selectedPurpose} 태그:${tags.join(',')}`);
     document.getElementById('broadcast-generating').style.display = 'none';
@@ -2928,7 +2956,7 @@ async function handleSend() {
     const res = await fetch('/api/broadcast?action=send', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ message, tags: broadcastTags })
+      body: JSON.stringify({ message, tags: broadcastTags, tagMode })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '발송 실패');

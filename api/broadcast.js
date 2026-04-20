@@ -109,7 +109,7 @@ module.exports = async function handler(req, res) {
   if (action === 'send') {
     const token = req.headers['authorization']?.replace('Bearer ', '');
     if (!await checkIsAdmin(token)) return res.status(403).json({ error: '공지 발송은 관리자만 가능합니다.' });
-    const { message, tags } = req.body;
+    const { message, tags, tagMode } = req.body;
     if (!message?.trim()) return res.status(400).json({ error: '메시지가 없습니다.' });
     if (!tags?.length) return res.status(400).json({ error: '태그가 없습니다.' });
     const key = process.env.CHANNELTALK_ACCESS_KEY;
@@ -117,7 +117,12 @@ module.exports = async function handler(req, res) {
     if (!key || !secret) return res.status(500).json({ error: '채널톡 API 키가 설정되지 않았습니다.' });
     try {
       const allChats = await fetchAllUserChats(key, secret);
-      const matched = allChats.filter(chat => (chat.tags || []).some(t => tags.includes(t)));
+      const matched = allChats.filter(chat => {
+        const chatTags = chat.tags || [];
+        return tagMode === 'and'
+          ? tags.every(t => chatTags.includes(t))
+          : chatTags.some(t => tags.includes(t));
+      });
       if (!matched.length) return res.status(200).json({ sent: 0, failed: 0, total: 0, skipped: allChats.length });
       let sent = 0, failed = 0;
       for (const chat of matched) {

@@ -286,11 +286,14 @@ const TAB_DEFAULTS = {
 };
 
 let tabOrderState = null;
+let tabLabelsState = {};
 let dragSrc = null;
+let labelSaveTimer = null;
 
 async function loadTabOrder() {
   const res = await fetch('/api/admin?action=get-tab-order');
-  const { order } = await res.json();
+  const { order, labels } = await res.json();
+  tabLabelsState = labels || {};
   const allTabsById = {};
   for (const tabs of Object.values(TAB_DEFAULTS)) tabs.forEach(t => { allTabsById[t.id] = t; });
   if (order) {
@@ -330,8 +333,27 @@ function createTabItem(tab, group) {
   item.draggable = true;
   item.dataset.id = tab.id;
   item.dataset.group = group;
-  item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;cursor:grab;user-select:none;font-size:.88rem;color:#1f2937;transition:box-shadow .1s';
-  item.innerHTML = `<span style="color:#9ca3af;font-size:1.1rem;line-height:1">⠿</span><span style="flex:1">${tab.label}</span>`;
+  item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;cursor:grab;user-select:none;font-size:.88rem;color:#1f2937;transition:box-shadow .1s';
+
+  const grip = document.createElement('span');
+  grip.style.cssText = 'color:#9ca3af;font-size:1.1rem;line-height:1;flex-shrink:0';
+  grip.textContent = '⠿';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = tabLabelsState[tab.id] || tab.label;
+  input.dataset.defaultLabel = tab.label;
+  input.style.cssText = 'flex:1;border:1px solid transparent;border-radius:6px;padding:4px 8px;font-size:.88rem;font-family:inherit;color:#1f2937;background:transparent;outline:none;cursor:text;min-width:0';
+  input.addEventListener('focus', () => { input.style.borderColor = '#c7d2fe'; input.style.background = '#f8faff'; item.draggable = false; });
+  input.addEventListener('blur', () => { input.style.borderColor = 'transparent'; input.style.background = 'transparent'; item.draggable = true; });
+  input.addEventListener('input', () => {
+    clearTimeout(labelSaveTimer);
+    labelSaveTimer = setTimeout(autoSaveTabLabels, 800);
+  });
+
+  item.appendChild(grip);
+  item.appendChild(input);
+
   item.addEventListener('dragstart', e => {
     dragSrc = item;
     e.dataTransfer.effectAllowed = 'move';
@@ -346,6 +368,22 @@ function createTabItem(tab, group) {
     item.parentNode.insertBefore(dragSrc, after ? item.nextSibling : item);
   });
   return item;
+}
+
+async function autoSaveTabLabels() {
+  const labels = {};
+  document.querySelectorAll('#tab-order-container [data-id] input[type=text]').forEach(inp => {
+    const id = inp.closest('[data-id]')?.dataset.id;
+    const defaultLabel = inp.dataset.defaultLabel || '';
+    const val = inp.value.trim();
+    if (id && val && val !== defaultLabel) labels[id] = val;
+  });
+  tabLabelsState = labels;
+  await fetch('/api/admin?action=save-tab-labels', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey },
+    body: JSON.stringify({ labels })
+  });
 }
 
 function handleDrop(e, group, list) {
