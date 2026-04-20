@@ -1801,10 +1801,10 @@ async function checkAuth() {
   if (!token) { showOverlay(); return; }
   const res = await fetch('/api/auth?action=verify', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
   if (!res.ok) { localStorage.removeItem('hik_token'); showOverlay(); return; }
-  const { email, isAdmin } = await res.json();
+  const { email, nickname, isAdmin } = await res.json();
   currentUserIsAdmin = !!isAdmin;
   localStorage.setItem('hik_email', email);
-  document.getElementById('user-email-display').textContent = email;
+  document.getElementById('user-email-display').textContent = nickname || email;
   document.getElementById('auth-overlay').style.display = 'none';
   loadDashboardData();
   kbInit();
@@ -1839,7 +1839,7 @@ async function doLogin() {
   localStorage.setItem('hik_token', data.token);
   localStorage.setItem('hik_email', data.email);
   currentUserIsAdmin = !!data.isAdmin;
-  document.getElementById('user-email-display').textContent = data.email;
+  document.getElementById('user-email-display').textContent = data.nickname || data.email;
   document.getElementById('auth-overlay').style.display = 'none';
   sendLog('로그인', data.email);
   loadDashboardData();
