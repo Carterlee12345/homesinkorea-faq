@@ -73,5 +73,20 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ email, isAdmin: user.isAdmin === true });
   }
 
+  // ── log ──
+  if (action === 'log') {
+    const token = req.headers['authorization']?.replace('Bearer ', '');
+    const email = verifyTokenSync(token);
+    if (!email) return res.status(401).json({ error: 'Unauthorized' });
+    const { action: act, detail } = req.body;
+    if (!act) return res.status(400).json({ error: 'action required' });
+    const entry = JSON.stringify({ email, action: act, detail: detail || '', ts: new Date().toISOString() });
+    await redis(['LPUSH', 'logs:all', entry]);
+    await redis(['LPUSH', `logs:${email}`, entry]);
+    await redis(['LTRIM', 'logs:all', 0, 999]);
+    await redis(['LTRIM', `logs:${email}`, 0, 199]);
+    return res.status(200).json({ ok: true });
+  }
+
   return res.status(400).json({ error: '올바르지 않은 action입니다.' });
 };
