@@ -1522,21 +1522,23 @@
       <button onclick="kbOpenCreate('todo')" style="margin-left:auto;padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:9px;font-size:.85rem;font-weight:700;cursor:pointer">＋ 새 프로젝트</button>
     </div>
   </div>
-  <div class="kb-board">
-    <div class="kb-col">
-      <div class="kb-col-hdr kb-todo">📋 할 일 <span class="kb-cnt" id="kb-cnt-todo">0</span></div>
-      <div class="kb-col-body" id="kb-body-todo" ondragover="kbDragOver(event,'todo')" ondrop="kbDrop(event,'todo')" ondragleave="kbDragLeave(event)"></div>
-      <button class="kb-add-inline" onclick="kbOpenCreate('todo')">＋ 추가</button>
-    </div>
-    <div class="kb-col">
-      <div class="kb-col-hdr kb-progress">⚡ 진행 중 <span class="kb-cnt" id="kb-cnt-progress">0</span></div>
-      <div class="kb-col-body" id="kb-body-progress" ondragover="kbDragOver(event,'progress')" ondrop="kbDrop(event,'progress')" ondragleave="kbDragLeave(event)"></div>
-      <button class="kb-add-inline" onclick="kbOpenCreate('progress')">＋ 추가</button>
-    </div>
-    <div class="kb-col">
-      <div class="kb-col-hdr kb-done">✅ 완료 <span class="kb-cnt" id="kb-cnt-done">0</span></div>
-      <div class="kb-col-body" id="kb-body-done" ondragover="kbDragOver(event,'done')" ondrop="kbDrop(event,'done')" ondragleave="kbDragLeave(event)"></div>
-      <button class="kb-add-inline" onclick="kbOpenCreate('done')">＋ 추가</button>
+  <div class="kb-board-wrap">
+    <div class="kb-board">
+      <div class="kb-col">
+        <div class="kb-col-hdr kb-todo">📋 할 일 <span class="kb-cnt" id="kb-cnt-todo">0</span></div>
+        <div class="kb-col-body" id="kb-body-todo" ondragover="kbDragOver(event,'todo')" ondrop="kbDrop(event,'todo')" ondragleave="kbDragLeave(event)"></div>
+        <button class="kb-add-inline" onclick="kbOpenCreate('todo')">＋ 추가</button>
+      </div>
+      <div class="kb-col">
+        <div class="kb-col-hdr kb-progress">⚡ 진행 중 <span class="kb-cnt" id="kb-cnt-progress">0</span></div>
+        <div class="kb-col-body" id="kb-body-progress" ondragover="kbDragOver(event,'progress')" ondrop="kbDrop(event,'progress')" ondragleave="kbDragLeave(event)"></div>
+        <button class="kb-add-inline" onclick="kbOpenCreate('progress')">＋ 추가</button>
+      </div>
+      <div class="kb-col">
+        <div class="kb-col-hdr kb-done">✅ 완료 <span class="kb-cnt" id="kb-cnt-done">0</span></div>
+        <div class="kb-col-body" id="kb-body-done" ondragover="kbDragOver(event,'done')" ondrop="kbDrop(event,'done')" ondragleave="kbDragLeave(event)"></div>
+        <button class="kb-add-inline" onclick="kbOpenCreate('done')">＋ 추가</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1703,9 +1705,10 @@
 /* ── Project / Kanban ── */
 @keyframes kbSlideDown{from{opacity:0;transform:translateX(-50%) translateY(-14px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 #kb-notif-banner.show{display:flex!important;animation:kbSlideDown .3s ease}
-.kb-board{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start}
-@media(max-width:860px){.kb-board{grid-template-columns:1fr}}
-.kb-col{background:#f4f5f7;border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.kb-board-wrap{overflow-x:auto;overflow-y:visible;padding-bottom:16px;margin:0 -4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--gray-200) transparent}
+.kb-board-wrap::-webkit-scrollbar{height:6px}.kb-board-wrap::-webkit-scrollbar-track{background:transparent}.kb-board-wrap::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:3px}
+.kb-board{display:flex;gap:16px;align-items:flex-start;padding:4px 4px 4px 4px;width:max-content;min-width:100%}
+.kb-col{background:#f4f5f7;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;width:320px;flex-shrink:0}
 .kb-col-hdr{padding:14px 16px;font-size:.88rem;font-weight:800;letter-spacing:.02em;display:flex;align-items:center;gap:10px}
 .kb-todo{background:#dbeafe;color:#1e40af}
 .kb-progress{background:#fef3c7;color:#92400e}
