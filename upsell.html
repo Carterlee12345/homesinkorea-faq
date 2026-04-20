@@ -25,7 +25,6 @@
   .pp-wrap{min-height:48px}
   .center{text-align:center;padding:80px 24px;color:#94a3b8}
   .center-icon{font-size:3rem;margin-bottom:16px}
-  /* success overlay */
   #success-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
   .success-box{background:#fff;border-radius:20px;padding:44px 36px;text-align:center;max-width:420px;width:100%}
   .success-icon{font-size:3.5rem;margin-bottom:16px}
@@ -37,6 +36,20 @@
   .cat-btn{padding:8px 18px;border:2px solid #e2e8f0;background:#fff;border-radius:20px;font-size:.85rem;font-weight:600;color:#64748b;cursor:pointer;transition:all .15s;font-family:inherit}
   .cat-btn:hover{border-color:#93c5fd;color:#1e3a8a}
   .cat-btn.active{border-color:#1e3a8a;background:#1e3a8a;color:#fff}
+  /* guest info banner */
+  .guest-banner{background:linear-gradient(135deg,#eff6ff,#e0e7ff);border:1.5px solid #bfdbfe;border-radius:16px;padding:22px 24px;margin-bottom:32px}
+  .guest-banner h3{font-size:1rem;font-weight:800;color:#1e40af;margin-bottom:4px}
+  .guest-banner p{font-size:.84rem;color:#3b82f6;margin-bottom:16px}
+  .guest-form{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:flex-end}
+  @media(max-width:600px){.guest-form{grid-template-columns:1fr}}
+  .guest-input{width:100%;padding:10px 13px;border:1.5px solid #bfdbfe;border-radius:9px;font-size:.88rem;font-family:inherit;outline:none;background:#fff;transition:border-color .15s}
+  .guest-input:focus{border-color:#3b82f6}
+  .guest-input.filled{border-color:#16a34a;background:#f0fdf4}
+  .guest-lbl{font-size:.75rem;font-weight:700;color:#1e40af;margin-bottom:5px}
+  .guest-save-btn{padding:10px 20px;background:#1e3a8a;color:#fff;border:none;border-radius:9px;font-size:.88rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+  .guest-save-btn:hover{opacity:.88}
+  .guest-confirmed{display:flex;align-items:center;gap:10px;background:#d1fae5;border:1.5px solid #6ee7b7;border-radius:12px;padding:12px 16px;font-size:.88rem;font-weight:600;color:#065f46}
+  .guest-edit-btn{margin-left:auto;background:transparent;border:1px solid #6ee7b7;border-radius:7px;padding:4px 12px;font-size:.78rem;font-weight:600;color:#065f46;cursor:pointer}
 </style>
 </head>
 <body>
@@ -64,10 +77,63 @@
 <script>
 const PRICE_SYMBOLS = { USD:'$', EUR:'€', GBP:'£', KRW:'₩', JPY:'¥', AUD:'A$', CAD:'C$' };
 
+let guestName = '', guestWhatsapp = '';
+
 function fmt(price, cur) {
   if (!price) return '—';
   const sym = PRICE_SYMBOLS[cur] || (cur + ' ');
-  return sym + parseFloat(price).toLocaleString(undefined, { minimumFractionDigits: cur === 'KRW' || cur === 'JPY' ? 0 : 2, maximumFractionDigits: cur === 'KRW' || cur === 'JPY' ? 0 : 2 });
+  return sym + parseFloat(price).toLocaleString(undefined, { minimumFractionDigits: cur==='KRW'||cur==='JPY'?0:2, maximumFractionDigits: cur==='KRW'||cur==='JPY'?0:2 });
+}
+
+function guestInfoHTML() {
+  return `<div class="guest-banner" id="guest-banner">
+    <h3>👤 Enter your contact information</h3>
+    <p>Required before checkout — we'll use this to confirm your booking.</p>
+    <div class="guest-form">
+      <div>
+        <div class="guest-lbl">Full Name *</div>
+        <input id="guest-name" class="guest-input" type="text" placeholder="John Smith" oninput="syncGuest()">
+      </div>
+      <div>
+        <div class="guest-lbl">WhatsApp Number *</div>
+        <input id="guest-wa" class="guest-input" type="tel" placeholder="+82 10-1234-5678" oninput="syncGuest()">
+      </div>
+      <button class="guest-save-btn" onclick="confirmGuest()">Confirm →</button>
+    </div>
+    <div id="guest-err" style="display:none;margin-top:10px;font-size:.8rem;color:#dc2626;font-weight:600"></div>
+  </div>`;
+}
+
+function syncGuest() {
+  const n = document.getElementById('guest-name');
+  const w = document.getElementById('guest-wa');
+  if(n) n.classList.toggle('filled', n.value.trim().length > 0);
+  if(w) w.classList.toggle('filled', w.value.trim().length > 0);
+}
+
+function confirmGuest() {
+  const n = (document.getElementById('guest-name')?.value || '').trim();
+  const w = (document.getElementById('guest-wa')?.value || '').trim();
+  const err = document.getElementById('guest-err');
+  if (!n || !w) { err.textContent = 'Please fill in both fields.'; err.style.display='block'; return; }
+  err.style.display = 'none';
+  guestName = n; guestWhatsapp = w;
+  document.getElementById('guest-banner').outerHTML = `
+    <div class="guest-confirmed" id="guest-banner">
+      ✅ <span><strong>${n}</strong> · ${w}</span>
+      <button class="guest-edit-btn" onclick="editGuest()">Edit</button>
+    </div>`;
+  // unlock PayPal buttons
+  document.querySelectorAll('.pp-locked').forEach(el => { el.style.display = 'none'; });
+  document.querySelectorAll('.pp-wrap').forEach(el => { el.style.display = 'block'; });
+}
+
+function editGuest() {
+  guestName = ''; guestWhatsapp = '';
+  document.getElementById('guest-banner').outerHTML = guestInfoHTML();
+  // lock PayPal buttons again
+  document.querySelectorAll('.pp-wrap').forEach(el => { el.style.display = 'none'; });
+  document.querySelectorAll('.pp-locked').forEach(el => { el.style.display = 'block'; });
 }
 
 function cardHTML(item) {
@@ -85,7 +151,10 @@ function cardHTML(item) {
       <div class="card-name">${item.name || 'Service'}</div>
       <div class="card-desc">${(item.description || '').replace(/\n/g,'<br>')}</div>
       <div class="card-price">${fmt(item.price, item.currency || 'USD')}</div>
-      <div class="pp-wrap" id="pp-${item.id}"></div>
+      <div class="pp-wrap" id="pp-${item.id}" style="display:none"></div>
+      <div class="pp-locked" id="ppl-${item.id}" style="padding:11px;background:#f1f5f9;border-radius:8px;text-align:center;font-size:.8rem;color:#94a3b8">
+        ↑ Enter your info above to pay
+      </div>
     </div>
   </div>`;
 }
@@ -95,8 +164,7 @@ function loadSDK(clientId, currency) {
     if (window.paypal) { resolve(); return; }
     const s = document.createElement('script');
     s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=${currency}&components=buttons`;
-    s.onload = resolve;
-    s.onerror = reject;
+    s.onload = resolve; s.onerror = reject;
     document.head.appendChild(s);
   });
 }
@@ -107,15 +175,28 @@ function mountButton(item, currency) {
   paypal.Buttons({
     style: { layout:'horizontal', color:'blue', shape:'rect', label:'pay', height:42 },
     createOrder: (_d, actions) => actions.order.create({
-      purchase_units: [{
-        amount: { value: parseFloat(item.price).toFixed(2), currency_code: item.currency || currency },
-        description: item.name || 'Service'
-      }]
+      purchase_units: [{ amount: { value: parseFloat(item.price).toFixed(2), currency_code: item.currency || currency }, description: item.name || 'Service' }]
     }),
-    onApprove: (_d, actions) => actions.order.capture().then(det => {
-      const name = det.payer?.name?.given_name || 'Customer';
+    onApprove: (_d, actions) => actions.order.capture().then(async det => {
+      // save order to backend
+      try {
+        await fetch('/api/upsell?action=save-order', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            paypalOrderId: det.id,
+            itemId: item.id,
+            itemName: item.name || '',
+            amount: parseFloat(item.price),
+            currency: item.currency || currency,
+            customerName: guestName,
+            customerWhatsapp: guestWhatsapp
+          })
+        });
+      } catch(e) {}
+      const name = guestName || det.payer?.name?.given_name || 'Customer';
       document.getElementById('success-msg').textContent =
-        `Thank you, ${name}! Your payment for "${item.name}" has been processed. Our team will contact you shortly.`;
+        `Thank you, ${name}! Your payment for "${item.name}" has been processed. Our team will contact you on WhatsApp shortly.`;
       document.getElementById('success-ov').style.display = 'flex';
     }),
     onError: () => alert('Payment failed. Please try again or contact us.')
@@ -131,7 +212,10 @@ function renderGrid(items) {
     ? items.map(cardHTML).join('')
     : '<div class="center" style="grid-column:1/-1"><div class="center-icon">🔍</div><p>No items in this category.</p></div>';
   if (shopPaypalId) items.forEach(item => mountButton(item, shopCurrency));
-  else grid.querySelectorAll('.pp-wrap').forEach(el => { el.innerHTML = '<div class="no-paypal">Contact us to purchase</div>'; });
+  else grid.querySelectorAll('.pp-wrap,.pp-locked').forEach(el => {
+    el.style.display = 'none';
+    el.closest('.card-body').insertAdjacentHTML('beforeend','<div class="no-paypal">Contact us to purchase</div>');
+  });
 }
 
 function filterCategory(cat, btnEl) {
@@ -139,6 +223,11 @@ function filterCategory(cat, btnEl) {
   btnEl.classList.add('active');
   const filtered = cat === '' ? allVisible : allVisible.filter(i => i.category === cat);
   renderGrid(filtered);
+  // re-apply guest state
+  if (guestName) {
+    document.querySelectorAll('.pp-locked').forEach(el => el.style.display='none');
+    document.querySelectorAll('.pp-wrap').forEach(el => el.style.display='block');
+  }
 }
 
 async function init() {
@@ -165,6 +254,7 @@ async function init() {
     app.innerHTML = `
       <h1 class="shop-heading">Additional Services</h1>
       <p class="shop-sub">Enhance your stay with our premium add-on services.</p>
+      ${paypalClientId ? guestInfoHTML() : ''}
       ${catBar}
       <div class="grid" id="shop-grid"></div>`;
 

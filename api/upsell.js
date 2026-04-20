@@ -51,13 +51,56 @@ module.exports = async function handler(req, res) {
   }
 
   if (action === 'save-settings' && req.method === 'POST') {
-    const { paypalClientId, currency, categories } = req.body;
+    const { paypalClientId, currency, categories, feePct, feeFixed } = req.body;
     await Promise.all([
       redis(['SET', 'upsell:paypal', paypalClientId || '']),
       redis(['SET', 'upsell:currency', currency || 'USD']),
-      redis(['SET', 'upsell:categories', JSON.stringify(categories || [])])
+      redis(['SET', 'upsell:categories', JSON.stringify(categories || [])]),
+      redis(['SET', 'upsell:fee', JSON.stringify({ pct: feePct ?? 3.49, fixed: feeFixed ?? 0.49 })])
     ]);
     return res.status(200).json({ success: true });
+  }
+
+  // ── save-order (public — called from customer-facing shop) ──
+  if (action === 'save-order' && req.method === 'POST') {
+    const { paypalOrderId, itemId, itemName, amount, currency, customerName, customerWhatsapp } = req.body;
+    if (!paypalOrderId || !amount) return res.status(400).json({ error: 'missing fields' });
+    const id = `ord_${crypto.randomBytes(5).toString('hex')}`;
+    const order = JSON.stringify({
+      id, paypalOrderId,
+      itemId: itemId || '', itemName: itemName || '',
+      amount: parseFloat(amount), currency: currency || 'USD',
+      customerName: customerName || '', customerWhatsapp: customerWhatsapp || '',
+      paidAt: new Date().toISOString()
+    });
+    await redis(['LPUSH', 'upsell:orders', order]);
+    await redis(['LTRIM', 'upsell:orders', 0, 499]);
+    return res.status(200).json({ ok: true, id });
+  }
+
+  // ── list-orders (admin auth required) ──
+  if (action === 'list-orders' && req.method === 'GET') {
+    if (!verifyToken(req.headers['authorization']?.replace('Bearer ', '')))
+      return res.status(401).json({ error: '인증 필요' });
+    const [raws, feeRaw] = await Promise.all([
+      redis(['LRANGE', 'upsell:orders', '0', '199']),
+      redis(['GET', 'upsell:fee'])
+    ]);
+    const orders = (raws || []).map(r => { try { return JSON.parse(r); } catch { return null; } }).filter(Boolean);
+    const fee = feeRaw ? JSON.parse(feeRaw) : { pct: 3.49, fixed: 0.49 };
+    return res.status(200).json({ orders, fee });
+  }
+
+  // ── delete-order (admin auth required) ──
+  if (action === 'delete-order' && req.method === 'POST') {
+    if (!verifyToken(req.headers['authorization']?.replace('Bearer ', '')))
+      return res.status(401).json({ error: '인증 필요' });
+    const { id } = req.body;
+    const raws = await redis(['LRANGE', 'upsell:orders', '0', '499']);
+    const kept = (raws || []).filter(r => { try { return JSON.parse(r).id !== id; } catch { return true; } });
+    await redis(['DEL', 'upsell:orders']);
+    if (kept.length) await redis(['RPUSH', 'upsell:orders', ...kept]);
+    return res.status(200).json({ ok: true });
   }
 
   return res.status(400).json({ error: '잘못된 action' });

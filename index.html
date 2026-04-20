@@ -1431,6 +1431,33 @@
       </div>
       <div id="upsell-items-list"></div>
     </div>
+
+    <!-- 구매 내역 -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">
+        📦 구매 내역
+        <span id="upsell-order-cnt" class="badge" style="margin-left:4px">0건</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+          <div style="font-size:.78rem;color:var(--gray-400)" id="upsell-order-updated"></div>
+          <button onclick="loadUpsellOrders(true)" style="padding:5px 13px;background:var(--gray-100);border:none;border-radius:7px;font-size:.8rem;font-weight:600;color:var(--gray-600);cursor:pointer;display:flex;align-items:center;gap:5px">🔄 새로고침</button>
+        </div>
+      </div>
+      <!-- 수수료 설정 -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;background:var(--gray-50);border-radius:10px;padding:10px 14px;flex-wrap:wrap">
+        <span style="font-size:.8rem;font-weight:600;color:var(--gray-600)">PayPal 수수료</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input id="upsell-fee-pct" type="number" step="0.01" min="0" max="10" value="3.49" style="width:70px;padding:5px 8px;border:1px solid var(--gray-200);border-radius:7px;font-size:.84rem;outline:none;text-align:right">
+          <span style="font-size:.82rem;color:var(--gray-500)">%  +</span>
+          <input id="upsell-fee-fixed" type="number" step="0.01" min="0" value="0.49" style="width:64px;padding:5px 8px;border:1px solid var(--gray-200);border-radius:7px;font-size:.84rem;outline:none;text-align:right">
+          <span style="font-size:.82rem;color:var(--gray-500)">고정</span>
+          <button onclick="applyUpsellFee()" style="padding:5px 12px;background:var(--primary);color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:600;cursor:pointer">적용</button>
+        </div>
+        <span style="font-size:.74rem;color:var(--gray-400);margin-left:4px">* 기본값: PayPal 국제 표준 3.49% + $0.49</span>
+      </div>
+      <div id="upsell-orders-wrap">
+        <div style="text-align:center;padding:32px;color:var(--gray-400);font-size:.88rem">구매 내역을 불러오는 중...</div>
+      </div>
+    </div>
   </div>
 
   <!-- 삭제 확인 팝업 -->
@@ -2933,6 +2960,14 @@ function switchTab(name,el){
   if(name==='deposit'&&!depositLoaded){loadDepositTab();}
   if(name==='sales'&&!salesLoaded){loadSales();}
   if(name==='project'){kbLoadProjects();}
+  if(name==='upsell'){
+    loadUpsellItems();
+    loadUpsellOrders();
+    if(upsellOrderInterval) clearInterval(upsellOrderInterval);
+    upsellOrderInterval = setInterval(()=>loadUpsellOrders(), 60000);
+  } else {
+    if(upsellOrderInterval){ clearInterval(upsellOrderInterval); upsellOrderInterval=null; }
+  }
   if(name==='upsell'&&!upsellLoaded){loadUpsell();}
   if(name==='meetings'&&!mtgLoaded){loadMeetings();}
   if(name==='draft'){loadDraftRules();}
@@ -4883,6 +4918,122 @@ document.addEventListener('click',e=>{
   const cdp=document.getElementById('sales-country-dd');
   if(cdp.style.display!=='none'&&!cdp.contains(e.target)&&!e.target.closest('[onclick*="sPickCountry"]')){cdp.style.display='none';_countryRowId2=null;}
 });
+
+/* ── Upsell Orders ── */
+let upsellOrders = [], upsellFee = { pct: 3.49, fixed: 0.49 }, upsellOrderInterval = null;
+
+async function loadUpsellOrders(manual = false) {
+  const token = localStorage.getItem('hik_token');
+  if (!token) return;
+  try {
+    const r = await fetch('/api/upsell?action=list-orders', { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!r.ok) return;
+    const d = await r.json();
+    upsellOrders = d.orders || [];
+    upsellFee = d.fee || { pct: 3.49, fixed: 0.49 };
+    document.getElementById('upsell-fee-pct').value = upsellFee.pct;
+    document.getElementById('upsell-fee-fixed').value = upsellFee.fixed;
+    renderUpsellOrders();
+    document.getElementById('upsell-order-updated').textContent = '업데이트: ' + new Date().toLocaleTimeString('ko-KR');
+    if (manual) {
+      const btn = document.querySelector('[onclick="loadUpsellOrders(true)"]');
+      if (btn) { btn.textContent = '✓ 완료'; setTimeout(() => { btn.textContent = '🔄 새로고침'; }, 1500); }
+    }
+  } catch(e) {}
+}
+
+function applyUpsellFee() {
+  upsellFee.pct = parseFloat(document.getElementById('upsell-fee-pct').value) || 3.49;
+  upsellFee.fixed = parseFloat(document.getElementById('upsell-fee-fixed').value) || 0.49;
+  renderUpsellOrders();
+}
+
+const PRICE_SYM = { USD:'$', EUR:'€', GBP:'£', KRW:'₩', JPY:'¥', AUD:'A$', CAD:'C$' };
+function fmtAmt(n, cur) {
+  const sym = PRICE_SYM[cur] || (cur + ' ');
+  return sym + parseFloat(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderUpsellOrders() {
+  const wrap = document.getElementById('upsell-orders-wrap');
+  const cnt = document.getElementById('upsell-order-cnt');
+  if (!wrap) return;
+  cnt.textContent = upsellOrders.length + '건';
+
+  if (!upsellOrders.length) {
+    wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400);font-size:.88rem">📭 아직 구매 내역이 없습니다.</div>';
+    return;
+  }
+
+  // summary row
+  const totalGross = upsellOrders.reduce((s, o) => s + (o.amount || 0), 0);
+  const totalFee = upsellOrders.reduce((s, o) => {
+    const fee = o.amount * (upsellFee.pct / 100) + upsellFee.fixed;
+    return s + fee;
+  }, 0);
+  const totalNet = totalGross - totalFee;
+  const cur = upsellOrders[0]?.currency || 'USD';
+
+  const rows = upsellOrders.map(o => {
+    const fee = o.amount * (upsellFee.pct / 100) + upsellFee.fixed;
+    const net = o.amount - fee;
+    const dt = new Date(o.paidAt);
+    const dateStr = dt.toLocaleDateString('ko-KR') + ' ' + dt.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' });
+    return `<tr>
+      <td style="padding:11px 12px;font-size:.82rem;color:var(--gray-500);white-space:nowrap">${dateStr}</td>
+      <td style="padding:11px 12px;font-size:.85rem;font-weight:600;color:var(--gray-800)">${o.customerName || '—'}</td>
+      <td style="padding:11px 12px;font-size:.82rem;color:var(--gray-600)">${o.customerWhatsapp || '—'}</td>
+      <td style="padding:11px 12px;font-size:.82rem;color:var(--gray-700)">${o.itemName || '—'}</td>
+      <td style="padding:11px 12px;font-size:.88rem;font-weight:700;color:var(--gray-800);text-align:right">${fmtAmt(o.amount, o.currency)}</td>
+      <td style="padding:11px 12px;font-size:.82rem;color:#dc2626;text-align:right">−${fmtAmt(fee, o.currency)}</td>
+      <td style="padding:11px 12px;font-size:.88rem;font-weight:700;color:#16a34a;text-align:right">${fmtAmt(net, o.currency)}</td>
+      <td style="padding:11px 12px;text-align:center">
+        <button onclick="deleteUpsellOrder('${o.id}')" style="padding:3px 9px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer">삭제</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">
+      <div style="background:var(--gray-50);border-radius:10px;padding:14px 16px;border:1px solid var(--gray-200)">
+        <div style="font-size:.72rem;font-weight:700;color:var(--gray-400);margin-bottom:4px;text-transform:uppercase">총 결제금액</div>
+        <div style="font-size:1.3rem;font-weight:800;color:var(--gray-800)">${fmtAmt(totalGross, cur)}</div>
+      </div>
+      <div style="background:#fff1f2;border-radius:10px;padding:14px 16px;border:1px solid #fecaca">
+        <div style="font-size:.72rem;font-weight:700;color:#f87171;margin-bottom:4px;text-transform:uppercase">PayPal 수수료 (예상)</div>
+        <div style="font-size:1.3rem;font-weight:800;color:#dc2626">−${fmtAmt(totalFee, cur)}</div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:10px;padding:14px 16px;border:1px solid #bbf7d0">
+        <div style="font-size:.72rem;font-weight:700;color:#4ade80;margin-bottom:4px;text-transform:uppercase">순 수령액 (예상)</div>
+        <div style="font-size:1.3rem;font-weight:800;color:#16a34a">${fmtAmt(totalNet, cur)}</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+        <thead>
+          <tr style="background:var(--gray-50);border-bottom:2px solid var(--gray-200)">
+            <th style="padding:10px 12px;text-align:left;font-size:.78rem;color:var(--gray-500);font-weight:700">결제일시</th>
+            <th style="padding:10px 12px;text-align:left;font-size:.78rem;color:var(--gray-500);font-weight:700">고객명</th>
+            <th style="padding:10px 12px;text-align:left;font-size:.78rem;color:var(--gray-500);font-weight:700">WhatsApp</th>
+            <th style="padding:10px 12px;text-align:left;font-size:.78rem;color:var(--gray-500);font-weight:700">아이템</th>
+            <th style="padding:10px 12px;text-align:right;font-size:.78rem;color:var(--gray-500);font-weight:700">결제금액</th>
+            <th style="padding:10px 12px;text-align:right;font-size:.78rem;color:var(--gray-500);font-weight:700">수수료</th>
+            <th style="padding:10px 12px;text-align:right;font-size:.78rem;color:var(--gray-500);font-weight:700">순수령액</th>
+            <th style="padding:10px 12px;text-align:center;font-size:.78rem;color:var(--gray-500);font-weight:700"></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+async function deleteUpsellOrder(id) {
+  if (!confirm('이 구매 내역을 삭제하시겠습니까?')) return;
+  const token = localStorage.getItem('hik_token');
+  await fetch('/api/upsell?action=delete-order', { method:'POST', headers:{'content-type':'application/json','Authorization':`Bearer ${token}`}, body: JSON.stringify({ id }) });
+  upsellOrders = upsellOrders.filter(o => o.id !== id);
+  renderUpsellOrders();
+}
 
 function downloadNotion() {
   if (!cleaningReservations.length) { alert('데이터를 먼저 로드해주세요.'); return; }
