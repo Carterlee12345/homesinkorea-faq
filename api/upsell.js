@@ -75,6 +75,28 @@ module.exports = async function handler(req, res) {
     });
     await redis(['LPUSH', 'upsell:orders', order]);
     await redis(['LTRIM', 'upsell:orders', 0, 499]);
+
+    // push purchase notification to all admin users
+    const allEmails = await redis(['SMEMBERS', 'users']);
+    if (allEmails && allEmails.length) {
+      const userRaws = await Promise.all(allEmails.map(e => redis(['GET', `user:${e}`])));
+      const admins = userRaws.filter(Boolean).map(r => JSON.parse(r)).filter(u => u.isAdmin && u.approved);
+      const notif = JSON.stringify({
+        id: `notif_${crypto.randomBytes(5).toString('hex')}`,
+        type: 'purchase',
+        itemName: itemName || '(아이템 없음)',
+        amount: parseFloat(amount),
+        currency: currency || 'USD',
+        customerName: customerName || '이름 없음',
+        customerWhatsapp: customerWhatsapp || '',
+        createdAt: new Date().toISOString()
+      });
+      await Promise.all(admins.map(async u => {
+        await redis(['LPUSH', `notifications:${u.email}`, notif]);
+        await redis(['LTRIM', `notifications:${u.email}`, '0', '49']);
+      }));
+    }
+
     return res.status(200).json({ ok: true, id });
   }
 

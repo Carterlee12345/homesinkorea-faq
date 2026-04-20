@@ -5550,12 +5550,19 @@ async function kbPollNotifs() {
 
 function kbShowBanner(notif) {
   const banner = document.getElementById('kb-notif-banner');
-  document.getElementById('kb-notif-title').textContent = `${notif.fromNickname}님이 회원님을 멘션했습니다`;
-  document.getElementById('kb-notif-body').textContent = `📋 ${notif.projectTitle} — "${notif.commentText}"`;
+  if (notif.type === 'purchase') {
+    const sym = { USD:'$', EUR:'€', GBP:'£', KRW:'₩', JPY:'¥', AUD:'A$', CAD:'C$' };
+    const amtStr = (sym[notif.currency] || '') + parseFloat(notif.amount).toFixed(2);
+    document.getElementById('kb-notif-title').textContent = `💳 새 구매 완료 — ${amtStr}`;
+    document.getElementById('kb-notif-body').textContent = `${notif.itemName} · ${notif.customerName}${notif.customerWhatsapp ? ' · ' + notif.customerWhatsapp : ''}`;
+  } else {
+    document.getElementById('kb-notif-title').textContent = `${notif.fromNickname}님이 회원님을 멘션했습니다`;
+    document.getElementById('kb-notif-body').textContent = `📋 ${notif.projectTitle} — "${notif.commentText}"`;
+  }
   banner.style.display = 'flex';
   banner.classList.add('show');
   clearTimeout(kbBannerTimer);
-  kbBannerTimer = setTimeout(kbDismissBanner, 6000);
+  kbBannerTimer = setTimeout(kbDismissBanner, 8000);
 }
 let kbBannerTimer = null;
 
