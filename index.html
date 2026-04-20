@@ -2961,14 +2961,13 @@ function switchTab(name,el){
   if(name==='sales'&&!salesLoaded){loadSales();}
   if(name==='project'){kbLoadProjects();}
   if(name==='upsell'){
-    loadUpsellItems();
+    if(!upsellLoaded){loadUpsell();}
     loadUpsellOrders();
     if(upsellOrderInterval) clearInterval(upsellOrderInterval);
     upsellOrderInterval = setInterval(()=>loadUpsellOrders(), 60000);
   } else {
     if(upsellOrderInterval){ clearInterval(upsellOrderInterval); upsellOrderInterval=null; }
   }
-  if(name==='upsell'&&!upsellLoaded){loadUpsell();}
   if(name==='meetings'&&!mtgLoaded){loadMeetings();}
   if(name==='draft'){loadDraftRules();}
   if(name==='review'&&!reviewLoaded){loadReview();}
