@@ -1293,6 +1293,7 @@
             <div id="mtg-detail-meta" style="font-size:.8rem;color:var(--gray-500);display:flex;flex-wrap:wrap;gap:10px"></div>
           </div>
           <button id="mtg-edit-btn" onclick="mtgOpenEditorFromDetail()" style="padding:6px 14px;background:var(--gray-100);border:none;border-radius:8px;font-size:.82rem;cursor:pointer;font-weight:600">✏️ 수정</button>
+          <button onclick="mtgDeleteCurrent()" style="padding:6px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;font-weight:600">🗑 삭제</button>
         </div>
         <div id="mtg-detail-content" style="font-size:.92rem;line-height:1.8;color:var(--gray-800);margin-bottom:20px;white-space:pre-wrap;border-bottom:1px solid var(--gray-100);padding-bottom:20px"></div>
         <div id="mtg-detail-attachments" style="margin-bottom:20px"></div>
@@ -4106,6 +4107,7 @@ function renderMtgList(){
             <span>🕐 ${new Date(m.createdAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})}</span>
           </div>
         </div>
+        <button onclick="event.stopPropagation();mtgDelete('${m.id}')" style="padding:5px 12px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:.78rem;font-weight:600;cursor:pointer;flex-shrink:0;align-self:flex-start">🗑 삭제</button>
       </div>
     </div>`).join('');
 }
@@ -4256,6 +4258,20 @@ async function mtgOpenDetail(id){
 function mtgOpenEditorFromDetail(){mtgOpenEditor(mtgCurrentId);}
 
 function mtgCloseDetail(){renderMtgList();mtgShowView('mtg-list-view');}
+
+async function mtgDelete(id){
+  if(!confirm('이 회의록을 삭제하시겠습니까?')) return;
+  const token=localStorage.getItem('hik_token');
+  const r=await fetch('/api/meetings?action=delete',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({id})});
+  if(!r.ok){alert('삭제 실패'); return;}
+  mtgList=mtgList.filter(m=>m.id!==id);
+  renderMtgList();
+}
+
+async function mtgDeleteCurrent(){
+  if(mtgCurrentId) await mtgDelete(mtgCurrentId);
+  if(mtgList.every(m=>m.id!==mtgCurrentId)) mtgShowView('mtg-list-view');
+}
 
 function renderMtgDetail(){
   const m=mtgDetailData;
