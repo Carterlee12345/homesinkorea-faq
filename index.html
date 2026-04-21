@@ -3920,12 +3920,18 @@ function renderSalesKPI(){
   const total=salesRows.length;
   const working=salesRows.filter(r=>r.status==='working on').length;
   const notSale=salesRows.filter(r=>r.status==='not for sale').length;
-  const totalRent=salesRows.reduce((s,r)=>s+(parseFloat(r.rent)||0),0);
+  const totalRent=salesRows.reduce((s,r)=>{
+    const rent=parseFloat(r.rent)||0;
+    const m=(r.contractPeriod||'').match(/(\d+)/);
+    const months=m?parseInt(m[1]):1;
+    return s+rent*months;
+  },0);
+  const rentDisp=totalRent>=10000?`${(totalRent/10000).toFixed(1)}억`:(totalRent?totalRent.toLocaleString()+'만':'—');
   g.innerHTML=[
     {v:total,l:'전체 유닛',c:'var(--primary)'},
     {v:working,l:'Working on',c:'#d97706'},
     {v:notSale,l:'Not for sale',c:'#6b7280'},
-    {v:totalRent?totalRent.toLocaleString()+'만':'—',l:'월세 합계',c:'#16a34a'}
+    {v:rentDisp,l:'예상 총매출 (월세×기간)',c:'#16a34a'}
   ].map(k=>`<div class="kpi" style="border-left-color:${k.c}"><div class="kpi-val" style="color:${k.c}">${k.v}</div><div class="kpi-lbl">${k.l}</div></div>`).join('');
 }
 
