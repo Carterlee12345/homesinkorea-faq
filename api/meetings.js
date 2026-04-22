@@ -31,7 +31,9 @@ async function getApprovedUsers() {
 }
 
 async function sendSlackMention(slackUserId, mentionedBy, meetingTitle, commentText) {
-  const webhook = process.env.SLACK_MEETINGS_WEBHOOK;
+  let webhook = null;
+  try { webhook = (JSON.parse(process.env.SLACK_WEBHOOKS || '{}')).meetings || null; }
+  catch { webhook = null; }
   if (!webhook || !slackUserId) return;
   const text = `<@${slackUserId}> 님, *${mentionedBy}*님이 회의록 *"${meetingTitle}"*에서 태그했습니다.\n\n> ${commentText.slice(0, 200)}`;
   await fetch(webhook, {

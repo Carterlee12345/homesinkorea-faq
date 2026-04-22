@@ -1,6 +1,10 @@
 const crypto = require('crypto');
 
-const SLACK_SALES_WEBHOOK = process.env.SLACK_SALES_WEBHOOK;
+function slackWebhook(key) {
+  try { return (JSON.parse(process.env.SLACK_WEBHOOKS || '{}'))[key] || null; }
+  catch { return null; }
+}
+const SLACK_SALES_WEBHOOK = slackWebhook('sales');
 
 async function redis(cmd) {
   const res = await fetch(process.env.UPSTASH_URL, {
