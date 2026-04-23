@@ -52,7 +52,7 @@ async function slackPost(endpoint, body) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+      'Authorization': `Bearer ${process.env.SLACK_CX_BOT?.split('|')[0]}`,
     },
     body: JSON.stringify(body),
   });
@@ -139,7 +139,7 @@ module.exports = async function handler(req, res) {
     // 문의 없을 때
     if (filtered.length === 0) {
       await slackPost('chat.postMessage', {
-        channel: process.env.SLACK_CHANNEL_ID,
+        channel: process.env.SLACK_CX_BOT?.split('|')[1],
         text: `📋 ${dateStr} 오전 문의 정리 — 분류된 문의 없음`,
         blocks: [
           { type: 'header', text: { type: 'plain_text', text: `📋 ${dateStr} 오전 문의 정리`, emoji: true } },
@@ -182,7 +182,7 @@ module.exports = async function handler(req, res) {
     }
 
     const slackRes = await slackPost('chat.postMessage', {
-      channel: process.env.SLACK_CHANNEL_ID,
+      channel: process.env.SLACK_CX_BOT?.split('|')[1],
       text: `📋 ${dateStr} 오전 문의 정리 — ${filtered.length}건`,
       blocks,
     });

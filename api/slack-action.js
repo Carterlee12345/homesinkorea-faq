@@ -26,7 +26,7 @@ async function slackPost(endpoint, body) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.SLACK_BOT_TOKEN}`,
+      'Authorization': `Bearer ${process.env.SLACK_CX_BOT?.split('|')[0]}`,
     },
     body: JSON.stringify(body),
   });
