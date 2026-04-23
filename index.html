@@ -5643,286 +5643,311 @@ function kbTimeAgo(iso) {
 
 <!-- ── 업다운 게임 ── -->
 <style>
-#tab-updown { max-width: 560px; margin: 0 auto; }
-.ud-wrap { text-align: center; padding: 28px 24px; }
-.ud-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
-.ud-sub { font-size: .85rem; color: var(--gray-500); margin-bottom: 28px; }
+#tab-updown { max-width: 680px; margin: 0 auto; }
+.ud-casino { background: #1a1a2e; border-radius: 20px; padding: 28px 20px 24px; text-align: center; }
+.ud-casino-title { font-size: 1.4rem; font-weight: 900; color: #f5c842; letter-spacing: 2px; margin-bottom: 4px; text-shadow: 0 0 12px rgba(245,200,66,.5); }
+.ud-casino-sub { font-size: .78rem; color: #8888aa; margin-bottom: 20px; }
 
-/* Name screen */
-.ud-name-row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
-.ud-name-input { padding: 11px 16px; border: 2px solid var(--gray-200); border-radius: 12px; font-size: .95rem; font-family: inherit; width: 200px; outline: none; transition: border-color .2s; }
-.ud-name-input:focus { border-color: var(--primary); }
-.ud-start-btn { padding: 11px 22px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: .95rem; font-weight: 700; cursor: pointer; transition: background .2s; font-family: inherit; }
-.ud-start-btn:hover { background: #1d4ed8; }
+/* 점수판 */
+.ud-scoreboard { display: flex; justify-content: center; gap: 6px; margin-bottom: 18px; }
+.ud-digit { width: 44px; height: 56px; background: #0d0d1a; border: 2px solid #333355; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; color: #f5c842; font-family: 'Courier New', monospace; box-shadow: inset 0 2px 8px rgba(0,0,0,.5); }
 
-/* Card */
-.ud-card-scene { perspective: 800px; width: 140px; height: 200px; margin: 0 auto 24px; cursor: default; }
-.ud-card-flip { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform .5s cubic-bezier(.4,0,.2,1); }
-.ud-card-flip.flipped { transform: rotateY(180deg); }
-.ud-card-face, .ud-card-back { position: absolute; inset: 0; border-radius: 14px; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 24px rgba(0,0,0,.14); }
-.ud-card-back { background: linear-gradient(135deg,#1e3a8a,#2563eb); }
-.ud-card-back::after { content: '🂠'; font-size: 5rem; }
-.ud-card-face { background: #fff; border: 2px solid #f0f0f0; flex-direction: column; transform: rotateY(180deg); }
-.ud-card-rank { font-size: 2.8rem; font-weight: 900; line-height: 1; }
-.ud-card-suit { font-size: 2.2rem; line-height: 1.1; }
-.ud-card-face.red .ud-card-rank, .ud-card-face.red .ud-card-suit { color: #dc2626; }
-.ud-card-face.black .ud-card-rank, .ud-card-face.black .ud-card-suit { color: #111; }
+/* 숫자 패널 보드 */
+.ud-board-wrap { background: #12122a; border: 3px solid #2a2a4a; border-radius: 14px; padding: 14px 10px; margin-bottom: 18px; }
+.ud-panels { display: flex; gap: 6px; justify-content: center; flex-wrap: nowrap; }
+.ud-panel { width: 52px; height: 64px; background: #f0e8d0; border: 3px solid #8a7a50; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 900; color: #1a1a1a; cursor: default; transition: all .08s; box-shadow: 0 3px 0 #6a5a30, inset 0 1px 3px rgba(255,255,255,.4); position: relative; }
+.ud-panel.active { background: #f5c842; border-color: #d4a017; color: #1a1000; box-shadow: 0 0 18px rgba(245,200,66,.9), 0 0 40px rgba(245,200,66,.4), 0 3px 0 #b08010; transform: translateY(-3px); }
+.ud-panel.result-win { background: #22c55e; border-color: #16a34a; color: #fff; box-shadow: 0 0 18px rgba(34,197,94,.9), 0 3px 0 #15803d; transform: translateY(-3px); }
+.ud-panel.result-lose { background: #ef4444; border-color: #dc2626; color: #fff; box-shadow: 0 0 18px rgba(239,68,68,.9), 0 3px 0 #b91c1c; transform: translateY(-3px); }
 
-/* Streak & info */
-.ud-streak { font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; }
-.ud-streak span { background: #fef9c3; color: #92400e; padding: 4px 14px; border-radius: 99px; }
+/* 현재 숫자 표시 */
+.ud-current-label { font-size: .7rem; color: #6666aa; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+.ud-current-num { font-size: 3.5rem; font-weight: 900; color: #f5c842; text-shadow: 0 0 20px rgba(245,200,66,.7); line-height: 1; margin-bottom: 6px; font-family: 'Courier New', monospace; }
 
-/* Buttons */
-.ud-btns { display: flex; gap: 16px; justify-content: center; margin-bottom: 20px; }
-.ud-btn { flex: 1; max-width: 160px; padding: 18px 0; border: none; border-radius: 16px; font-size: 1.1rem; font-weight: 800; cursor: pointer; transition: transform .12s, box-shadow .12s; font-family: inherit; letter-spacing: -.2px; }
-.ud-btn:active { transform: scale(.95); }
-.ud-btn-up { background: #16a34a; color: #fff; box-shadow: 0 4px 14px rgba(22,163,74,.3); }
-.ud-btn-up:hover { background: #15803d; box-shadow: 0 6px 20px rgba(22,163,74,.4); }
-.ud-btn-down { background: #dc2626; color: #fff; box-shadow: 0 4px 14px rgba(220,38,38,.3); }
-.ud-btn-down:hover { background: #b91c1c; box-shadow: 0 6px 20px rgba(220,38,38,.4); }
-.ud-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+/* 결과 메시지 */
+.ud-result-msg { font-size: 1rem; font-weight: 700; min-height: 28px; margin-bottom: 12px; }
+.ud-result-msg.win { color: #4ade80; }
+.ud-result-msg.lose { color: #f87171; }
 
-/* Result overlay */
-.ud-result { font-size: 1.05rem; font-weight: 700; min-height: 36px; margin-bottom: 8px; }
-.ud-result.win { color: #16a34a; }
-.ud-result.lose { color: #dc2626; }
+/* 버튼 */
+.ud-btns { display: flex; gap: 12px; justify-content: center; margin-bottom: 0; }
+.ud-btn { flex: 1; max-width: 180px; padding: 16px 0; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 900; cursor: pointer; font-family: inherit; letter-spacing: 1px; transition: transform .1s, box-shadow .1s; }
+.ud-btn:active:not(:disabled) { transform: scale(.96) translateY(2px); }
+.ud-btn:disabled { opacity: .35; cursor: not-allowed; }
+.ud-btn-up { background: linear-gradient(180deg,#22c55e,#16a34a); color: #fff; box-shadow: 0 5px 0 #166534, 0 6px 16px rgba(22,163,74,.4); }
+.ud-btn-up:hover:not(:disabled) { box-shadow: 0 6px 0 #166534, 0 8px 20px rgba(22,163,74,.5); transform: translateY(-1px); }
+.ud-btn-down { background: linear-gradient(180deg,#ef4444,#dc2626); color: #fff; box-shadow: 0 5px 0 #991b1b, 0 6px 16px rgba(220,38,38,.4); }
+.ud-btn-down:hover:not(:disabled) { box-shadow: 0 6px 0 #991b1b, 0 8px 20px rgba(220,38,38,.5); transform: translateY(-1px); }
 
-/* Game over */
-.ud-over { background: #f9fafb; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-.ud-over-score { font-size: 2.5rem; font-weight: 900; color: var(--primary); }
-.ud-over-label { font-size: .85rem; color: var(--gray-500); margin-bottom: 12px; }
-.ud-restart { padding: 11px 28px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: .95rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 4px; }
-.ud-restart:hover { background: #1d4ed8; }
+/* 이름 입력 */
+.ud-name-screen { padding: 12px 0; }
+.ud-name-row { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+.ud-name-input { padding: 11px 16px; background: #0d0d1a; border: 2px solid #333355; border-radius: 10px; font-size: .95rem; font-family: inherit; width: 180px; outline: none; color: #fff; transition: border-color .2s; }
+.ud-name-input:focus { border-color: #f5c842; }
+.ud-name-input::placeholder { color: #555577; }
+.ud-start-btn { padding: 11px 22px; background: #f5c842; color: #1a1000; border: none; border-radius: 10px; font-size: .95rem; font-weight: 900; cursor: pointer; font-family: inherit; }
+.ud-start-btn:hover { background: #ffd700; }
 
-/* Leaderboard */
-.ud-board-title { font-size: .8rem; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: .08em; margin: 20px 0 10px; }
-.ud-board-list { display: flex; flex-direction: column; gap: 6px; }
-.ud-board-row { display: flex; align-items: center; gap: 10px; background: #f9fafb; border-radius: 10px; padding: 9px 14px; font-size: .88rem; }
-.ud-board-rank { width: 24px; font-weight: 800; color: var(--gray-400); }
-.ud-board-rank.gold { color: #f59e0b; }
-.ud-board-rank.silver { color: #94a3b8; }
-.ud-board-rank.bronze { color: #b45309; }
-.ud-board-name { flex: 1; font-weight: 600; text-align: left; }
-.ud-board-score { font-weight: 800; color: var(--primary); }
-.ud-board-empty { color: var(--gray-400); font-size: .85rem; padding: 12px; }
-.ud-clear-btn { margin-top: 10px; padding: 6px 14px; background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; font-size: .78rem; font-weight: 600; cursor: pointer; font-family: inherit; }
-.ud-clear-btn:hover { background: #fecaca; }
+/* 게임오버 */
+.ud-over-box { background: #0d0d1a; border: 2px solid #333355; border-radius: 14px; padding: 20px; margin-bottom: 4px; }
+.ud-over-score { font-size: 3rem; font-weight: 900; color: #f5c842; font-family: 'Courier New', monospace; }
+.ud-over-label { color: #8888aa; font-size: .85rem; margin-bottom: 6px; }
+.ud-over-msg { color: #ccc; font-size: .9rem; margin-bottom: 12px; }
+.ud-restart { padding: 11px 28px; background: #f5c842; color: #1a1000; border: none; border-radius: 10px; font-size: .95rem; font-weight: 900; cursor: pointer; font-family: inherit; }
+.ud-restart:hover { background: #ffd700; }
+
+/* 리더보드 */
+.ud-lb-wrap { margin-top: 20px; }
+.ud-lb-title { font-size: .75rem; font-weight: 700; color: #555577; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
+.ud-lb-list { display: flex; flex-direction: column; gap: 5px; }
+.ud-lb-row { display: flex; align-items: center; gap: 10px; background: #0d0d1a; border: 1px solid #222240; border-radius: 9px; padding: 8px 14px; font-size: .86rem; }
+.ud-lb-rank { width: 26px; font-weight: 900; }
+.ud-lb-name { flex: 1; font-weight: 600; color: #ccc; text-align: left; }
+.ud-lb-score { font-weight: 900; color: #f5c842; }
+.ud-lb-empty { color: #444466; font-size: .85rem; padding: 10px; }
+.ud-lb-clear { margin-top: 8px; padding: 5px 12px; background: transparent; color: #555577; border: 1px solid #333355; border-radius: 7px; font-size: .75rem; cursor: pointer; font-family: inherit; }
+.ud-lb-clear:hover { color: #f87171; border-color: #f87171; }
+
+@media(max-width:480px){
+  .ud-panel { width: 34px; height: 46px; font-size: 1.2rem; }
+  .ud-current-num { font-size: 2.8rem; }
+}
 </style>
 
 <div id="tab-updown" class="section">
-<div class="card ud-wrap">
-  <div class="ud-title">🃏 업다운</div>
-  <div class="ud-sub">다음 카드가 높으면 업 ↑, 낮으면 다운 ↓ — 몇 연속 맞출 수 있을까요?</div>
+<div class="ud-casino">
+  <div class="ud-casino-title">🎰 업 다 운</div>
+  <div class="ud-casino-sub">다음 숫자가 높으면 업 ↑ · 낮으면 다운 ↓</div>
 
-  <!-- 이름 입력 화면 -->
-  <div id="ud-name-screen">
-    <div style="font-size:.9rem;color:var(--gray-600);margin-bottom:12px;">이름을 입력하고 시작하세요</div>
+  <!-- 점수판 -->
+  <div class="ud-scoreboard">
+    <div class="ud-digit" id="ud-d2">0</div>
+    <div class="ud-digit" id="ud-d1">0</div>
+    <div class="ud-digit" id="ud-d0">0</div>
+  </div>
+
+  <!-- 숫자 패널 -->
+  <div class="ud-board-wrap">
+    <div class="ud-panels" id="ud-panels">
+      <div class="ud-panel" id="udp-1">1</div>
+      <div class="ud-panel" id="udp-2">2</div>
+      <div class="ud-panel" id="udp-3">3</div>
+      <div class="ud-panel" id="udp-4">4</div>
+      <div class="ud-panel" id="udp-5">5</div>
+      <div class="ud-panel" id="udp-6">6</div>
+      <div class="ud-panel" id="udp-7">7</div>
+      <div class="ud-panel" id="udp-8">8</div>
+      <div class="ud-panel" id="udp-9">9</div>
+    </div>
+  </div>
+
+  <!-- 이름 입력 -->
+  <div id="ud-name-screen" class="ud-name-screen">
+    <div style="color:#8888aa;font-size:.85rem;">이름을 입력하고 시작하세요</div>
     <div class="ud-name-row">
-      <input class="ud-name-input" id="ud-name-input" placeholder="이름" maxlength="12"
-        onkeydown="if(event.key==='Enter')udStart()">
-      <button class="ud-start-btn" onclick="udStart()">시작 →</button>
+      <input class="ud-name-input" id="ud-name-input" placeholder="이름" maxlength="10" onkeydown="if(event.key==='Enter')udStart()">
+      <button class="ud-start-btn" onclick="udStart()">START</button>
     </div>
   </div>
 
   <!-- 게임 화면 -->
   <div id="ud-game-screen" style="display:none">
-    <div class="ud-streak">🔥 연속 <span id="ud-streak-val">0</span>회</div>
-    <div class="ud-card-scene">
-      <div class="ud-card-flip" id="ud-card-flip">
-        <div class="ud-card-back"></div>
-        <div class="ud-card-face" id="ud-card-face">
-          <div class="ud-card-rank" id="ud-card-rank"></div>
-          <div class="ud-card-suit" id="ud-card-suit"></div>
-        </div>
-      </div>
-    </div>
-    <div class="ud-result" id="ud-result"></div>
+    <div class="ud-current-label">CURRENT NUMBER</div>
+    <div class="ud-current-num" id="ud-current-num">-</div>
+    <div class="ud-result-msg" id="ud-result-msg"></div>
     <div class="ud-btns">
       <button class="ud-btn ud-btn-up" id="ud-btn-up" onclick="udGuess('up')">↑ 업</button>
       <button class="ud-btn ud-btn-down" id="ud-btn-down" onclick="udGuess('down')">↓ 다운</button>
     </div>
   </div>
 
-  <!-- 게임 오버 화면 -->
+  <!-- 게임오버 -->
   <div id="ud-over-screen" style="display:none">
-    <div class="ud-over">
+    <div class="ud-over-box">
       <div class="ud-over-score" id="ud-over-score">0</div>
-      <div class="ud-over-label">연속 정답!</div>
-      <div id="ud-over-msg" style="font-size:.9rem;color:var(--gray-600);margin-bottom:8px;"></div>
-      <button class="ud-restart" onclick="udRestart()">다시 하기</button>
+      <div class="ud-over-label">연속 정답</div>
+      <div class="ud-over-msg" id="ud-over-msg"></div>
+      <button class="ud-restart" onclick="udRestart()">▶ 다시 하기</button>
     </div>
   </div>
 
   <!-- 리더보드 -->
-  <div class="ud-board-title">🏆 팀 리더보드</div>
-  <div class="ud-board-list" id="ud-board-list"></div>
-  <div style="text-align:right">
-    <button class="ud-clear-btn" onclick="udClearBoard()">기록 초기화</button>
+  <div class="ud-lb-wrap">
+    <div class="ud-lb-title">🏆 LEADERBOARD</div>
+    <div class="ud-lb-list" id="ud-lb-list"></div>
+    <div style="text-align:right">
+      <button class="ud-lb-clear" onclick="udClearBoard()">기록 초기화</button>
+    </div>
   </div>
 </div>
 </div>
 
 <script>
 // ── 업다운 게임 ──
-const UD_RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-const UD_SUITS = ['♠','♣','♥','♦'];
-const UD_VALUES = {A:1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13};
-const UD_RED = new Set(['♥','♦']);
+let udCurrent = 0, udStreak = 0, udName = '', udBusy = false;
 
-let udDeck = [], udCurrent = null, udStreak = 0, udName = '', udWaiting = false;
-
-function udShuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+function udHighlight(n, cls = 'active') {
+  for (let i = 1; i <= 9; i++) {
+    const el = document.getElementById('udp-' + i);
+    el.className = 'ud-panel' + (i === n ? ' ' + cls : '');
   }
-  return arr;
 }
 
-function udMakeDeck() {
-  const deck = [];
-  for (const s of UD_SUITS) for (const r of UD_RANKS) deck.push({rank: r, suit: s});
-  return udShuffle(deck);
+function udSetScore(n) {
+  const s = String(n).padStart(3, '0');
+  document.getElementById('ud-d2').textContent = s[0];
+  document.getElementById('ud-d1').textContent = s[1];
+  document.getElementById('ud-d0').textContent = s[2];
 }
 
-function udDrawCard() {
-  if (!udDeck.length) udDeck = udMakeDeck();
-  return udDeck.pop();
-}
-
-function udShowCard(card, flipped = true) {
-  const face = document.getElementById('ud-card-face');
-  document.getElementById('ud-card-rank').textContent = card.rank;
-  document.getElementById('ud-card-suit').textContent = card.suit;
-  face.className = 'ud-card-face ' + (UD_RED.has(card.suit) ? 'red' : 'black');
-  const flip = document.getElementById('ud-card-flip');
-  if (flipped) {
-    flip.classList.add('flipped');
-  } else {
-    flip.classList.remove('flipped');
-    void flip.offsetWidth; // reflow
-    setTimeout(() => flip.classList.add('flipped'), 30);
-  }
+function udSetBtns(on) {
+  document.getElementById('ud-btn-up').disabled = !on;
+  document.getElementById('ud-btn-down').disabled = !on;
 }
 
 function udStart() {
   const name = document.getElementById('ud-name-input').value.trim();
   if (!name) { document.getElementById('ud-name-input').focus(); return; }
   udName = name;
-  udDeck = udMakeDeck();
   udStreak = 0;
-  udCurrent = udDrawCard();
+  udSetScore(0);
+  udCurrent = Math.ceil(Math.random() * 9);
   document.getElementById('ud-name-screen').style.display = 'none';
   document.getElementById('ud-over-screen').style.display = 'none';
   document.getElementById('ud-game-screen').style.display = 'block';
-  document.getElementById('ud-result').textContent = '';
-  document.getElementById('ud-result').className = 'ud-result';
-  document.getElementById('ud-streak-val').textContent = '0';
-  document.getElementById('ud-card-flip').classList.remove('flipped');
-  setTimeout(() => { udShowCard(udCurrent, false); }, 50);
+  document.getElementById('ud-result-msg').textContent = '';
+  document.getElementById('ud-result-msg').className = 'ud-result-msg';
+  document.getElementById('ud-current-num').textContent = udCurrent;
+  udHighlight(udCurrent);
   udSetBtns(true);
+  udBusy = false;
 }
 
 function udRestart() {
-  udDeck = udMakeDeck();
   udStreak = 0;
-  udCurrent = udDrawCard();
+  udSetScore(0);
+  udCurrent = Math.ceil(Math.random() * 9);
   document.getElementById('ud-over-screen').style.display = 'none';
   document.getElementById('ud-game-screen').style.display = 'block';
-  document.getElementById('ud-result').textContent = '';
-  document.getElementById('ud-result').className = 'ud-result';
-  document.getElementById('ud-streak-val').textContent = '0';
-  document.getElementById('ud-card-flip').classList.remove('flipped');
-  setTimeout(() => { udShowCard(udCurrent, false); }, 50);
+  document.getElementById('ud-result-msg').textContent = '';
+  document.getElementById('ud-result-msg').className = 'ud-result-msg';
+  document.getElementById('ud-current-num').textContent = udCurrent;
+  udHighlight(udCurrent);
   udSetBtns(true);
+  udBusy = false;
 }
 
-function udSetBtns(enabled) {
-  document.getElementById('ud-btn-up').disabled = !enabled;
-  document.getElementById('ud-btn-down').disabled = !enabled;
+// 불빛 쓸고 지나가는 애니메이션
+function udAnimate(target) {
+  return new Promise(resolve => {
+    // 현재 위치에서 target까지 최소 1바퀴 + 추가 스텝 계획
+    const extraLoops = 1 + Math.floor(Math.random() * 2); // 1~2 바퀴 추가
+    const path = [];
+    let cur = udCurrent;
+    for (let loop = 0; loop < extraLoops; loop++)
+      for (let i = 0; i < 9; i++) { cur = (cur % 9) + 1; path.push(cur); }
+    while (cur !== target) { cur = (cur % 9) + 1; path.push(cur); }
+
+    // 타이밍: 빠르게 시작 → 끝에서 느려짐
+    const total = path.length;
+    const delays = path.map((_, i) => {
+      const ratio = i / total;
+      if (ratio < 0.5) return 55;
+      if (ratio < 0.75) return 80;
+      if (ratio < 0.88) return 130;
+      if (ratio < 0.95) return 200;
+      return 320;
+    });
+
+    let idx = 0;
+    function step() {
+      udHighlight(path[idx]);
+      idx++;
+      if (idx < path.length) setTimeout(step, delays[idx]);
+      else resolve();
+    }
+    setTimeout(step, delays[0]);
+  });
 }
 
 async function udGuess(dir) {
-  if (udWaiting) return;
-  udWaiting = true;
+  if (udBusy) return;
+  udBusy = true;
   udSetBtns(false);
+  document.getElementById('ud-result-msg').textContent = '🎲 돌아가는 중...';
+  document.getElementById('ud-result-msg').className = 'ud-result-msg';
 
-  const next = udDrawCard();
-  const cv = UD_VALUES[udCurrent.rank];
-  const nv = UD_VALUES[next.rank];
+  // 다음 숫자 결정 (현재와 다른 숫자 선호하되 랜덤)
+  let next = Math.ceil(Math.random() * 9);
 
-  // 같은 값이면 비겨서 정답 처리
-  const correct = (dir === 'up' && nv >= cv) || (dir === 'down' && nv <= cv);
+  await udAnimate(next);
 
-  // 새 카드 flip
-  document.getElementById('ud-card-flip').classList.remove('flipped');
-  await new Promise(r => setTimeout(r, 150));
-  udShowCard(next, false);
-  await new Promise(r => setTimeout(r, 400));
+  const correct = (dir === 'up' && next >= udCurrent) || (dir === 'down' && next <= udCurrent);
+  const msgEl = document.getElementById('ud-result-msg');
 
-  const resultEl = document.getElementById('ud-result');
   if (correct) {
+    udHighlight(next, 'result-win');
     udStreak++;
-    document.getElementById('ud-streak-val').textContent = udStreak;
-    resultEl.textContent = nv === cv ? '🟡 같은 값! (정답)' : (nv > cv ? `↑ ${next.rank}${next.suit} — 정답!` : `↓ ${next.rank}${next.suit} — 정답!`);
-    resultEl.className = 'ud-result win';
+    udSetScore(Math.min(udStreak, 999));
+    msgEl.textContent = next === udCurrent ? '🟡 같은 숫자! (정답)' : (next > udCurrent ? `↑ ${next} — 정답! 🎉` : `↓ ${next} — 정답! 🎉`);
+    msgEl.className = 'ud-result-msg win';
+    document.getElementById('ud-current-num').textContent = next;
     udCurrent = next;
-    await new Promise(r => setTimeout(r, 700));
-    resultEl.textContent = '';
-    udSetBtns(true);
-    udWaiting = false;
-  } else {
-    resultEl.textContent = `${nv > cv ? '↑' : '↓'} ${next.rank}${next.suit} — 틀렸어요!`;
-    resultEl.className = 'ud-result lose';
     await new Promise(r => setTimeout(r, 900));
-    udGameOver();
+    udHighlight(udCurrent);
+    msgEl.textContent = '';
+    udSetBtns(true);
+    udBusy = false;
+  } else {
+    udHighlight(next, 'result-lose');
+    msgEl.textContent = next > udCurrent ? `↑ ${next} — 아웃! 💥` : `↓ ${next} — 아웃! 💥`;
+    msgEl.className = 'ud-result-msg lose';
+    await new Promise(r => setTimeout(r, 1200));
+    udGameOver(next);
   }
 }
 
-function udGameOver() {
+function udGameOver(finalNum) {
   document.getElementById('ud-game-screen').style.display = 'none';
   document.getElementById('ud-over-screen').style.display = 'block';
   document.getElementById('ud-over-score').textContent = udStreak;
-  const msgs = ['아쉬워요 😅', '한 번 더! 💪', '惜しい！ 😤', '다음엔 꼭! 🔥', '아 진짜! 😂'];
+  const msgs = ['아쉬워요! 😅', '한 번 더! 💪', '다음엔 꼭! 🔥', '아 진짜! 😂', '거의 다 왔는데! 😤'];
   document.getElementById('ud-over-msg').textContent = udStreak === 0 ? '첫 판부터 아웃! 😱' : msgs[Math.floor(Math.random() * msgs.length)];
   udSaveScore(udName, udStreak);
   udRenderBoard();
-  udWaiting = false;
+  udBusy = false;
 }
 
 function udSaveScore(name, score) {
   if (score === 0) return;
-  const board = JSON.parse(localStorage.getItem('ud_board') || '[]');
-  const existing = board.find(r => r.name === name);
-  if (existing) {
-    if (score > existing.score) existing.score = score;
-  } else {
-    board.push({name, score});
-  }
+  const board = JSON.parse(localStorage.getItem('ud_board2') || '[]');
+  const ex = board.find(r => r.name === name);
+  if (ex) { if (score > ex.score) ex.score = score; }
+  else board.push({ name, score });
   board.sort((a, b) => b.score - a.score);
-  localStorage.setItem('ud_board', JSON.stringify(board.slice(0, 20)));
+  localStorage.setItem('ud_board2', JSON.stringify(board.slice(0, 20)));
 }
 
 function udRenderBoard() {
-  const board = JSON.parse(localStorage.getItem('ud_board') || '[]');
-  const el = document.getElementById('ud-board-list');
-  if (!board.length) { el.innerHTML = '<div class="ud-board-empty">아직 기록이 없습니다</div>'; return; }
-  const medals = ['gold','silver','bronze'];
+  const board = JSON.parse(localStorage.getItem('ud_board2') || '[]');
+  const el = document.getElementById('ud-lb-list');
+  if (!board.length) { el.innerHTML = '<div class="ud-lb-empty">아직 기록이 없습니다</div>'; return; }
   el.innerHTML = board.slice(0, 10).map((r, i) => `
-    <div class="ud-board-row">
-      <div class="ud-board-rank ${medals[i]||''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
-      <div class="ud-board-name">${r.name}</div>
-      <div class="ud-board-score">${r.score}연속</div>
+    <div class="ud-lb-row">
+      <div class="ud-lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="ud-lb-name">${r.name}</div>
+      <div class="ud-lb-score">${r.score}연속</div>
     </div>`).join('');
 }
 
 function udClearBoard() {
   if (!confirm('리더보드 기록을 초기화할까요?')) return;
-  localStorage.removeItem('ud_board');
+  localStorage.removeItem('ud_board2');
   udRenderBoard();
 }
 
 udRenderBoard();
 </script>
 </body>
+</html>
 </html>
