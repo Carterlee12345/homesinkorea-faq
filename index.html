@@ -276,7 +276,7 @@
       <button class="tab" onclick="switchTab('sim',this)">🌶️ 상담 체험</button>
       <button class="tab" onclick="switchTab('draft',this)">✍️ 초안 생성기</button>
       <button class="tab" onclick="switchTab('translate',this)">🌐 번역기</button>
-      <button class="tab" onclick="switchTab('updown',this)">🃏 업다운</button>
+      <button class="tab" onclick="switchTab('updown',this);udRenderBoard()">🃏 업다운</button>
     </div>
     <div class="tab-group">
       <span class="tab-group-label">관리</span>
@@ -5922,12 +5922,7 @@ function udClearBoard() {
   udRenderBoard();
 }
 
-// 탭 전환 시 리더보드 렌더
-const _origSwitch = switchTab;
-function switchTab(name, el) {
-  _origSwitch(name, el);
-  if (name === 'updown') udRenderBoard();
-}
+udRenderBoard();
 </script>
 </body>
 </html>
