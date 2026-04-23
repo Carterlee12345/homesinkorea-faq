@@ -84,18 +84,20 @@ function classify(text) {
   }
   return null;
 }
-async function ctGet(path) {
-  const res = await fetch(`https://api.channel.io${path}`, {
+async function ctGet(url, fullUrl=false) {
+  const endpoint = fullUrl ? url : `https://api.channel.io${url}`;
+  const res = await fetch(endpoint, {
     headers: { 'x-access-key': process.env.CHANNELTALK_ACCESS_KEY, 'x-access-secret': process.env.CHANNELTALK_ACCESS_SECRET },
   });
   if (!res.ok) throw new Error(`CT API ${res.status}: ${await res.text()}`);
   return res.json();
 }
-async function ctPost2(path, body) {
-  const res = await fetch(`https://api.channel.io${path}`, {
+async function ctPost2(chatId, text) {
+  // v5 API: user-chats/{id}/messages
+  const res = await fetch(`https://api.channel.io/open/v5/user-chats/${chatId}/messages`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-access-key': process.env.CHANNELTALK_ACCESS_KEY, 'x-access-secret': process.env.CHANNELTALK_ACCESS_SECRET },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ blocks: [{ type: 'text', value: text }], options: ['actAsManager'] }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`CT API ${res.status}: ${JSON.stringify(data)}`);
@@ -125,22 +127,27 @@ module.exports = async function handler(req, res) {
       const now = new Date();
       const since = new Date(now); since.setUTCDate(since.getUTCDate()-1); since.setUTCHours(9,0,0,0);
       const until = new Date(now); until.setUTCHours(1,0,0,0);
-      let allConvs = []; let cursor = null;
+      // v5 API로 user-chats 가져오기 (기존 코드와 동일한 버전)
+      let allConvs = []; let sinceParam = null;
       for (let p=0; p<5; p++) {
-        const url = `/open/v1/conversations?state=all&limit=50${cursor?`&cursor=${cursor}`:''}`;
-        const data = await ctGet(url);
-        allConvs = allConvs.concat(data.conversations||[]);
-        cursor = data.cursor;
-        if (!cursor || !(data.conversations||[]).length) break;
+        const url = new URL('https://api.channel.io/open/v5/user-chats');
+        url.searchParams.set('state','all'); url.searchParams.set('limit','50');
+        if (sinceParam) url.searchParams.set('since', sinceParam);
+        const data = await ctGet(url.toString(), true);
+        const chats = data.userChats||[];
+        allConvs = allConvs.concat(chats);
+        sinceParam = data.next||null;
+        if (!sinceParam || !chats.length) break;
       }
       const inRange = allConvs.filter(c=>{const t=c.createdAt||c.updatedAt;if(!t)return false;const ts=new Date(t).getTime();return ts>=since.getTime()&&ts<=until.getTime();});
       const filtered = [];
       for (const conv of inRange) {
         try {
-          const msgData = await ctGet(`/open/v1/conversations/${conv.id}/messages?limit=10`);
-          const userMsg = (msgData.messages||[]).find(m=>m.personType==='user'||m.personType==='guest');
+          const msgData = await ctGet(`https://api.channel.io/open/v5/user-chats/${conv.id}/messages?limit=10`, true);
+          const messages = msgData.messages||[];
+          const userMsg = messages.find(m=>m.personType==='user'||m.personType==='guest');
           if (!userMsg) continue;
-          const text = userMsg.plainText||userMsg.text||'';
+          const text = userMsg.plainText||(userMsg.blocks||[]).map(b=>b.value||'').join(' ')||'';
           const category = classify(text);
           if (!category) continue;
           const userName = conv.user?.name||conv.user?.profile?.name||conv.guest?.name||'이름없음';
@@ -204,7 +211,7 @@ module.exports = async function handler(req, res) {
       const convId = view.private_metadata;
       const replyText = view.state?.values?.reply_block?.reply_text?.value?.trim();
       if (replyText && convId) {
-        try { await ctPost2(`/open/v1/conversations/${convId}/messages`,{plainText:replyText}); }
+        try { await ctPost2(convId, replyText); }
         catch(e){ return res.status(200).json({response_action:'errors',errors:{reply_block:`전송 실패: ${e.message}`}}); }
       }
       return res.status(200).json({response_action:'clear'});
