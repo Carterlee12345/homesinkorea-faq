@@ -113,6 +113,24 @@ async function slackApi(endpoint, body) {
   return res.json();
 }
 
+/* ── RSS 파싱 ── */
+async function fetchRSS(url) {
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/rss+xml,application/xml,text/xml' } });
+  if (!res.ok) throw new Error(`RSS ${res.status}: ${url}`);
+  return res.text();
+}
+function parseRSSItems(xml, max) {
+  const items = [];
+  const blocks = xml.match(/<item[\s>][\s\S]*?<\/item>/g) || [];
+  for (const block of blocks.slice(0, max)) {
+    const title = (block.match(/<title><!\[CDATA\[([\s\S]*?)\]\]>/)?.[1] || block.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1] || '').replace(/<[^>]+>/g,'').trim();
+    const link  = (block.match(/<link>([\s\S]*?)<\/link>/)?.[1] || block.match(/<guid[^>]*>([\s\S]*?)<\/guid>/)?.[1] || '').trim();
+    const desc  = (block.match(/<description><!\[CDATA\[([\s\S]*?)\]\]>/)?.[1] || block.match(/<description[^>]*>([\s\S]*?)<\/description>/)?.[1] || '').replace(/<[^>]+>/g,'').trim().slice(0,80);
+    if (title) items.push({ title, link, desc });
+  }
+  return items;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -121,10 +139,50 @@ module.exports = async function handler(req, res) {
 
   const action = req.query.action || 'generate';
 
-  /* ── GET: 채널톡 오전 문의 다이제스트 (Vercel Cron) ── */
+  /* ── GET: 뉴스 브리핑 + 채널톡 오전 문의 다이제스트 (Vercel Cron 10:00 KST) ── */
   if (req.method === 'GET') {
     try {
       const now = new Date();
+      const [,channelId] = (process.env.SLACK_CX_BOT||'').split('|');
+      const dateStr = now.toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',month:'long',day:'numeric',weekday:'short'});
+
+      /* 1) 뉴스 브리핑 ─────────────────────────────── */
+      try {
+        const [sbsXml, aiXml] = await Promise.all([
+          fetchRSS('https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=00'),
+          fetchRSS('https://news.google.com/rss/search?q=AI+인공지능+ChatGPT&hl=ko&gl=KR&ceid=KR:ko'),
+        ]);
+        const sbsItems = parseRSSItems(sbsXml, 8);
+        const aiItems  = parseRSSItems(aiXml,  3);
+
+        const newsBlocks = [
+          { type:'header', text:{type:'plain_text', text:`📰 ${dateStr} 뉴스 브리핑`, emoji:true} },
+          { type:'divider' },
+        ];
+
+        if (sbsItems.length) {
+          newsBlocks.push({ type:'section', text:{type:'mrkdwn', text:'*📺 SBS 주요 뉴스*'} });
+          sbsItems.forEach((n,i)=>{
+            newsBlocks.push({ type:'section', text:{type:'mrkdwn',
+              text:`${i+1}. ${n.link ? `<${n.link}|${n.title}>` : n.title}${n.desc?`\n_${n.desc}…_`:''}`
+            }});
+          });
+          newsBlocks.push({ type:'divider' });
+        }
+
+        if (aiItems.length) {
+          newsBlocks.push({ type:'section', text:{type:'mrkdwn', text:'*🤖 AI & 테크 변화*'} });
+          aiItems.forEach((n,i)=>{
+            newsBlocks.push({ type:'section', text:{type:'mrkdwn',
+              text:`${i+1}. ${n.link ? `<${n.link}|${n.title}>` : n.title}${n.desc?`\n_${n.desc}…_`:''}`
+            }});
+          });
+        }
+
+        await slackApi('chat.postMessage',{channel:channelId, text:`📰 ${dateStr} 뉴스 브리핑`, blocks:newsBlocks});
+      } catch(e){ console.error('뉴스 fetch 오류:',e.message); }
+
+      /* 2) 채널톡 오전 문의 다이제스트 ────────────── */
       const since = new Date(now); since.setUTCDate(since.getUTCDate()-1); since.setUTCHours(9,0,0,0);
       const until = new Date(now); until.setUTCHours(1,0,0,0);
       // v5 API: 여러 상태별로 가져와서 합치기 (state=all 미지원)
@@ -161,8 +219,6 @@ module.exports = async function handler(req, res) {
           filtered.push({convId:conv.id,category,userName,message:text,createdAt:new Date(conv.createdAt||Date.now())});
         } catch(e){ console.warn(`conv ${conv.id}:`,e.message); }
       }
-      const [,channelId] = (process.env.SLACK_CX_BOT||'').split('|');
-      const dateStr = now.toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',month:'long',day:'numeric',weekday:'short'});
       if (!filtered.length) {
         await slackApi('chat.postMessage',{channel:channelId,text:`📋 ${dateStr} 오전 문의 — 없음`,blocks:[
           {type:'header',text:{type:'plain_text',text:`📋 ${dateStr} 오전 문의 정리`,emoji:true}},
