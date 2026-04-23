@@ -2,6 +2,12 @@
   "functions": {
     "api/*.js": { "maxDuration": 60 }
   },
+  "crons": [
+    {
+      "path": "/api/channeltalk-digest",
+      "schedule": "10 1 * * *"
+    }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/admin", "destination": "/admin.html" },
