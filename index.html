@@ -78,6 +78,30 @@
   .chart-wrap-lg{position:relative;height:360px}
   .table-scroll{overflow-x:auto}
   .updated-tag{font-size:.75rem;color:var(--gray-400);margin-left:auto}
+  /* ── 회의록 Rich Text Editor ── */
+  .mtg-toolbar{display:flex;flex-wrap:wrap;gap:3px;padding:8px 10px;border:1px solid var(--gray-200);border-radius:8px 8px 0 0;background:#f8fafc;align-items:center}
+  .mtg-tb-btn{padding:4px 9px;border:1px solid transparent;background:transparent;border-radius:5px;font-size:.82rem;cursor:pointer;color:var(--gray-700);transition:all .12s;min-width:28px;line-height:1.4;font-family:inherit}
+  .mtg-tb-btn:hover{background:var(--gray-100);border-color:var(--gray-200)}
+  .mtg-tb-btn.active{background:#eff6ff;color:var(--primary);border-color:#bfdbfe}
+  .mtg-tb-sep{width:1px;height:22px;background:var(--gray-200);align-self:center;margin:0 3px;flex-shrink:0;display:inline-block}
+  .mtg-tb-sel{padding:4px 8px;border:1px solid var(--gray-200);border-radius:5px;font-size:.82rem;background:#fff;cursor:pointer;color:var(--gray-700);font-family:inherit;height:28px}
+  #mtg-rich-editor{min-height:340px;max-height:600px;overflow-y:auto;border:1px solid var(--gray-200);border-top:none;border-radius:0 0 8px 8px;padding:16px 20px;font-size:.9rem;line-height:1.8;outline:none;font-family:inherit;color:var(--gray-800)}
+  #mtg-rich-editor:empty::before{content:attr(data-placeholder);color:var(--gray-400);pointer-events:none;display:block}
+  #mtg-rich-editor h1,#mtg-detail-content h1{font-size:1.6rem;font-weight:800;margin:16px 0 8px;color:var(--gray-800);line-height:1.3;border-bottom:2px solid var(--gray-100);padding-bottom:6px}
+  #mtg-rich-editor h2,#mtg-detail-content h2{font-size:1.25rem;font-weight:700;margin:14px 0 6px;color:var(--gray-800);line-height:1.4}
+  #mtg-rich-editor h3,#mtg-detail-content h3{font-size:1rem;font-weight:700;margin:12px 0 4px;color:var(--gray-800)}
+  #mtg-rich-editor ul,#mtg-detail-content ul,#mtg-rich-editor ol,#mtg-detail-content ol{padding-left:24px;margin:6px 0}
+  #mtg-rich-editor li,#mtg-detail-content li{margin:3px 0}
+  #mtg-rich-editor table,#mtg-detail-content table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.88rem}
+  #mtg-rich-editor td,#mtg-detail-content td,#mtg-rich-editor th,#mtg-detail-content th{border:1px solid var(--gray-300);padding:8px 12px;min-width:80px;vertical-align:top}
+  #mtg-rich-editor th,#mtg-detail-content th{background:var(--gray-100);font-weight:600;font-size:.82rem;color:var(--gray-600)}
+  #mtg-rich-editor details,#mtg-detail-content details{border:1px solid var(--gray-200);border-radius:8px;margin:8px 0;overflow:hidden}
+  #mtg-rich-editor details summary,#mtg-detail-content details summary{padding:10px 14px;cursor:pointer;font-weight:600;color:var(--gray-700);font-size:.9rem;background:#f8fafc;list-style:none;display:flex;align-items:center;gap:8px;user-select:none}
+  #mtg-rich-editor details summary::before,#mtg-detail-content details summary::before{content:'▶';font-size:.65rem;transition:transform .2s;flex-shrink:0;color:var(--gray-400)}
+  #mtg-rich-editor details[open] summary::before,#mtg-detail-content details[open] summary::before{transform:rotate(90deg)}
+  #mtg-rich-editor details .toggle-body,#mtg-detail-content details .toggle-body{padding:12px 16px;border-top:1px solid var(--gray-200);min-height:40px}
+  #mtg-rich-editor p{margin:2px 0}
+  #mtg-detail-content{font-size:.92rem;line-height:1.8;color:var(--gray-800);margin-bottom:20px;border-bottom:1px solid var(--gray-100);padding-bottom:20px}
   /* ── English FAQ accordion ── */
   .en-faq-intro{background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;
                  border-radius:10px;padding:16px 20px;margin-bottom:20px;font-size:.88rem;color:#0c4a6e}
@@ -1274,9 +1298,38 @@
               </div>
             </div>
           </div>
-          <div style="position:relative">
-            <textarea id="mtg-content" placeholder="회의 내용을 입력하세요..." rows="12" style="width:100%;padding:12px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:.9rem;font-family:inherit;resize:vertical;outline:none;line-height:1.7"></textarea>
-            <button id="mtg-voice-btn" onclick="mtgToggleVoice()" title="음성 입력" style="position:absolute;bottom:10px;right:10px;width:36px;height:36px;border-radius:50%;border:none;background:var(--gray-100);cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center">🎤</button>
+          <!-- 리치 텍스트 에디터 -->
+          <div>
+            <div class="mtg-toolbar">
+              <select id="mtg-fmt-block" class="mtg-tb-sel" onchange="mtgExecBlock(this.value)" title="텍스트 스타일">
+                <option value="p">본문</option>
+                <option value="h1">제목 1</option>
+                <option value="h2">제목 2</option>
+                <option value="h3">제목 3</option>
+              </select>
+              <span class="mtg-tb-sep"></span>
+              <button class="mtg-tb-btn" data-cmd="bold" onclick="mtgExecCmd('bold')" title="굵게 (Ctrl+B)"><b>B</b></button>
+              <button class="mtg-tb-btn" data-cmd="italic" onclick="mtgExecCmd('italic')" title="기울임 (Ctrl+I)"><i>I</i></button>
+              <button class="mtg-tb-btn" data-cmd="underline" onclick="mtgExecCmd('underline')" title="밑줄 (Ctrl+U)"><u>U</u></button>
+              <button class="mtg-tb-btn" data-cmd="strikeThrough" onclick="mtgExecCmd('strikeThrough')" title="취소선"><s>S</s></button>
+              <span class="mtg-tb-sep"></span>
+              <button class="mtg-tb-btn" onclick="mtgExecCmd('insertUnorderedList')" title="글머리 목록">• 목록</button>
+              <button class="mtg-tb-btn" onclick="mtgExecCmd('insertOrderedList')" title="번호 목록">① 목록</button>
+              <span class="mtg-tb-sep"></span>
+              <button class="mtg-tb-btn" onclick="mtgInsertTable()" title="표 삽입" style="font-size:.78rem">⊞ 표</button>
+              <button class="mtg-tb-btn" onclick="mtgInsertToggle()" title="토글 블록" style="font-size:.78rem">▶ 토글</button>
+              <span class="mtg-tb-sep"></span>
+              <button class="mtg-tb-btn" onclick="mtgExecCmd('removeFormat')" title="서식 제거" style="font-size:.73rem;color:var(--gray-500)">서식제거</button>
+              <span class="mtg-tb-sep"></span>
+              <div style="display:flex;align-items:center;gap:5px;margin-left:2px">
+                <label style="font-size:.72rem;color:var(--gray-500)">글자색</label>
+                <input type="color" value="#1f2937" title="글자색" onchange="mtgExecCmd('foreColor',this.value)" style="width:26px;height:26px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;padding:2px;background:#fff">
+                <label style="font-size:.72rem;color:var(--gray-500)">배경색</label>
+                <input type="color" value="#fef9c3" title="형광펜" onchange="mtgExecCmd('hiliteColor',this.value)" style="width:26px;height:26px;border:1px solid var(--gray-200);border-radius:4px;cursor:pointer;padding:2px;background:#fff">
+              </div>
+              <button id="mtg-voice-btn" onclick="mtgToggleVoice()" title="음성 입력" style="margin-left:auto;padding:4px 10px;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;font-size:.8rem;display:flex;align-items:center;gap:4px;white-space:nowrap">🎤 음성</button>
+            </div>
+            <div id="mtg-rich-editor" contenteditable="true" data-placeholder="회의 내용을 입력하세요... (표, 토글 등 툴바에서 삽입 가능)" onkeydown="mtgEditorKeydown(event)" oninput="mtgUpdateToolbar()" onmouseup="mtgUpdateToolbar()" onkeyup="mtgUpdateToolbar()"><p><br></p></div>
           </div>
           <!-- 첨부파일 -->
           <div>
@@ -1303,7 +1356,7 @@
           <button id="mtg-edit-btn" onclick="mtgOpenEditorFromDetail()" style="padding:6px 14px;background:var(--gray-100);border:none;border-radius:8px;font-size:.82rem;cursor:pointer;font-weight:600">✏️ 수정</button>
           <button onclick="mtgDeleteCurrent()" style="padding:6px 14px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;font-weight:600">🗑 삭제</button>
         </div>
-        <div id="mtg-detail-content" style="font-size:.92rem;line-height:1.8;color:var(--gray-800);margin-bottom:20px;white-space:pre-wrap;border-bottom:1px solid var(--gray-100);padding-bottom:20px"></div>
+        <div id="mtg-detail-content"></div>
         <div id="mtg-detail-attachments" style="margin-bottom:20px"></div>
         <!-- 댓글 -->
         <div style="font-size:.88rem;font-weight:700;color:var(--gray-700);margin-bottom:12px">💬 댓글 <span id="mtg-comment-count" style="color:var(--gray-400);font-weight:400"></span></div>
@@ -4161,7 +4214,8 @@ function mtgOpenEditor(id){
   document.getElementById('mtg-editor-title-label').textContent=id?'회의록 수정':'새 회의록';
   document.getElementById('mtg-title').value='';
   document.getElementById('mtg-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('mtg-content').value='';
+  const editor=document.getElementById('mtg-rich-editor');
+  editor.innerHTML='<p><br></p>';
   document.getElementById('mtg-tag-chips').innerHTML='<input id="mtg-tag-input" placeholder="주제 태그 입력 후 Enter" style="border:none;outline:none;font-size:.84rem;font-family:inherit;flex:1;min-width:100px;background:transparent" onkeydown="mtgTagKeydown(event)">';
   document.getElementById('mtg-attachments').innerHTML='';
   if(id){
@@ -4171,13 +4225,63 @@ function mtgOpenEditor(id){
         const m=d.meeting;
         document.getElementById('mtg-title').value=m.title||'';
         document.getElementById('mtg-date').value=m.date||'';
-        document.getElementById('mtg-content').value=m.content||'';
+        // backward compat: plain text → HTML
+        const content=m.content||'';
+        editor.innerHTML=/<[a-z][\s\S]*>/i.test(content)
+          ? content
+          : content.split('\n').map(l=>`<p>${l||'<br>'}</p>`).join('');
         mtgAttachments=m.attachments||[];
         (m.tags||[]).forEach(t=>mtgAddTagChip(t));
         renderMtgAttachmentPreviews();
       });
   }
   mtgShowView('mtg-editor-view');
+}
+
+/* ── Rich editor helpers ── */
+function mtgExecCmd(cmd, val){
+  document.getElementById('mtg-rich-editor').focus();
+  document.execCommand(cmd, false, val||null);
+  mtgUpdateToolbar();
+}
+function mtgExecBlock(tag){
+  document.getElementById('mtg-rich-editor').focus();
+  document.execCommand('formatBlock', false, tag==='p'?'<p>':'<'+tag+'>');
+  document.getElementById('mtg-fmt-block').value=tag;
+}
+function mtgUpdateToolbar(){
+  try{
+    ['bold','italic','underline','strikeThrough'].forEach(cmd=>{
+      const btn=document.querySelector(`.mtg-tb-btn[data-cmd="${cmd}"]`);
+      if(btn) btn.classList.toggle('active', document.queryCommandState(cmd));
+    });
+    const block=(document.queryCommandValue('formatBlock')||'').toLowerCase().replace(/[<>]/g,'');
+    const sel=document.getElementById('mtg-fmt-block');
+    if(sel) sel.value=['h1','h2','h3'].includes(block)?block:'p';
+  }catch(e){}
+}
+function mtgEditorKeydown(e){
+  // Tab key → indent or insert 2 spaces
+  if(e.key==='Tab'){e.preventDefault();document.execCommand('insertText',false,'  ');}
+}
+function mtgInsertTable(){
+  document.getElementById('mtg-rich-editor').focus();
+  const input=prompt('표 크기 (행×열, 예: 3x4)','3x3');
+  if(!input) return;
+  const parts=input.split(/[xX×]/);
+  const rows=Math.min(20,Math.max(1,parseInt(parts[0])||3));
+  const cols=Math.min(10,Math.max(1,parseInt(parts[1])||3));
+  let html='<table><thead><tr>';
+  for(let i=0;i<cols;i++) html+=`<th>헤더${i+1}</th>`;
+  html+='</tr></thead><tbody>';
+  for(let r=0;r<rows-1;r++){html+='<tr>';for(let c=0;c<cols;c++)html+='<td><br></td>';html+='</tr>';}
+  html+='</tbody></table><p><br></p>';
+  document.execCommand('insertHTML',false,html);
+}
+function mtgInsertToggle(){
+  document.getElementById('mtg-rich-editor').focus();
+  const html='<details open><summary>📌 토글 제목을 입력하세요</summary><div class="toggle-body"><p>내용을 입력하세요</p></div></details><p><br></p>';
+  document.execCommand('insertHTML',false,html);
 }
 
 function mtgCloseEditor(){mtgShowView('mtg-list-view');}
@@ -4214,7 +4318,7 @@ function mtgRemoveTag(tag){
 async function mtgSave(){
   const title=document.getElementById('mtg-title').value.trim();
   const date=document.getElementById('mtg-date').value;
-  const content=document.getElementById('mtg-content').value.trim();
+  const content=document.getElementById('mtg-rich-editor').innerHTML.trim();
   if(!title){alert('제목을 입력해주세요.');return;}
   const btn=document.getElementById('mtg-save-btn');
   btn.disabled=true; btn.textContent='저장 중...';
@@ -4267,18 +4371,19 @@ function mtgToggleVoice(){
   mtgRecog=new SR();
   mtgRecog.lang='ko-KR'; mtgRecog.continuous=true; mtgRecog.interimResults=true;
   const btn=document.getElementById('mtg-voice-btn');
-  const textarea=document.getElementById('mtg-content');
-  let base=textarea.value;
-  mtgRecog.onstart=()=>{mtgVoiceActive=true;btn.style.background='#fee2e2';btn.textContent='⏹';};
+  const editor=document.getElementById('mtg-rich-editor');
+  editor.focus();
+  let finalText='';
+  mtgRecog.onstart=()=>{mtgVoiceActive=true;btn.style.background='#fee2e2';btn.innerHTML='⏹ 중지';};
   mtgRecog.onresult=e=>{
-    let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal) base+=(base?'\n':'')+e.results[i][0].transcript;
-      else interim=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalText+=e.results[i][0].transcript;
     }
-    textarea.value=base+(interim?' '+interim:'');
   };
-  mtgRecog.onend=()=>{mtgVoiceActive=false;btn.style.background='var(--gray-100)';btn.textContent='🎤';textarea.value=base;};
+  mtgRecog.onend=()=>{
+    mtgVoiceActive=false;btn.style.background='var(--gray-100)';btn.innerHTML='🎤 음성';
+    if(finalText){editor.focus();document.execCommand('insertText',false,finalText);}
+  };
   mtgRecog.start();
 }
 
@@ -4315,7 +4420,14 @@ function renderMtgDetail(){
   document.getElementById('mtg-detail-title').textContent=m.title||'(제목 없음)';
   const tags=(m.tags||[]).map(t=>`<span style="background:#eff6ff;color:#1d4ed8;padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:600">${t}</span>`).join('');
   document.getElementById('mtg-detail-meta').innerHTML=`<span>📅 ${m.date||''}</span><span>✍️ ${m.authorNickname||''}</span>${tags}`;
-  document.getElementById('mtg-detail-content').textContent=m.content||'';
+  const rawContent=m.content||'';
+  const detailEl=document.getElementById('mtg-detail-content');
+  if(/<[a-z][\s\S]*>/i.test(rawContent)){
+    detailEl.innerHTML=rawContent;
+  } else {
+    // 구버전 plain text → pre 태그로 렌더링
+    detailEl.innerHTML=rawContent?`<pre style="white-space:pre-wrap;font-family:inherit;margin:0;font-size:.92rem;line-height:1.8">${rawContent.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`:'<span style="color:var(--gray-400);font-size:.88rem">내용이 없습니다.</span>';
+  }
   // attachments
   const attEl=document.getElementById('mtg-detail-attachments');
   attEl.innerHTML=(m.attachments||[]).map(a=>{
