@@ -4,11 +4,12 @@
   },
   "crons": [
     {
-      "path": "/api/channeltalk-digest",
+      "path": "/api/broadcast",
       "schedule": "10 1 * * *"
     }
   ],
   "rewrites": [
+    { "source": "/api/slack-action", "destination": "/api/broadcast" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/admin", "destination": "/admin.html" },
     { "source": "/deposit-form", "destination": "/deposit-form.html" },

@@ -67,14 +67,152 @@ async function fetchAllUserChats(key, secret) {
   return chats;
 }
 
+/* ── 채널톡 키워드 분류 ── */
+const KEYWORDS = {
+  '📅 예약문의': ['예약','투어','방문','견학','구경','스케줄','날짜','언제','몇시','시간',
+    'tour','visit','schedule','booking','reservation','when','available','exchange','semester','appointment'],
+  '📝 계약문의': ['계약','서류','입금','사인','확정','진행','결정','보내주','작성',
+    'contract','sign','document','deposit','proceed','confirm','move in','move-in','lease','agreement'],
+  '🏠 집문의': ['보증금','월세','방','원룸','투룸','쓰리룸','관리비','층','크기','주소','위치','가격','얼마','시설','주차','반려','옵션','넓이','평',
+    'rent','room','studio','price','how much','fee','floor','size','location','address','recommend','budget','furnished','utility','available','vacancy','apartment','unit'],
+};
+function classify(text) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  for (const [cat, kws] of Object.entries(KEYWORDS)) {
+    if (kws.some(kw => lower.includes(kw))) return cat;
+  }
+  return null;
+}
+async function ctGet(path) {
+  const res = await fetch(`https://api.channel.io${path}`, {
+    headers: { 'x-access-key': process.env.CHANNELTALK_ACCESS_KEY, 'x-access-secret': process.env.CHANNELTALK_ACCESS_SECRET },
+  });
+  if (!res.ok) throw new Error(`CT API ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+async function ctPost2(path, body) {
+  const res = await fetch(`https://api.channel.io${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-access-key': process.env.CHANNELTALK_ACCESS_KEY, 'x-access-secret': process.env.CHANNELTALK_ACCESS_SECRET },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`CT API ${res.status}: ${JSON.stringify(data)}`);
+  return data;
+}
+async function slackApi(endpoint, body) {
+  const [token] = (process.env.SLACK_CX_BOT || '').split('|');
+  const res = await fetch(`https://slack.com/api/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const action = req.query.action || 'generate';
+
+  /* ── GET: 채널톡 오전 문의 다이제스트 (Vercel Cron) ── */
+  if (req.method === 'GET') {
+    try {
+      const now = new Date();
+      const since = new Date(now); since.setUTCDate(since.getUTCDate()-1); since.setUTCHours(9,0,0,0);
+      const until = new Date(now); until.setUTCHours(1,0,0,0);
+      let allConvs = []; let cursor = null;
+      for (let p=0; p<5; p++) {
+        const url = `/open/v1/conversations?state=all&limit=50${cursor?`&cursor=${cursor}`:''}`;
+        const data = await ctGet(url);
+        allConvs = allConvs.concat(data.conversations||[]);
+        cursor = data.cursor;
+        if (!cursor || !(data.conversations||[]).length) break;
+      }
+      const inRange = allConvs.filter(c=>{const t=c.createdAt||c.updatedAt;if(!t)return false;const ts=new Date(t).getTime();return ts>=since.getTime()&&ts<=until.getTime();});
+      const filtered = [];
+      for (const conv of inRange) {
+        try {
+          const msgData = await ctGet(`/open/v1/conversations/${conv.id}/messages?limit=10`);
+          const userMsg = (msgData.messages||[]).find(m=>m.personType==='user'||m.personType==='guest');
+          if (!userMsg) continue;
+          const text = userMsg.plainText||userMsg.text||'';
+          const category = classify(text);
+          if (!category) continue;
+          const userName = conv.user?.name||conv.user?.profile?.name||conv.guest?.name||'이름없음';
+          filtered.push({convId:conv.id,category,userName,message:text,createdAt:new Date(conv.createdAt||Date.now())});
+        } catch(e){ console.warn(`conv ${conv.id}:`,e.message); }
+      }
+      const [,channelId] = (process.env.SLACK_CX_BOT||'').split('|');
+      const dateStr = now.toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul',month:'long',day:'numeric',weekday:'short'});
+      if (!filtered.length) {
+        await slackApi('chat.postMessage',{channel:channelId,text:`📋 ${dateStr} 오전 문의 — 없음`,blocks:[
+          {type:'header',text:{type:'plain_text',text:`📋 ${dateStr} 오전 문의 정리`,emoji:true}},
+          {type:'context',elements:[{type:'mrkdwn',text:'어젯밤 18:00 ~ 오늘 10:00 | 예약 · 계약 · 집문의 분류'}]},
+          {type:'divider'},{type:'section',text:{type:'mrkdwn',text:'✅ 해당 시간대에 분류된 문의가 없습니다.'}}
+        ]});
+        return res.status(200).json({sent:0,inRange:inRange.length});
+      }
+      const blocks = [
+        {type:'header',text:{type:'plain_text',text:`📋 ${dateStr} 오전 문의 정리 — 총 ${filtered.length}건`,emoji:true}},
+        {type:'context',elements:[{type:'mrkdwn',text:'어젯밤 18:00 ~ 오늘 10:00 | 예약 · 계약 · 집문의 | *답장하기* 로 채널톡 직접 답장'}]},
+        {type:'divider'},
+      ];
+      for (const item of filtered) {
+        const timeStr = item.createdAt.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'});
+        const preview = item.message.length>120?item.message.slice(0,120)+'…':item.message;
+        blocks.push({type:'section',text:{type:'mrkdwn',text:`${item.category}  |  👤 *${item.userName}*  |  🕐 ${timeStr}\n> ${preview}`},
+          accessory:{type:'button',text:{type:'plain_text',text:'✏️ 답장하기',emoji:true},style:'primary',value:item.convId,action_id:'reply_to_ct'}});
+        blocks.push({type:'divider'});
+      }
+      const r = await slackApi('chat.postMessage',{channel:channelId,text:`📋 ${dateStr} 오전 문의 — ${filtered.length}건`,blocks});
+      if (!r.ok) return res.status(500).json({error:'Slack 전송 실패',detail:r.error});
+      return res.status(200).json({sent:filtered.length,inRange:inRange.length});
+    } catch(e){ console.error('digest error:',e); return res.status(500).json({error:e.message}); }
+  }
+
+  /* ── POST: Slack 인터랙티브 액션 (답장하기 버튼) ── */
+  if (req.method === 'POST' && (req.body?.payload || req.query.action === 'slack-action')) {
+    let payload;
+    try {
+      if (req.body?.payload) payload = typeof req.body.payload==='string'?JSON.parse(req.body.payload):req.body.payload;
+      else if (typeof req.body==='string') { const p=new URLSearchParams(req.body); payload=JSON.parse(p.get('payload')||'{}'); }
+      else payload = req.body;
+    } catch(e){ return res.status(400).json({error:'Bad payload'}); }
+    const {type,trigger_id,actions,view} = payload;
+    if (type==='block_actions' && actions?.[0]?.action_id==='reply_to_ct') {
+      const convId = actions[0].value;
+      await slackApi('views.open',{trigger_id,view:{
+        type:'modal',callback_id:'send_reply',private_metadata:convId,
+        title:{type:'plain_text',text:'채널톡 답장',emoji:true},
+        submit:{type:'plain_text',text:'📤 전송',emoji:true},
+        close:{type:'plain_text',text:'취소',emoji:true},
+        blocks:[
+          {type:'section',text:{type:'mrkdwn',text:'💬 *채널톡 대화에 직접 답장*됩니다.\n고객에게 보낼 메시지를 입력해주세요.'}},
+          {type:'input',block_id:'reply_block',label:{type:'plain_text',text:'답장 내용',emoji:true},
+            element:{type:'plain_text_input',action_id:'reply_text',multiline:true,min_length:1,
+              placeholder:{type:'plain_text',text:'예) 안녕하세요! 문의 주셔서 감사합니다...'}}}
+        ]
+      }});
+      return res.status(200).end();
+    }
+    if (type==='view_submission' && view?.callback_id==='send_reply') {
+      const convId = view.private_metadata;
+      const replyText = view.state?.values?.reply_block?.reply_text?.value?.trim();
+      if (replyText && convId) {
+        try { await ctPost2(`/open/v1/conversations/${convId}/messages`,{plainText:replyText}); }
+        catch(e){ return res.status(200).json({response_action:'errors',errors:{reply_block:`전송 실패: ${e.message}`}}); }
+      }
+      return res.status(200).json({response_action:'clear'});
+    }
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   // ── generate ──
   if (action === 'generate') {
