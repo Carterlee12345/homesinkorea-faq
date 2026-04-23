@@ -127,18 +127,25 @@ module.exports = async function handler(req, res) {
       const now = new Date();
       const since = new Date(now); since.setUTCDate(since.getUTCDate()-1); since.setUTCHours(9,0,0,0);
       const until = new Date(now); until.setUTCHours(1,0,0,0);
-      // v5 API로 user-chats 가져오기 (기존 코드와 동일한 버전)
-      let allConvs = []; let sinceParam = null;
-      for (let p=0; p<5; p++) {
-        const url = new URL('https://api.channel.io/open/v5/user-chats');
-        url.searchParams.set('state','all'); url.searchParams.set('limit','50');
-        if (sinceParam) url.searchParams.set('since', sinceParam);
-        const data = await ctGet(url.toString(), true);
-        const chats = data.userChats||[];
-        allConvs = allConvs.concat(chats);
-        sinceParam = data.next||null;
-        if (!sinceParam || !chats.length) break;
+      // v5 API: 여러 상태별로 가져와서 합치기 (state=all 미지원)
+      const STATES = ['initial','opened','closed','missed'];
+      let allConvs = [];
+      for (const state of STATES) {
+        let sinceParam = null;
+        for (let p=0; p<3; p++) {
+          const url = new URL('https://api.channel.io/open/v5/user-chats');
+          url.searchParams.set('state', state); url.searchParams.set('limit','50');
+          if (sinceParam) url.searchParams.set('since', sinceParam);
+          const data = await ctGet(url.toString(), true);
+          const chats = data.userChats||[];
+          allConvs = allConvs.concat(chats);
+          sinceParam = data.next||null;
+          if (!sinceParam || !chats.length) break;
+        }
       }
+      // 중복 제거
+      const seen = new Set();
+      allConvs = allConvs.filter(c=>{ if(seen.has(c.id)) return false; seen.add(c.id); return true; });
       const inRange = allConvs.filter(c=>{const t=c.createdAt||c.updatedAt;if(!t)return false;const ts=new Date(t).getTime();return ts>=since.getTime()&&ts<=until.getTime();});
       const filtered = [];
       for (const conv of inRange) {
