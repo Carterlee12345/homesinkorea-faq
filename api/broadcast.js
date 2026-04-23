@@ -113,20 +113,42 @@ async function slackApi(endpoint, body) {
   return res.json();
 }
 
-/* ── RSS 파싱 ── */
-async function fetchRSS(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/rss+xml,application/xml,text/xml' } });
-  if (!res.ok) throw new Error(`RSS ${res.status}: ${url}`);
-  return res.text();
-}
-function parseRSSItems(xml, max) {
+/* ── 네이버 뉴스 랭킹 스크래핑 ── */
+async function fetchNaverRanking(sectionId, max) {
+  // sectionId: '' = 전체, '105' = IT/과학
+  const url = `https://news.naver.com/main/ranking/popularDay.naver${sectionId ? `?sectionId=${sectionId}` : ''}`;
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml',
+      'Accept-Language': 'ko-KR,ko;q=0.9',
+    }
+  });
+  if (!res.ok) throw new Error(`Naver ranking ${res.status}`);
+  const html = await res.text();
   const items = [];
-  const blocks = xml.match(/<item[\s>][\s\S]*?<\/item>/g) || [];
-  for (const block of blocks.slice(0, max)) {
-    const title = (block.match(/<title><!\[CDATA\[([\s\S]*?)\]\]>/)?.[1] || block.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1] || '').replace(/<[^>]+>/g,'').trim();
-    const link  = (block.match(/<link>([\s\S]*?)<\/link>/)?.[1] || block.match(/<guid[^>]*>([\s\S]*?)<\/guid>/)?.[1] || '').trim();
-    const desc  = (block.match(/<description><!\[CDATA\[([\s\S]*?)\]\]>/)?.[1] || block.match(/<description[^>]*>([\s\S]*?)<\/description>/)?.[1] || '').replace(/<[^>]+>/g,'').trim().slice(0,80);
-    if (title) items.push({ title, link, desc });
+  const seen = new Set();
+
+  // 패턴1: rankingnews_tit (PC버전)
+  const p1 = /class="rankingnews_tit[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+  // 패턴2: 네이버 기사 링크 + 제목 (href 먼저)
+  const p2 = /href="(https?:\/\/n\.news\.naver\.com\/[^"]+)"[^>]*>\s*<strong[^>]*>([\s\S]*?)<\/strong>/g;
+  // 패턴3: 뉴스 기사 링크와 텍스트 (일반)
+  const p3 = /href="(https?:\/\/n\.news\.naver\.com\/mnews\/article\/[^"]+)"[^>]*>([^<]{8,120})<\/a>/g;
+
+  for (const pattern of [p1, p2, p3]) {
+    pattern.lastIndex = 0;
+    let m;
+    while ((m = pattern.exec(html)) !== null) {
+      let link = m[1].trim();
+      const title = m[2].replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim();
+      if (!title || title.length < 5 || seen.has(title)) continue;
+      if (link.startsWith('/')) link = 'https://news.naver.com' + link;
+      seen.add(title);
+      items.push({ title, link });
+      if (items.length >= max) break;
+    }
+    if (items.length >= max) break;
   }
   return items;
 }
@@ -148,13 +170,11 @@ module.exports = async function handler(req, res) {
 
       /* 1) 뉴스 브리핑 ─────────────────────────────── */
       try {
-        // 네이버 뉴스 RSS: SBS(oid=055), AI/IT과학(sid1=105)
-        const [sbsXml, aiXml] = await Promise.all([
-          fetchRSS('https://rss.news.naver.com/rss.nhn?oid=055'),
-          fetchRSS('https://rss.news.naver.com/rss.nhn?sid1=105'),
+        // 네이버 뉴스 랭킹 스크래핑: 전체 TOP8, IT/과학 TOP3
+        const [sbsItems, aiItems] = await Promise.all([
+          fetchNaverRanking('', 8),    // 전체 인기뉴스 TOP8
+          fetchNaverRanking('105', 3), // IT/과학 인기뉴스 TOP3
         ]);
-        const sbsItems = parseRSSItems(sbsXml, 8);
-        const aiItems  = parseRSSItems(aiXml,  3);
 
         const newsBlocks = [
           { type:'header', text:{type:'plain_text', text:`📰 ${dateStr} 뉴스 브리핑`, emoji:true} },
