@@ -148,9 +148,10 @@ module.exports = async function handler(req, res) {
 
       /* 1) 뉴스 브리핑 ─────────────────────────────── */
       try {
+        // 네이버 뉴스 RSS: SBS(oid=055), AI/IT과학(sid1=105)
         const [sbsXml, aiXml] = await Promise.all([
-          fetchRSS('https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=00'),
-          fetchRSS('https://news.google.com/rss/search?q=AI+인공지능+ChatGPT&hl=ko&gl=KR&ceid=KR:ko'),
+          fetchRSS('https://rss.news.naver.com/rss.nhn?oid=055'),
+          fetchRSS('https://rss.news.naver.com/rss.nhn?sid1=105'),
         ]);
         const sbsItems = parseRSSItems(sbsXml, 8);
         const aiItems  = parseRSSItems(aiXml,  3);
